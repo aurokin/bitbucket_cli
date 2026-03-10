@@ -18,6 +18,7 @@ func newAuthCmd() *cobra.Command {
 	authCmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage authentication",
+		Long:  "Manage Bitbucket Cloud authentication using Atlassian API tokens.",
 	}
 
 	authCmd.AddCommand(
@@ -68,6 +69,9 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Store credentials for a Bitbucket host",
+		Long:  "Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email.",
+		Example: "  bb auth login --username you@example.com --with-token\n" +
+			"  bb auth login --username you@example.com --token $BITBUCKET_TOKEN",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resolvedToken, err := resolveTokenValue(cmd.InOrStdin(), token, tokenFromStdin)
 			if err != nil {
@@ -103,6 +107,7 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&tokenFromStdin, "with-token", false, "Read the API token from stdin")
 	cmd.Flags().StringVar(&username, "username", "", "Atlassian account email associated with the API token")
 	cmd.Flags().BoolVar(&setDefault, "default", true, "Set this host as the default")
+	cmd.MarkFlagsMutuallyExclusive("token", "with-token")
 
 	return cmd
 }
@@ -115,6 +120,9 @@ func newAuthStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show stored authentication status",
+		Example: "  bb auth status\n" +
+			"  bb auth status --check --json\n" +
+			"  bb auth status --host bitbucket.org",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -188,6 +196,8 @@ func newAuthLogoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Remove stored credentials for a Bitbucket host",
+		Example: "  bb auth logout\n" +
+			"  bb auth logout --host bitbucket.org",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -225,7 +235,7 @@ func resolveTokenValue(r io.Reader, token string, tokenFromStdin bool) (string, 
 	}
 
 	if !tokenFromStdin {
-		return "", fmt.Errorf("provide --token or --with-token")
+		return "", fmt.Errorf("provide an API token with --token or pass --with-token to read it from stdin")
 	}
 
 	data, err := io.ReadAll(r)
@@ -235,7 +245,7 @@ func resolveTokenValue(r io.Reader, token string, tokenFromStdin bool) (string, 
 
 	trimmed = strings.TrimSpace(string(data))
 	if trimmed == "" {
-		return "", fmt.Errorf("stdin token was empty")
+		return "", fmt.Errorf("stdin did not contain an API token")
 	}
 
 	return trimmed, nil

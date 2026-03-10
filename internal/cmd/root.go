@@ -11,6 +11,8 @@ func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:           "bb",
 		Short:         "Bitbucket CLI",
+		Long:          "bb is a Bitbucket Cloud CLI for humans and automation. Use --json and --jq for structured output.",
+		Example:       "  bb auth login --username you@example.com --with-token\n  bb repo view\n  bb pr list --json id,title,state\n  bb api /user",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}

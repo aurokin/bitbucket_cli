@@ -18,6 +18,7 @@ func newRepoCmd() *cobra.Command {
 	repoCmd := &cobra.Command{
 		Use:   "repo",
 		Short: "Work with Bitbucket repositories",
+		Long:  "Inspect and create Bitbucket repositories.",
 	}
 
 	repoCmd.AddCommand(
@@ -37,6 +38,11 @@ func newRepoViewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view",
 		Short: "Show repository information",
+		Long:  "Show repository information from Bitbucket Cloud. When run inside a git checkout, local remote details are included in the output.",
+		Example: "  bb repo view\n" +
+			"  bb repo view --workspace OhBizzle --repo bb-cli-integration-primary\n" +
+			"  bb repo view --json name,project_key,main_branch",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -200,6 +206,10 @@ type repoViewPayload struct {
 }
 
 func resolveRepoViewTarget(ctx context.Context, host, workspace, repo string) (*gitrepo.RepoContext, string, string, string, error) {
+	if err := validateRepoSelector(workspace, repo); err != nil {
+		return nil, "", "", "", err
+	}
+
 	if workspace != "" && repo != "" {
 		return nil, host, workspace, repo, nil
 	}
@@ -211,7 +221,7 @@ func resolveRepoViewTarget(ctx context.Context, host, workspace, repo string) (*
 
 	localRepo, err := gitrepo.ResolveRepoContext(ctx, currentDir)
 	if err != nil {
-		return nil, "", "", "", fmt.Errorf("resolve repository from flags or git remote: %w", err)
+		return nil, "", "", "", fmt.Errorf("could not determine the repository from the current directory; run inside a Bitbucket git checkout or pass --workspace and --repo")
 	}
 
 	resolvedHost := host
@@ -254,7 +264,10 @@ func newRepoCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <slug>",
 		Short: "Create a repository in Bitbucket Cloud",
-		Args:  cobra.ExactArgs(1),
+		Long:  "Create a repository in Bitbucket Cloud. Use --reuse-existing when the command may be run repeatedly.",
+		Example: "  bb repo create my-repo --workspace OhBizzle --project-key BBCLI\n" +
+			"  bb repo create my-repo --workspace OhBizzle --reuse-existing --json",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {

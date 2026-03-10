@@ -20,6 +20,7 @@ func newPRCmd() *cobra.Command {
 	prCmd := &cobra.Command{
 		Use:   "pr",
 		Short: "Work with pull requests",
+		Long:  "List, view, create, and check out Bitbucket pull requests.",
 	}
 
 	prCmd.AddCommand(
@@ -43,6 +44,10 @@ func newPRListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List pull requests for a repository",
+		Example: "  bb pr list\n" +
+			"  bb pr list --workspace OhBizzle --repo bb-cli-integration-primary\n" +
+			"  bb pr list --state ALL --json id,title,state",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -127,7 +132,10 @@ func newPRCheckoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "checkout <id>",
 		Short: "Check out a pull request locally",
-		Args:  cobra.ExactArgs(1),
+		Long:  "Fetch the pull request source branch from the current repository's remote and switch to it locally.",
+		Example: "  bb pr checkout 1\n" +
+			"  bb pr checkout 1 --workspace OhBizzle --repo bb-cli-integration-primary",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prID, err := strconv.Atoi(args[0])
 			if err != nil || prID <= 0 {
@@ -141,7 +149,7 @@ func newPRCheckoutCmd() *cobra.Command {
 
 			repoContext, err := gitrepo.ResolveRepoContext(context.Background(), currentDir)
 			if err != nil {
-				return err
+				return fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
 			}
 
 			resolvedHost := host
@@ -213,6 +221,11 @@ func newPRCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a pull request",
+		Long:  "Create a pull request in Bitbucket Cloud. The source branch defaults to the current branch and the destination defaults to the repository main branch.",
+		Example: "  bb pr create --title 'Add feature'\n" +
+			"  bb pr create --source feature --destination main --description 'Ready for review'\n" +
+			"  bb pr create --reuse-existing --json",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -323,7 +336,10 @@ func newPRViewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view <id>",
 		Short: "View a pull request",
-		Args:  cobra.ExactArgs(1),
+		Example: "  bb pr view 1\n" +
+			"  bb pr view 1 --json title,state,source,destination\n" +
+			"  bb pr view 1 --workspace OhBizzle --repo bb-cli-integration-primary",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -415,6 +431,10 @@ func newPRViewCmd() *cobra.Command {
 }
 
 func resolvePRRepository(ctx context.Context, host, workspace, repo string) (string, string, string, error) {
+	if err := validateRepoSelector(workspace, repo); err != nil {
+		return "", "", "", err
+	}
+
 	if workspace != "" && repo != "" {
 		return host, workspace, repo, nil
 	}
@@ -426,7 +446,7 @@ func resolvePRRepository(ctx context.Context, host, workspace, repo string) (str
 
 	repoContext, err := gitrepo.ResolveRepoContext(ctx, currentDir)
 	if err != nil {
-		return "", "", "", fmt.Errorf("resolve repository from flags or git remote: %w", err)
+		return "", "", "", fmt.Errorf("could not determine the repository from the current directory; run inside a Bitbucket git checkout or pass --workspace and --repo")
 	}
 
 	resolvedHost := host

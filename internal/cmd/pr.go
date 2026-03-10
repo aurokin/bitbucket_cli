@@ -26,7 +26,7 @@ func newPRCmd() *cobra.Command {
 		newPRListCmd(),
 		newPRViewCmd(),
 		newPRCreateCmd(),
-		newStubCommand("checkout", "Check out a pull request locally", "pr checkout"),
+		newPRCheckoutCmd(),
 	)
 
 	return prCmd
@@ -115,6 +115,84 @@ func newPRListCmd() *cobra.Command {
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
 	cmd.Flags().StringVar(&state, "state", "OPEN", "Filter pull requests by state: OPEN, MERGED, DECLINED, SUPERSEDED, or ALL")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Maximum number of pull requests to return")
+
+	return cmd
+}
+
+func newPRCheckoutCmd() *cobra.Command {
+	var host string
+	var workspace string
+	var repo string
+
+	cmd := &cobra.Command{
+		Use:   "checkout <id>",
+		Short: "Check out a pull request locally",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			prID, err := strconv.Atoi(args[0])
+			if err != nil || prID <= 0 {
+				return fmt.Errorf("invalid pull request ID %q", args[0])
+			}
+
+			currentDir, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("get working directory: %w", err)
+			}
+
+			repoContext, err := gitrepo.ResolveRepoContext(context.Background(), currentDir)
+			if err != nil {
+				return err
+			}
+
+			resolvedHost := host
+			if resolvedHost == "" {
+				resolvedHost = repoContext.Host
+			}
+			resolvedWorkspace := workspace
+			if resolvedWorkspace == "" {
+				resolvedWorkspace = repoContext.Workspace
+			}
+			resolvedRepo := repo
+			if resolvedRepo == "" {
+				resolvedRepo = repoContext.RepoSlug
+			}
+
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
+			if err != nil {
+				return err
+			}
+			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
+			if !ok {
+				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
+			}
+
+			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			if err != nil {
+				return err
+			}
+
+			if err := gitrepo.CheckoutRemoteBranch(context.Background(), repoContext.RootDir, repoContext.RemoteName, pr.Source.Branch.Name); err != nil {
+				return err
+			}
+
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Checked out %s for PR #%d\n", pr.Source.Branch.Name, pr.ID)
+			return err
+		},
+	}
+
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
 
 	return cmd
 }

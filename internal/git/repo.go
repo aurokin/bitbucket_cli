@@ -57,6 +57,35 @@ func CurrentBranch(ctx context.Context, dir string) (string, error) {
 	return branch, nil
 }
 
+func CheckoutRemoteBranch(ctx context.Context, dir, remoteName, branch string) error {
+	if remoteName == "" {
+		return fmt.Errorf("remote name is required")
+	}
+	if branch == "" {
+		return fmt.Errorf("branch name is required")
+	}
+
+	if _, err := gitOutput(ctx, dir, "fetch", remoteName, branch); err != nil {
+		return err
+	}
+
+	if branchExists(ctx, dir, branch) {
+		if _, err := gitOutput(ctx, dir, "switch", branch); err != nil {
+			return err
+		}
+		if _, err := gitOutput(ctx, dir, "branch", "--set-upstream-to", remoteName+"/"+branch, branch); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if _, err := gitOutput(ctx, dir, "switch", "-c", branch, "--track", remoteName+"/"+branch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type ParsedRemote struct {
 	Host      string
 	Workspace string
@@ -156,4 +185,9 @@ func gitOutput(ctx context.Context, dir string, args ...string) (string, error) 
 	}
 
 	return strings.TrimSpace(string(out)), nil
+}
+
+func branchExists(ctx context.Context, dir, branch string) bool {
+	_, err := gitOutput(ctx, dir, "rev-parse", "--verify", "refs/heads/"+branch)
+	return err == nil
 }

@@ -221,6 +221,34 @@ func TestBitbucketCloudPRCreate(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRCheckout(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "pr", "checkout", fmt.Sprintf("%d", fixture.PrimaryPRID))
+	cmd.Dir = fixture.PrimaryRepoDir
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr checkout failed: %v\n%s", err, output)
+	}
+
+	branch := currentGitBranch(t, fixture.PrimaryRepoDir)
+	if branch != fixtureFeatureBranch {
+		t.Fatalf("expected checked out branch %q, got %q", fixtureFeatureBranch, branch)
+	}
+}
+
 func loadIntegrationClient(t *testing.T) (config.Config, *bitbucket.Client, config.HostConfig) {
 	t.Helper()
 
@@ -529,6 +557,19 @@ func remoteBranchExists(t *testing.T, repoDir, branch string) bool {
 	cmd := exec.Command("git", "ls-remote", "--exit-code", "--heads", "origin", branch)
 	cmd.Dir = repoDir
 	return cmd.Run() == nil
+}
+
+func currentGitBranch(t *testing.T, repoDir string) string {
+	t.Helper()
+
+	cmd := exec.Command("git", "branch", "--show-current")
+	cmd.Dir = repoDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git branch --show-current failed: %v\n%s", err, scrub(output))
+	}
+
+	return strings.TrimSpace(string(output))
 }
 
 func workingTreeClean(t *testing.T, repoDir string) bool {

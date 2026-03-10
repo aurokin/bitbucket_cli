@@ -113,6 +113,17 @@ func TestCurrentBranch(t *testing.T) {
 	}
 }
 
+func TestCheckoutRemoteBranchRequiresInputs(t *testing.T) {
+	t.Parallel()
+
+	if err := CheckoutRemoteBranch(context.Background(), t.TempDir(), "", "feature"); err == nil {
+		t.Fatalf("expected remote name validation error")
+	}
+	if err := CheckoutRemoteBranch(context.Background(), t.TempDir(), "origin", ""); err == nil {
+		t.Fatalf("expected branch validation error")
+	}
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 

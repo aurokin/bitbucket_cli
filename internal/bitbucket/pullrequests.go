@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"time"
 )
 
 type ListPullRequestsOptions struct {
@@ -24,17 +26,28 @@ type CreatePullRequestOptions struct {
 	ReuseExisting     bool
 }
 
+type MergePullRequestOptions struct {
+	Message           string
+	CloseSourceBranch bool
+	MergeStrategy     string
+	PollInterval      time.Duration
+	PollTimeout       time.Duration
+}
+
 type PullRequest struct {
-	ID          int              `json:"id"`
-	Title       string           `json:"title"`
-	Description string           `json:"description,omitempty"`
-	State       string           `json:"state"`
-	Author      PullRequestActor `json:"author"`
-	Source      PullRequestRef   `json:"source"`
-	Destination PullRequestRef   `json:"destination"`
-	UpdatedOn   string           `json:"updated_on,omitempty"`
-	CreatedOn   string           `json:"created_on,omitempty"`
-	Links       PullRequestLinks `json:"links,omitempty"`
+	ID                int               `json:"id"`
+	Title             string            `json:"title"`
+	Description       string            `json:"description,omitempty"`
+	State             string            `json:"state"`
+	Author            PullRequestActor  `json:"author"`
+	Source            PullRequestRef    `json:"source"`
+	Destination       PullRequestRef    `json:"destination"`
+	CloseSourceBranch bool              `json:"close_source_branch,omitempty"`
+	Queued            bool              `json:"queued,omitempty"`
+	MergeCommit       PullRequestCommit `json:"merge_commit,omitempty"`
+	UpdatedOn         string            `json:"updated_on,omitempty"`
+	CreatedOn         string            `json:"created_on,omitempty"`
+	Links             PullRequestLinks  `json:"links,omitempty"`
 }
 
 type PullRequestActor struct {
@@ -50,7 +63,9 @@ type PullRequestRef struct {
 }
 
 type PullRequestBranch struct {
-	Name string `json:"name"`
+	Name                 string   `json:"name"`
+	MergeStrategies      []string `json:"merge_strategies,omitempty"`
+	DefaultMergeStrategy string   `json:"default_merge_strategy,omitempty"`
 }
 
 type PullRequestCommit struct {
@@ -74,6 +89,19 @@ type pullRequestListResponse struct {
 	Values []PullRequest `json:"values"`
 	Next   string        `json:"next,omitempty"`
 }
+
+type mergeTaskStatusResponse struct {
+	TaskStatus  string      `json:"task_status"`
+	MergeResult PullRequest `json:"merge_result,omitempty"`
+}
+
+const (
+	mergeTaskStatusPending = "PENDING"
+	mergeTaskStatusSuccess = "SUCCESS"
+
+	defaultMergePollInterval = time.Second
+	defaultMergePollTimeout  = 2 * time.Minute
+)
 
 func (c *Client) ListPullRequests(ctx context.Context, workspace, repoSlug string, options ListPullRequestsOptions) ([]PullRequest, error) {
 	if options.Limit <= 0 {
@@ -222,6 +250,115 @@ func (c *Client) CreatePullRequest(ctx context.Context, workspace, repoSlug stri
 	}
 
 	return pr, nil
+}
+
+func (c *Client) MergePullRequest(ctx context.Context, workspace, repoSlug string, id int, options MergePullRequestOptions) (PullRequest, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequest{}, fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return PullRequest{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	body := map[string]any{
+		"type": "pullrequest",
+	}
+	if strings.TrimSpace(options.Message) != "" {
+		body["message"] = strings.TrimSpace(options.Message)
+	}
+	if options.CloseSourceBranch {
+		body["close_source_branch"] = true
+	}
+	if strings.TrimSpace(options.MergeStrategy) != "" {
+		body["merge_strategy"] = strings.TrimSpace(options.MergeStrategy)
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return PullRequest{}, fmt.Errorf("marshal merge pull request request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/merge?async=true", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return PullRequest{}, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusAccepted:
+		location := strings.TrimSpace(resp.Header.Get("Location"))
+		if location == "" {
+			return PullRequest{}, fmt.Errorf("bitbucket API returned 202 Accepted without a merge task location")
+		}
+		return c.waitForMergeTask(ctx, location, options.PollInterval, options.PollTimeout)
+	default:
+		if err := requireSuccess(resp); err != nil {
+			return PullRequest{}, err
+		}
+	}
+
+	var pr PullRequest
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return PullRequest{}, fmt.Errorf("decode merged pull request: %w", err)
+	}
+
+	return pr, nil
+}
+
+func (c *Client) waitForMergeTask(ctx context.Context, taskURL string, interval, timeout time.Duration) (PullRequest, error) {
+	if interval <= 0 {
+		interval = defaultMergePollInterval
+	}
+	if timeout <= 0 {
+		timeout = defaultMergePollTimeout
+	}
+
+	pollCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		resp, err := c.Do(pollCtx, http.MethodGet, taskURL, nil, nil)
+		if err != nil {
+			return PullRequest{}, err
+		}
+
+		var status mergeTaskStatusResponse
+		func() {
+			defer resp.Body.Close()
+			if err != nil {
+				return
+			}
+			err = requireSuccess(resp)
+			if err != nil {
+				return
+			}
+			err = json.NewDecoder(resp.Body).Decode(&status)
+		}()
+		if err != nil {
+			return PullRequest{}, fmt.Errorf("check merge task status: %w", err)
+		}
+
+		switch status.TaskStatus {
+		case mergeTaskStatusSuccess:
+			if status.MergeResult.ID == 0 {
+				return PullRequest{}, fmt.Errorf("merge task completed without a merged pull request payload")
+			}
+			return status.MergeResult, nil
+		case "", mergeTaskStatusPending:
+			if status.MergeResult.ID != 0 {
+				return status.MergeResult, nil
+			}
+		default:
+			return PullRequest{}, fmt.Errorf("merge task returned unexpected status %q", status.TaskStatus)
+		}
+
+		select {
+		case <-pollCtx.Done():
+			return PullRequest{}, fmt.Errorf("timed out waiting for merge task: %w", pollCtx.Err())
+		case <-time.After(interval):
+		}
+	}
 }
 
 func listPullRequestsPath(workspace, repoSlug string, options ListPullRequestsOptions) (string, error) {

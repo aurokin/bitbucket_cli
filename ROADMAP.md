@@ -2,11 +2,11 @@
 
 ## Next Commands
 
-- `bb pr merge`
-  Merge a pull request from the CLI with explicit strategy and branch cleanup options.
-
 - Browser login
   Add OAuth-based browser auth without disrupting the current API-token flow.
+
+- `bb repo delete`
+  Delete repositories explicitly, but never as part of the default integration flow.
 
 ## Follow-Up UX Work
 

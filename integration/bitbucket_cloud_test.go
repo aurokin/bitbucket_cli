@@ -31,6 +31,8 @@ const (
 	fixturePRTitle           = "bb cli integration fixture pull request"
 	fixtureCreatePRBranch    = "bb-cli-create-command-branch"
 	fixtureCreatePRTitle     = "bb cli create command pull request"
+	fixtureMergePRBranch     = "bb-cli-merge-command-branch"
+	fixtureMergePRTitle      = "bb cli merge command pull request"
 )
 
 type integrationFixture struct {
@@ -356,6 +358,54 @@ func TestBitbucketCloudPRCheckout(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRMerge(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	prID := ensureMergePullRequest(t, client, fixture.PrimaryRepoDir, workspace, fixture.PrimaryRepo.Slug)
+
+	cmd := exec.Command(
+		binary,
+		"pr", "merge", fmt.Sprintf("%d", prID),
+		"--workspace", workspace,
+		"--repo", fixture.PrimaryRepo.Slug,
+		"--message", "Fixture merge executed by bb pr merge integration test.",
+		"--json", "*",
+	)
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr merge failed: %v\n%s", err, output)
+	}
+
+	var merged bitbucket.PullRequest
+	if err := json.Unmarshal(output, &merged); err != nil {
+		t.Fatalf("parse pr merge JSON: %v\n%s", err, output)
+	}
+
+	if merged.ID != prID || merged.State != "MERGED" {
+		t.Fatalf("unexpected merged pull request %+v", merged)
+	}
+	if merged.MergeCommit.Hash == "" {
+		t.Fatalf("expected merged pull request to include merge commit %+v", merged)
+	}
+
+	updated := getPullRequest(t, client, workspace, fixture.PrimaryRepo.Slug, prID)
+	if updated.State != "MERGED" {
+		t.Fatalf("expected pull request %d to be merged, got %+v", prID, updated)
+	}
+}
+
 func loadIntegrationClient(t *testing.T) (config.Config, *bitbucket.Client, config.HostConfig) {
 	t.Helper()
 
@@ -565,6 +615,48 @@ func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspac
 	return created.ID
 }
 
+func ensureMergePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string) int {
+	t.Helper()
+
+	prs, err := client.ListPullRequests(context.Background(), workspace, repoSlug, bitbucket.ListPullRequestsOptions{
+		State: "OPEN",
+		Limit: 50,
+	})
+	if err != nil {
+		t.Fatalf("list merge fixture pull requests: %v", err)
+	}
+
+	for _, pr := range prs {
+		if pr.Title == fixtureMergePRTitle || pr.Source.Branch.Name == fixtureMergePRBranch {
+			return pr.ID
+		}
+	}
+
+	configureGitIdentity(t, repoDir)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+	runGit(t, repoDir, "pull", "--ff-only", "origin", "main")
+	runGit(t, repoDir, "switch", "-C", fixtureMergePRBranch, "main")
+
+	content := fmt.Sprintf("merge fixture updated %s\n", time.Now().UTC().Format(time.RFC3339))
+	writeFile(t, filepath.Join(repoDir, "merge-fixture.txt"), content)
+	runGit(t, repoDir, "add", "merge-fixture.txt")
+	runGit(t, repoDir, "commit", "-m", "Update merge integration fixture")
+	runGit(t, repoDir, "push", "-u", "-f", "origin", fixtureMergePRBranch)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+
+	created, err := client.CreatePullRequest(context.Background(), workspace, repoSlug, bitbucket.CreatePullRequestOptions{
+		Title:             fixtureMergePRTitle,
+		Description:       "Fixture pull request created by manual merge integration test.",
+		SourceBranch:      fixtureMergePRBranch,
+		DestinationBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("create merge fixture pull request: %v", err)
+	}
+
+	return created.ID
+}
+
 func ensureBranchCommit(t *testing.T, repoDir, branchName, fileName, content string) {
 	t.Helper()
 
@@ -690,6 +782,17 @@ func gitOutput(t *testing.T, repoDir string, args ...string) string {
 	}
 
 	return strings.TrimSpace(string(output))
+}
+
+func getPullRequest(t *testing.T, client *bitbucket.Client, workspace, repoSlug string, id int) bitbucket.PullRequest {
+	t.Helper()
+
+	pr, err := client.GetPullRequest(context.Background(), workspace, repoSlug, id)
+	if err != nil {
+		t.Fatalf("get pull request %d: %v", id, err)
+	}
+
+	return pr
 }
 
 func workingTreeClean(t *testing.T, repoDir string) bool {

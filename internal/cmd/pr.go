@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -28,6 +29,7 @@ func newPRCmd() *cobra.Command {
 		newPRViewCmd(),
 		newPRCreateCmd(),
 		newPRCheckoutCmd(),
+		newPRMergeCmd(),
 	)
 
 	return prCmd
@@ -172,6 +174,116 @@ func newPRCheckoutCmd() *cobra.Command {
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+
+	return cmd
+}
+
+func newPRMergeCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+	var message string
+	var strategy string
+	var closeSourceBranch bool
+
+	cmd := &cobra.Command{
+		Use:   "merge <id>",
+		Short: "Merge a pull request",
+		Long:  "Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request.",
+		Example: "  bb pr merge 7\n" +
+			"  bb pr merge 7 --strategy merge_commit\n" +
+			"  bb pr merge 7 --message 'Ship feature' --close-source-branch --json",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			prID, err := strconv.Atoi(args[0])
+			if err != nil || prID <= 0 {
+				return fmt.Errorf("invalid pull request ID %q", args[0])
+			}
+
+			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			if err != nil {
+				return err
+			}
+			if pr.State != "OPEN" {
+				return fmt.Errorf("pull request #%d is %s; only OPEN pull requests can be merged", pr.ID, pr.State)
+			}
+
+			mergeStrategy, err := resolveMergeStrategy(pr, strategy)
+			if err != nil {
+				return err
+			}
+
+			mergedPR, err := client.MergePullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID, bitbucket.MergePullRequestOptions{
+				Message:           message,
+				CloseSourceBranch: closeSourceBranch,
+				MergeStrategy:     mergeStrategy,
+			})
+			if err != nil {
+				return err
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, mergedPR, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", mergedPR.ID); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", mergedPR.Title); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "State:\t%s\n", mergedPR.State); err != nil {
+					return err
+				}
+				if mergeStrategy != "" {
+					if _, err := fmt.Fprintf(tw, "Strategy:\t%s\n", mergeStrategy); err != nil {
+						return err
+					}
+				}
+				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", mergedPR.Source.Branch.Name); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", mergedPR.Destination.Branch.Name); err != nil {
+					return err
+				}
+				if mergedPR.MergeCommit.Hash != "" {
+					if _, err := fmt.Fprintf(tw, "Merge Commit:\t%s\n", mergedPR.MergeCommit.Hash); err != nil {
+						return err
+					}
+				}
+				if mergedPR.Links.HTML.Href != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", mergedPR.Links.HTML.Href); err != nil {
+						return err
+					}
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&message, "message", "", "Merge commit message")
+	cmd.Flags().StringVar(&strategy, "strategy", "", "Merge strategy to use; required when Bitbucket does not expose a default")
+	cmd.Flags().BoolVar(&closeSourceBranch, "close-source-branch", false, "Close the source branch when the pull request is merged")
 
 	return cmd
 }
@@ -509,6 +621,59 @@ func resolveDestinationBranchInput(cmd *cobra.Command, client *bitbucket.Client,
 	}
 
 	return "", fmt.Errorf("could not determine the destination branch; pass --destination or run in an interactive terminal")
+}
+
+func resolveMergeStrategy(pr bitbucket.PullRequest, requested string) (string, error) {
+	available := uniqueNonEmptyStrings(pr.Destination.Branch.MergeStrategies)
+
+	requested = strings.TrimSpace(requested)
+	if requested != "" {
+		if len(available) > 0 && !stringSliceContains(available, requested) {
+			return "", fmt.Errorf("merge strategy %q is not allowed for destination branch %s; available: %s", requested, pr.Destination.Branch.Name, strings.Join(available, ", "))
+		}
+		return requested, nil
+	}
+
+	if defaultStrategy := strings.TrimSpace(pr.Destination.Branch.DefaultMergeStrategy); defaultStrategy != "" {
+		return defaultStrategy, nil
+	}
+
+	if len(available) == 1 {
+		return available[0], nil
+	}
+	if len(available) > 1 {
+		return "", fmt.Errorf("multiple merge strategies are available for destination branch %s; pass --strategy (%s)", pr.Destination.Branch.Name, strings.Join(available, ", "))
+	}
+
+	return "", nil
+}
+
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	unique := make([]string, 0, len(values))
+
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		unique = append(unique, value)
+	}
+
+	return unique
+}
+
+func stringSliceContains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 func defaultPRTitle(sourceBranch string) string {

@@ -111,6 +111,33 @@ func (c *Client) ListPullRequests(ctx context.Context, workspace, repoSlug strin
 	return all, nil
 }
 
+func (c *Client) GetPullRequest(ctx context.Context, workspace, repoSlug string, id int) (PullRequest, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequest{}, fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return PullRequest{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodGet, path, nil, nil)
+	if err != nil {
+		return PullRequest{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequest{}, err
+	}
+
+	var pr PullRequest
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return PullRequest{}, fmt.Errorf("decode pull request: %w", err)
+	}
+
+	return pr, nil
+}
+
 func listPullRequestsPath(workspace, repoSlug string, options ListPullRequestsOptions) (string, error) {
 	if workspace == "" || repoSlug == "" {
 		return "", fmt.Errorf("workspace and repository are required")

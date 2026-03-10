@@ -95,3 +95,33 @@ func TestListPullRequestsFollowsPagination(t *testing.T) {
 		t.Fatalf("expected 2 requests, got %d", requests)
 	}
 }
+
+func TestGetPullRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":7,"title":"Example PR","state":"OPEN","author":{"display_name":"Auro"},"source":{"branch":{"name":"feature"},"commit":{"hash":"abc"},"repository":{"full_name":"acme/widgets"}},"destination":{"branch":{"name":"main"},"commit":{"hash":"def"},"repository":{"full_name":"acme/widgets"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	pr, err := client.GetPullRequest(context.Background(), "acme", "widgets", 7)
+	if err != nil {
+		t.Fatalf("GetPullRequest returned error: %v", err)
+	}
+	if pr.ID != 7 || pr.Title != "Example PR" {
+		t.Fatalf("unexpected pull request %+v", pr)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"text/tabwriter"
 	"time"
 
@@ -23,7 +24,7 @@ func newPRCmd() *cobra.Command {
 
 	prCmd.AddCommand(
 		newPRListCmd(),
-		newStubCommand("view", "View a pull request", "pr view"),
+		newPRViewCmd(),
 		newStubCommand("create", "Create a pull request", "pr create"),
 		newStubCommand("checkout", "Check out a pull request locally", "pr checkout"),
 	)
@@ -114,6 +115,106 @@ func newPRListCmd() *cobra.Command {
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
 	cmd.Flags().StringVar(&state, "state", "OPEN", "Filter pull requests by state: OPEN, MERGED, DECLINED, SUPERSEDED, or ALL")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Maximum number of pull requests to return")
+
+	return cmd
+}
+
+func newPRViewCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+
+	cmd := &cobra.Command{
+		Use:   "view <id>",
+		Short: "View a pull request",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			prID, err := strconv.Atoi(args[0])
+			if err != nil || prID <= 0 {
+				return fmt.Errorf("invalid pull request ID %q", args[0])
+			}
+
+			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
+			if err != nil {
+				return err
+			}
+			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
+			if !ok {
+				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
+			}
+
+			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			if err != nil {
+				return err
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", pr.Title); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "State:\t%s\n", pr.State); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Author:\t%s\n", pr.Author.DisplayName); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", pr.Source.Branch.Name); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
+					return err
+				}
+				if pr.UpdatedOn != "" {
+					if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", pr.UpdatedOn); err != nil {
+						return err
+					}
+				}
+				if pr.Links.HTML.Href != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pr.Links.HTML.Href); err != nil {
+						return err
+					}
+				}
+				if pr.Description != "" {
+					if _, err := fmt.Fprintf(tw, "Description:\t%s\n", pr.Description); err != nil {
+						return err
+					}
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
 
 	return cmd
 }

@@ -35,6 +35,7 @@ type integrationFixture struct {
 	PrimaryRepoDir string
 	PrimaryRepo    repository
 	SecondaryRepo  repository
+	PrimaryPRID    int
 }
 
 type workspaceListResponse struct {
@@ -112,6 +113,37 @@ func TestBitbucketCloudPRList(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRView(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--workspace", workspace, "--repo", fixture.PrimaryRepo.Slug, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr view failed: %v\n%s", err, output)
+	}
+
+	var pr bitbucket.PullRequest
+	if err := json.Unmarshal(output, &pr); err != nil {
+		t.Fatalf("parse pr view JSON: %v\n%s", err, output)
+	}
+
+	if pr.ID != fixture.PrimaryPRID || pr.Title != fixturePRTitle {
+		t.Fatalf("unexpected pull request %+v", pr)
+	}
+}
+
 func loadIntegrationClient(t *testing.T) (config.Config, *bitbucket.Client, config.HostConfig) {
 	t.Helper()
 
@@ -170,13 +202,14 @@ func ensureFixture(t *testing.T, client *bitbucket.Client, hostConfig config.Hos
 
 	ensurePrimaryRepoContent(t, primaryDir, hostConfig)
 	ensureSecondaryRepoContent(t, secondaryDir, hostConfig)
-	ensurePullRequest(t, client, primaryDir, workspace, primaryRepo.Slug, hostConfig)
+	prID := ensurePullRequest(t, client, primaryDir, workspace, primaryRepo.Slug, hostConfig)
 
 	return integrationFixture{
 		Workspace:      workspace,
 		PrimaryRepoDir: primaryDir,
 		PrimaryRepo:    primaryRepo,
 		SecondaryRepo:  secondaryRepo,
+		PrimaryPRID:    prID,
 	}
 }
 
@@ -266,7 +299,7 @@ func ensureSecondaryRepoContent(t *testing.T, repoDir string, hostConfig config.
 	runGit(t, repoDir, "push", "-u", "origin", "main")
 }
 
-func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string, hostConfig config.HostConfig) {
+func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string, hostConfig config.HostConfig) int {
 	t.Helper()
 
 	prs, err := client.ListPullRequests(context.Background(), workspace, repoSlug, bitbucket.ListPullRequestsOptions{
@@ -279,7 +312,7 @@ func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspac
 
 	for _, pr := range prs {
 		if pr.Title == fixturePRTitle || pr.Source.Branch.Name == fixtureFeatureBranch {
-			return
+			return pr.ID
 		}
 	}
 
@@ -317,6 +350,7 @@ func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspac
 	var created bitbucket.PullRequest
 	mustRequestJSON(t, client, http.MethodPost, fmt.Sprintf("/repositories/%s/%s/pullrequests", workspace, repoSlug), body, &created)
 	_ = hostConfig
+	return created.ID
 }
 
 func buildBinary(t *testing.T) string {

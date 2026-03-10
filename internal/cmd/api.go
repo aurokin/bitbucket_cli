@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -24,24 +22,14 @@ func newAPICmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "api <path-or-url>",
 		Short: "Make an authenticated Bitbucket API request",
-		Args:  cobra.ExactArgs(1),
+		Long:  "Make an authenticated Bitbucket Cloud API request. Use this for workflows that are not yet covered by a dedicated bb command.",
+		Example: "  bb api /user\n" +
+			"  bb api '/repositories/OhBizzle/bb-cli-integration-primary/pullrequests?state=OPEN'\n" +
+			"  bb api /user --jq .display_name\n" +
+			"  printf '{\"name\":\"my-repo\"}' | bb api /repositories/OhBizzle/my-repo -X POST --input -",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedHost, err := cfg.ResolveHost(strings.TrimSpace(host))
-			if err != nil {
-				return err
-			}
-
-			hostConfig, ok := cfg.Hosts[resolvedHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(host)
 			if err != nil {
 				return err
 			}

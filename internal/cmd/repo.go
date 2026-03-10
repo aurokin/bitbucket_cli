@@ -8,7 +8,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	"github.com/auro/bitbucket_cli/internal/config"
 	gitrepo "github.com/auro/bitbucket_cli/internal/git"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
@@ -16,9 +15,10 @@ import (
 
 func newRepoCmd() *cobra.Command {
 	repoCmd := &cobra.Command{
-		Use:   "repo",
-		Short: "Work with Bitbucket repositories",
-		Long:  "Inspect and create Bitbucket repositories.",
+		Use:     "repo",
+		Aliases: []string{"repos", "repository"},
+		Short:   "Work with Bitbucket repositories",
+		Long:    "Inspect and create Bitbucket repositories.",
 	}
 
 	repoCmd.AddCommand(
@@ -49,26 +49,12 @@ func newRepoViewCmd() *cobra.Command {
 				return err
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
 			localRepo, resolvedHost, resolvedWorkspace, resolvedRepo, err := resolveRepoViewTarget(context.Background(), host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
 			if err != nil {
 				return err
 			}
@@ -274,21 +260,7 @@ func newRepoCreateCmd() *cobra.Command {
 				return err
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedHost, err := cfg.ResolveHost(host)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(host)
 			if err != nil {
 				return err
 			}

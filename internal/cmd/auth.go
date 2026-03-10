@@ -16,9 +16,10 @@ import (
 
 func newAuthCmd() *cobra.Command {
 	authCmd := &cobra.Command{
-		Use:   "auth",
-		Short: "Manage authentication",
-		Long:  "Manage Bitbucket Cloud authentication using Atlassian API tokens.",
+		Use:     "auth",
+		Aliases: []string{"login-manager"},
+		Short:   "Manage authentication",
+		Long:    "Manage Bitbucket Cloud authentication using Atlassian API tokens.",
 	}
 
 	authCmd.AddCommand(
@@ -123,6 +124,7 @@ func newAuthStatusCmd() *cobra.Command {
 		Example: "  bb auth status\n" +
 			"  bb auth status --check --json\n" +
 			"  bb auth status --host bitbucket.org",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
@@ -198,6 +200,7 @@ func newAuthLogoutCmd() *cobra.Command {
 		Short: "Remove stored credentials for a Bitbucket host",
 		Example: "  bb auth logout\n" +
 			"  bb auth logout --host bitbucket.org",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
 			if err != nil {
@@ -206,7 +209,7 @@ func newAuthLogoutCmd() *cobra.Command {
 
 			resolvedHost, err := cfg.ResolveHost(strings.TrimSpace(host))
 			if err != nil {
-				return err
+				return authGuidanceError(err)
 			}
 
 			if _, ok := cfg.Hosts[resolvedHost]; !ok {
@@ -309,7 +312,7 @@ func statusHostNames(cfg config.Config, selectedHost string) ([]string, error) {
 	}
 
 	if _, ok := cfg.Hosts[selectedHost]; !ok {
-		return nil, fmt.Errorf("no stored credentials found for %s", selectedHost)
+		return nil, fmt.Errorf("no stored credentials found for %s; run `bb auth login --username <email> --with-token`", selectedHost)
 	}
 
 	return []string{selectedHost}, nil

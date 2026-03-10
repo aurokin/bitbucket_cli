@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	"github.com/auro/bitbucket_cli/internal/config"
 	gitrepo "github.com/auro/bitbucket_cli/internal/git"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
@@ -18,9 +17,10 @@ import (
 
 func newPRCmd() *cobra.Command {
 	prCmd := &cobra.Command{
-		Use:   "pr",
-		Short: "Work with pull requests",
-		Long:  "List, view, create, and check out Bitbucket pull requests.",
+		Use:     "pr",
+		Aliases: []string{"pull-request", "pullrequest"},
+		Short:   "Work with pull requests",
+		Long:    "List, view, create, and check out Bitbucket pull requests.",
 	}
 
 	prCmd.AddCommand(
@@ -59,21 +59,7 @@ func newPRListCmd() *cobra.Command {
 				return err
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
 			if err != nil {
 				return err
 			}
@@ -165,21 +151,7 @@ func newPRCheckoutCmd() *cobra.Command {
 				resolvedRepo = repoContext.RepoSlug
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
 			if err != nil {
 				return err
 			}
@@ -237,21 +209,7 @@ func newPRCreateCmd() *cobra.Command {
 				return err
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
 			if err != nil {
 				return err
 			}
@@ -356,21 +314,7 @@ func newPRViewCmd() *cobra.Command {
 				return err
 			}
 
-			cfg, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
-			if err != nil {
-				return err
-			}
-			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
-			if !ok {
-				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
-			}
-
-			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			_, client, err := resolveAuthenticatedClient(resolvedHost)
 			if err != nil {
 				return err
 			}

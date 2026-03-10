@@ -23,6 +23,8 @@ func newVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Show bb version information",
+		Example: "  bb version\n" +
+			"  bb version --json",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {

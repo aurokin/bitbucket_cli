@@ -26,6 +26,7 @@ const (
 	fixtureProjectName       = "bb-cli integration"
 	fixturePrimaryRepoSlug   = "bb-cli-integration-primary"
 	fixtureSecondaryRepoSlug = "bb-cli-integration-secondary"
+	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
 	fixtureFeatureBranch     = "bb-cli-int-feature"
 	fixturePRTitle           = "bb cli integration fixture pull request"
 )
@@ -110,6 +111,37 @@ func TestBitbucketCloudPRList(t *testing.T) {
 
 	if cfg.DefaultHost == "" {
 		t.Fatalf("expected configured default host")
+	}
+}
+
+func TestBitbucketCloudRepoCreate(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	_ = ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "repo", "create", fixtureCreateRepoSlug, "--workspace", workspace, "--project-key", fixtureProjectKey, "--reuse-existing", "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo create failed: %v\n%s", err, output)
+	}
+
+	var repo bitbucket.Repository
+	if err := json.Unmarshal(output, &repo); err != nil {
+		t.Fatalf("parse repo create JSON: %v\n%s", err, output)
+	}
+
+	if repo.Slug != fixtureCreateRepoSlug {
+		t.Fatalf("unexpected repository %+v", repo)
 	}
 }
 

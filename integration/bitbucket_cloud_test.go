@@ -197,6 +197,63 @@ func TestBitbucketCloudRepoView(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudRepoClone(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cloneDir := filepath.Join(t.TempDir(), fixture.PrimaryRepo.Slug+"-clone")
+	cmd := exec.Command(binary, "repo", "clone", workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo clone failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string `json:"workspace"`
+		Repo      string `json:"repo"`
+		Directory string `json:"directory"`
+		CloneURL  string `json:"clone_url"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo clone JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug {
+		t.Fatalf("unexpected repo clone payload %+v", payload)
+	}
+
+	expectedDir, err := filepath.Abs(cloneDir)
+	if err != nil {
+		t.Fatalf("resolve clone directory: %v", err)
+	}
+	if payload.Directory != expectedDir {
+		t.Fatalf("expected clone directory %q, got %q", expectedDir, payload.Directory)
+	}
+
+	if _, err := os.Stat(filepath.Join(cloneDir, ".git")); err != nil {
+		t.Fatalf("expected cloned git repository: %v", err)
+	}
+
+	originURL := gitOutput(t, cloneDir, "remote", "get-url", "origin")
+	if strings.Contains(originURL, hostConfig.Token) {
+		t.Fatalf("origin remote should not contain the API token: %s", originURL)
+	}
+	if !strings.Contains(originURL, "x-bitbucket-api-token-auth@") {
+		t.Fatalf("expected sanitized origin remote to keep Bitbucket API token username, got %s", originURL)
+	}
+}
+
 func TestBitbucketCloudPRView(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
@@ -617,6 +674,19 @@ func currentGitBranch(t *testing.T, repoDir string) string {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git branch --show-current failed: %v\n%s", err, scrub(output))
+	}
+
+	return strings.TrimSpace(string(output))
+}
+
+func gitOutput(t *testing.T, repoDir string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = repoDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, scrub(output))
 	}
 
 	return strings.TrimSpace(string(output))

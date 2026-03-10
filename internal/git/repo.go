@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -92,6 +93,8 @@ type ParsedRemote struct {
 	RepoSlug  string
 }
 
+const bitbucketAPITokenUsername = "x-bitbucket-api-token-auth"
+
 func ParseRemoteURL(raw string) (ParsedRemote, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -109,6 +112,54 @@ func ParseRemoteURL(raw string) (ParsedRemote, error) {
 	return ParsedRemote{}, fmt.Errorf("unsupported remote URL format %q", raw)
 }
 
+func CloneRepository(ctx context.Context, cloneURL, token, dir string) error {
+	if strings.TrimSpace(cloneURL) == "" {
+		return fmt.Errorf("clone URL is required")
+	}
+	if strings.TrimSpace(token) == "" {
+		return fmt.Errorf("API token is required to clone private repositories")
+	}
+
+	authenticatedURL, err := authenticatedHTTPSURL(cloneURL, bitbucketAPITokenUsername, token)
+	if err != nil {
+		return fmt.Errorf("prepare clone URL: %w", err)
+	}
+
+	args := []string{"clone", authenticatedURL}
+	if strings.TrimSpace(dir) != "" {
+		args = append(args, dir)
+	}
+
+	if _, err := gitOutput(ctx, ".", args...); err != nil {
+		return err
+	}
+
+	targetDir := strings.TrimSpace(dir)
+	if targetDir == "" {
+		parsed, err := ParseRemoteURL(cloneURL)
+		if err != nil {
+			return fmt.Errorf("resolve clone directory from repository slug: %w", err)
+		}
+		targetDir = parsed.RepoSlug
+	}
+
+	absoluteDir, err := filepath.Abs(targetDir)
+	if err != nil {
+		return fmt.Errorf("resolve clone directory: %w", err)
+	}
+
+	sanitizedURL, err := sanitizedHTTPSURL(cloneURL, bitbucketAPITokenUsername)
+	if err != nil {
+		return fmt.Errorf("prepare sanitized remote URL: %w", err)
+	}
+
+	if _, err := gitOutput(ctx, absoluteDir, "remote", "set-url", "origin", sanitizedURL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func parseStandardURL(raw string) (ParsedRemote, error) {
 	parsed, err := url.Parse(raw)
 	if err != nil {
@@ -116,6 +167,32 @@ func parseStandardURL(raw string) (ParsedRemote, error) {
 	}
 
 	return remoteFromParts(parsed.Hostname(), parsed.Path)
+}
+
+func authenticatedHTTPSURL(rawURL, username, password string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return "", fmt.Errorf("parse HTTPS URL %q: %w", rawURL, err)
+	}
+	if parsed.Scheme != "https" {
+		return "", fmt.Errorf("unsupported clone URL scheme %q", parsed.Scheme)
+	}
+
+	parsed.User = url.UserPassword(username, password)
+	return parsed.String(), nil
+}
+
+func sanitizedHTTPSURL(rawURL, username string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return "", fmt.Errorf("parse HTTPS URL %q: %w", rawURL, err)
+	}
+	if parsed.Scheme != "https" {
+		return "", fmt.Errorf("unsupported clone URL scheme %q", parsed.Scheme)
+	}
+
+	parsed.User = url.User(username)
+	return parsed.String(), nil
 }
 
 func parseSCPStyleURL(raw string) (ParsedRemote, error) {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -24,6 +26,7 @@ func newRepoCmd() *cobra.Command {
 	repoCmd.AddCommand(
 		newRepoViewCmd(),
 		newRepoCreateCmd(),
+		newRepoCloneCmd(),
 	)
 
 	return repoCmd
@@ -322,6 +325,141 @@ func newRepoCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&name, "name", "", "Display name for the repository")
 
 	return cmd
+}
+
+func newRepoCloneCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+
+	cmd := &cobra.Command{
+		Use:   "clone <repository> [directory]",
+		Short: "Clone a Bitbucket repository locally",
+		Long:  "Clone a Bitbucket repository over HTTPS using the configured API token. The origin remote is rewritten after cloning so the token is not stored in git config.",
+		Example: "  bb repo clone OhBizzle/bb-cli-integration-primary\n" +
+			"  bb repo clone bb-cli-integration-primary --workspace OhBizzle\n" +
+			"  bb repo clone OhBizzle/bb-cli-integration-primary ./tmp/repo --json",
+		Args: cobra.RangeArgs(1, 2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, hostConfig, err := resolveAuthenticatedHostConfig(host)
+			if err != nil {
+				return err
+			}
+
+			client, err := bitbucket.NewClient(resolvedHost, hostConfig)
+			if err != nil {
+				return err
+			}
+
+			resolvedWorkspace, repoSlug, err := resolveRepoCloneTarget(context.Background(), client, workspace, args[0])
+			if err != nil {
+				return err
+			}
+
+			repository, err := client.GetRepository(context.Background(), resolvedWorkspace, repoSlug)
+			if err != nil {
+				return err
+			}
+
+			httpsCloneURL := cloneURLForName(repository.Links.Clone, "https")
+			if httpsCloneURL == "" {
+				return fmt.Errorf("repository %s/%s does not expose an HTTPS clone URL", resolvedWorkspace, repository.Slug)
+			}
+
+			targetDir := repository.Slug
+			if len(args) == 2 {
+				targetDir = args[1]
+			}
+
+			if err := gitrepo.CloneRepository(context.Background(), httpsCloneURL, hostConfig.Token, targetDir); err != nil {
+				return err
+			}
+
+			absoluteDir, err := filepath.Abs(targetDir)
+			if err != nil {
+				return fmt.Errorf("resolve clone directory: %w", err)
+			}
+
+			payload := repoClonePayload{
+				Host:      resolvedHost,
+				Workspace: resolvedWorkspace,
+				RepoSlug:  repository.Slug,
+				Name:      repository.Name,
+				Directory: absoluteDir,
+				CloneURL:  httpsCloneURL,
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Directory:\t%s\n", payload.Directory); err != nil {
+					return err
+				}
+				if payload.CloneURL != "" {
+					if _, err := fmt.Fprintf(tw, "Clone URL:\t%s\n", payload.CloneURL); err != nil {
+						return err
+					}
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug; inferred when only one workspace is available")
+
+	return cmd
+}
+
+type repoClonePayload struct {
+	Host      string `json:"host"`
+	Workspace string `json:"workspace"`
+	RepoSlug  string `json:"repo"`
+	Name      string `json:"name,omitempty"`
+	Directory string `json:"directory"`
+	CloneURL  string `json:"clone_url,omitempty"`
+}
+
+func resolveRepoCloneTarget(ctx context.Context, client *bitbucket.Client, workspaceFlag, target string) (string, string, error) {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return "", "", fmt.Errorf("repository is required")
+	}
+
+	if strings.Count(target, "/") > 1 {
+		return "", "", fmt.Errorf("repository must be provided as <repo> or <workspace>/<repo>")
+	}
+
+	if strings.Contains(target, "/") {
+		parts := strings.SplitN(target, "/", 2)
+		if parts[0] == "" || parts[1] == "" {
+			return "", "", fmt.Errorf("repository must be provided as <repo> or <workspace>/<repo>")
+		}
+		if workspaceFlag != "" && workspaceFlag != parts[0] {
+			return "", "", fmt.Errorf("--workspace %q does not match repository target %q", workspaceFlag, target)
+		}
+		return parts[0], parts[1], nil
+	}
+
+	resolvedWorkspace, err := resolveWorkspaceForCreate(ctx, client, workspaceFlag)
+	if err != nil {
+		return "", "", err
+	}
+
+	return resolvedWorkspace, target, nil
 }
 
 func resolveWorkspaceForCreate(ctx context.Context, client *bitbucket.Client, workspace string) (string, error) {

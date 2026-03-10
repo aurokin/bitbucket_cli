@@ -124,6 +124,34 @@ func TestCheckoutRemoteBranchRequiresInputs(t *testing.T) {
 	}
 }
 
+func TestAuthenticatedHTTPSURL(t *testing.T) {
+	t.Parallel()
+
+	got, err := authenticatedHTTPSURL("https://bitbucket.org/acme/widgets.git", "x-bitbucket-api-token-auth", "secret-token")
+	if err != nil {
+		t.Fatalf("authenticatedHTTPSURL returned error: %v", err)
+	}
+
+	want := "https://x-bitbucket-api-token-auth:secret-token@bitbucket.org/acme/widgets.git"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestSanitizedHTTPSURL(t *testing.T) {
+	t.Parallel()
+
+	got, err := sanitizedHTTPSURL("https://bitbucket.org/acme/widgets.git", "x-bitbucket-api-token-auth")
+	if err != nil {
+		t.Fatalf("sanitizedHTTPSURL returned error: %v", err)
+	}
+
+	want := "https://x-bitbucket-api-token-auth@bitbucket.org/acme/widgets.git"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 

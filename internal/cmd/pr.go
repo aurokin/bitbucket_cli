@@ -53,7 +53,6 @@ func newPRListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
 			if err != nil {
 				return err
@@ -189,11 +188,12 @@ func newPRCreateCmd() *cobra.Command {
 	var closeSourceBranch bool
 	var draft bool
 	var reuseExisting bool
+	var noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a pull request",
-		Long:  "Create a pull request in Bitbucket Cloud. The source branch defaults to the current branch and the destination defaults to the repository main branch.",
+		Long:  "Create a pull request in Bitbucket Cloud. When run interactively, bb prompts for missing fields. The source branch defaults to the current branch and the destination defaults to the repository main branch.",
 		Example: "  bb pr create --title 'Add feature'\n" +
 			"  bb pr create --source feature --destination main --description 'Ready for review'\n" +
 			"  bb pr create --reuse-existing --json",
@@ -203,6 +203,7 @@ func newPRCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			explicitRepoSelector := workspace != "" && repo != ""
 
 			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
 			if err != nil {
@@ -214,18 +215,26 @@ func newPRCreateCmd() *cobra.Command {
 				return err
 			}
 
-			sourceBranch, err := resolveSourceBranch(source)
+			interactive := isInteractiveIO(cmd.InOrStdin(), cmd.OutOrStdout()) && !noPrompt
+
+			sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, explicitRepoSelector, resolvedWorkspace, resolvedRepo)
 			if err != nil {
 				return err
 			}
 
-			destinationBranch, err := resolveDestinationBranch(context.Background(), client, resolvedWorkspace, resolvedRepo, destination)
+			destinationBranch, err := resolveDestinationBranchInput(cmd, client, resolvedWorkspace, resolvedRepo, destination, interactive)
 			if err != nil {
 				return err
 			}
 
 			if title == "" {
 				title = defaultPRTitle(sourceBranch)
+			}
+			if interactive {
+				title, err = promptRequiredString(cmd, "Title", title)
+				if err != nil {
+					return err
+				}
 			}
 
 			pr, err := client.CreatePullRequest(context.Background(), resolvedWorkspace, resolvedRepo, bitbucket.CreatePullRequestOptions{
@@ -281,6 +290,7 @@ func newPRCreateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&closeSourceBranch, "close-source-branch", false, "Close the source branch when the pull request is merged")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create the pull request as a draft")
 	cmd.Flags().BoolVar(&reuseExisting, "reuse-existing", false, "Return an existing matching open pull request instead of creating a new one")
+	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt for missing fields, even in an interactive terminal")
 
 	return cmd
 }
@@ -432,6 +442,41 @@ func resolveSourceBranch(source string) (string, error) {
 	return branch, nil
 }
 
+func resolveSourceBranchInput(cmd *cobra.Command, source string, interactive bool, explicitRepoSelector bool, workspace, repo string) (string, error) {
+	if source != "" {
+		return source, nil
+	}
+
+	if explicitRepoSelector {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("get working directory: %w", err)
+		}
+
+		localRepo, err := gitrepo.ResolveRepoContext(context.Background(), currentDir)
+		if err != nil || localRepo.Workspace != workspace || localRepo.RepoSlug != repo {
+			if interactive {
+				return promptRequiredString(cmd, "Source branch", "")
+			}
+			return "", fmt.Errorf("could not determine the source branch for %s/%s from the current directory; pass --source or run in an interactive terminal", workspace, repo)
+		}
+	}
+
+	defaultSource, err := resolveSourceBranch(source)
+	if err == nil {
+		if interactive {
+			return promptRequiredString(cmd, "Source branch", defaultSource)
+		}
+		return defaultSource, nil
+	}
+
+	if interactive {
+		return promptRequiredString(cmd, "Source branch", "")
+	}
+
+	return "", fmt.Errorf("could not determine the source branch; pass --source or run in an interactive terminal")
+}
+
 func resolveDestinationBranch(ctx context.Context, client *bitbucket.Client, workspace, repo, destination string) (string, error) {
 	if destination != "" {
 		return destination, nil
@@ -446,6 +491,26 @@ func resolveDestinationBranch(ctx context.Context, client *bitbucket.Client, wor
 	}
 
 	return repository.MainBranch.Name, nil
+}
+
+func resolveDestinationBranchInput(cmd *cobra.Command, client *bitbucket.Client, workspace, repo, destination string, interactive bool) (string, error) {
+	if destination != "" {
+		return destination, nil
+	}
+
+	defaultDestination, err := resolveDestinationBranch(context.Background(), client, workspace, repo, "")
+	if err == nil {
+		if interactive {
+			return promptRequiredString(cmd, "Destination branch", defaultDestination)
+		}
+		return defaultDestination, nil
+	}
+
+	if interactive {
+		return promptRequiredString(cmd, "Destination branch", "")
+	}
+
+	return "", fmt.Errorf("could not determine the destination branch; pass --destination or run in an interactive terminal")
 }
 
 func defaultPRTitle(sourceBranch string) string {

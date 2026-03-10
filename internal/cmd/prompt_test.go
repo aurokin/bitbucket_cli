@@ -40,3 +40,25 @@ func TestPromptRequiredStringAcceptsTypedValue(t *testing.T) {
 		t.Fatalf("expected typed value, got %q", value)
 	}
 }
+
+func TestPromptsDisabledWithInheritedFlag(t *testing.T) {
+	t.Parallel()
+
+	root := &cobra.Command{Use: "bb"}
+	root.PersistentFlags().Bool("no-prompt", false, "")
+
+	child := &cobra.Command{Use: "pr"}
+	root.AddCommand(child)
+
+	flag := child.Flag("no-prompt")
+	if flag == nil {
+		t.Fatal("expected inherited no-prompt flag")
+	}
+	if err := flag.Value.Set("true"); err != nil {
+		t.Fatalf("set no-prompt flag: %v", err)
+	}
+
+	if !promptsDisabled(child) {
+		t.Fatal("expected promptsDisabled to respect inherited no-prompt flag")
+	}
+}

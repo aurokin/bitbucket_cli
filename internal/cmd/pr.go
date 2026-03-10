@@ -188,7 +188,6 @@ func newPRCreateCmd() *cobra.Command {
 	var closeSourceBranch bool
 	var draft bool
 	var reuseExisting bool
-	var noPrompt bool
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -215,7 +214,7 @@ func newPRCreateCmd() *cobra.Command {
 				return err
 			}
 
-			interactive := isInteractiveIO(cmd.InOrStdin(), cmd.OutOrStdout()) && !noPrompt
+			interactive := promptsEnabled(cmd)
 
 			sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, explicitRepoSelector, resolvedWorkspace, resolvedRepo)
 			if err != nil {
@@ -290,7 +289,6 @@ func newPRCreateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&closeSourceBranch, "close-source-branch", false, "Close the source branch when the pull request is merged")
 	cmd.Flags().BoolVar(&draft, "draft", false, "Create the pull request as a draft")
 	cmd.Flags().BoolVar(&reuseExisting, "reuse-existing", false, "Return an existing matching open pull request instead of creating a new one")
-	cmd.Flags().BoolVar(&noPrompt, "no-prompt", false, "Do not prompt for missing fields, even in an interactive terminal")
 
 	return cmd
 }

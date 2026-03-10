@@ -24,6 +24,27 @@ func isInteractiveIO(in io.Reader, out io.Writer) bool {
 	return true
 }
 
+func promptsDisabled(cmd *cobra.Command) bool {
+	if cmd == nil {
+		return false
+	}
+
+	flag := cmd.Flag("no-prompt")
+	if flag == nil {
+		return false
+	}
+
+	return flag.Value.String() == "true"
+}
+
+func promptsEnabled(cmd *cobra.Command) bool {
+	if promptsDisabled(cmd) {
+		return false
+	}
+
+	return isInteractiveIO(cmd.InOrStdin(), cmd.OutOrStdout())
+}
+
 func promptRequiredString(cmd *cobra.Command, label, defaultValue string) (string, error) {
 	reader := bufio.NewReader(cmd.InOrStdin())
 

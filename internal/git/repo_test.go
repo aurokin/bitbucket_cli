@@ -88,6 +88,31 @@ func TestResolveRepoContext(t *testing.T) {
 	}
 }
 
+func TestCurrentBranch(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+	runGit(t, dir, "config", "user.name", "Test User")
+	runGit(t, dir, "config", "user.email", "test@example.com")
+
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("test\n"), 0o644); err != nil {
+		t.Fatalf("write test file: %v", err)
+	}
+
+	runGit(t, dir, "add", "README.md")
+	runGit(t, dir, "commit", "-m", "initial")
+	runGit(t, dir, "switch", "-c", "feature/test")
+
+	branch, err := CurrentBranch(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("CurrentBranch returned error: %v", err)
+	}
+	if branch != "feature/test" {
+		t.Fatalf("expected feature/test, got %q", branch)
+	}
+}
+
 func runGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 

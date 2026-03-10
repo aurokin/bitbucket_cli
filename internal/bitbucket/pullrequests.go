@@ -14,6 +14,16 @@ type ListPullRequestsOptions struct {
 	Limit int
 }
 
+type CreatePullRequestOptions struct {
+	Title             string
+	Description       string
+	SourceBranch      string
+	DestinationBranch string
+	CloseSourceBranch bool
+	Draft             bool
+	ReuseExisting     bool
+}
+
 type PullRequest struct {
 	ID          int              `json:"id"`
 	Title       string           `json:"title"`
@@ -133,6 +143,82 @@ func (c *Client) GetPullRequest(ctx context.Context, workspace, repoSlug string,
 	var pr PullRequest
 	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
 		return PullRequest{}, fmt.Errorf("decode pull request: %w", err)
+	}
+
+	return pr, nil
+}
+
+func (c *Client) CreatePullRequest(ctx context.Context, workspace, repoSlug string, options CreatePullRequestOptions) (PullRequest, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequest{}, fmt.Errorf("workspace and repository are required")
+	}
+	if options.Title == "" {
+		return PullRequest{}, fmt.Errorf("pull request title is required")
+	}
+	if options.SourceBranch == "" {
+		return PullRequest{}, fmt.Errorf("source branch is required")
+	}
+	if options.DestinationBranch == "" {
+		return PullRequest{}, fmt.Errorf("destination branch is required")
+	}
+
+	if options.ReuseExisting {
+		existing, err := c.ListPullRequests(ctx, workspace, repoSlug, ListPullRequestsOptions{
+			State: "OPEN",
+			Limit: 50,
+		})
+		if err != nil {
+			return PullRequest{}, err
+		}
+		for _, pr := range existing {
+			if pr.Title == options.Title && pr.Source.Branch.Name == options.SourceBranch && pr.Destination.Branch.Name == options.DestinationBranch {
+				return pr, nil
+			}
+		}
+	}
+
+	body := map[string]any{
+		"title": options.Title,
+		"source": map[string]any{
+			"branch": map[string]string{
+				"name": options.SourceBranch,
+			},
+		},
+		"destination": map[string]any{
+			"branch": map[string]string{
+				"name": options.DestinationBranch,
+			},
+		},
+	}
+	if options.Description != "" {
+		body["description"] = options.Description
+	}
+	if options.CloseSourceBranch {
+		body["close_source_branch"] = true
+	}
+	if options.Draft {
+		body["draft"] = true
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return PullRequest{}, fmt.Errorf("marshal create pull request request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests", url.PathEscape(workspace), url.PathEscape(repoSlug))
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return PullRequest{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequest{}, err
+	}
+
+	var pr PullRequest
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return PullRequest{}, fmt.Errorf("decode created pull request: %w", err)
 	}
 
 	return pr, nil

@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -123,5 +124,101 @@ func TestGetPullRequest(t *testing.T) {
 	}
 	if pr.ID != 7 || pr.Title != "Example PR" {
 		t.Fatalf("unexpected pull request %+v", pr)
+	}
+}
+
+func TestCreatePullRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if body["title"] != "Add feature" {
+			t.Fatalf("unexpected title %v", body["title"])
+		}
+		source := body["source"].(map[string]any)
+		destination := body["destination"].(map[string]any)
+		if source["branch"].(map[string]any)["name"] != "feature" {
+			t.Fatalf("unexpected source %#v", source)
+		}
+		if destination["branch"].(map[string]any)["name"] != "main" {
+			t.Fatalf("unexpected destination %#v", destination)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":9,"title":"Add feature","state":"OPEN","author":{"display_name":"Auro"},"source":{"branch":{"name":"feature"},"commit":{},"repository":{}},"destination":{"branch":{"name":"main"},"commit":{},"repository":{}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	pr, err := client.CreatePullRequest(context.Background(), "acme", "widgets", CreatePullRequestOptions{
+		Title:             "Add feature",
+		Description:       "desc",
+		SourceBranch:      "feature",
+		DestinationBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("CreatePullRequest returned error: %v", err)
+	}
+	if pr.ID != 9 || pr.Title != "Add feature" {
+		t.Fatalf("unexpected pull request %+v", pr)
+	}
+}
+
+func TestCreatePullRequestReuseExisting(t *testing.T) {
+	var calls int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected reuse path to avoid POST, got %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"id":5,"title":"Add feature","state":"OPEN","author":{"display_name":"Auro"},"source":{"branch":{"name":"feature"},"commit":{},"repository":{}},"destination":{"branch":{"name":"main"},"commit":{},"repository":{}}}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	pr, err := client.CreatePullRequest(context.Background(), "acme", "widgets", CreatePullRequestOptions{
+		Title:             "Add feature",
+		SourceBranch:      "feature",
+		DestinationBranch: "main",
+		ReuseExisting:     true,
+	})
+	if err != nil {
+		t.Fatalf("CreatePullRequest returned error: %v", err)
+	}
+	if pr.ID != 5 {
+		t.Fatalf("unexpected reused pull request %+v", pr)
+	}
+	if calls != 1 {
+		t.Fatalf("expected 1 call, got %d", calls)
 	}
 }

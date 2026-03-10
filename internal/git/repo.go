@@ -48,6 +48,15 @@ func ResolveRepoContext(ctx context.Context, dir string) (RepoContext, error) {
 	}, nil
 }
 
+func CurrentBranch(ctx context.Context, dir string) (string, error) {
+	branch, err := gitOutput(ctx, dir, "branch", "--show-current")
+	if err != nil {
+		return "", err
+	}
+
+	return branch, nil
+}
+
 type ParsedRemote struct {
 	Host      string
 	Workspace string

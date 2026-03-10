@@ -29,6 +29,8 @@ const (
 	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
 	fixtureFeatureBranch     = "bb-cli-int-feature"
 	fixturePRTitle           = "bb cli integration fixture pull request"
+	fixtureCreatePRBranch    = "bb-cli-create-command-branch"
+	fixtureCreatePRTitle     = "bb cli create command pull request"
 )
 
 type integrationFixture struct {
@@ -172,6 +174,49 @@ func TestBitbucketCloudPRView(t *testing.T) {
 	}
 
 	if pr.ID != fixture.PrimaryPRID || pr.Title != fixturePRTitle {
+		t.Fatalf("unexpected pull request %+v", pr)
+	}
+}
+
+func TestBitbucketCloudPRCreate(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	ensureBranchCommit(t, fixture.PrimaryRepoDir, fixtureCreatePRBranch, "fixture-create-command.txt", "created by pr create integration\n")
+
+	cmd := exec.Command(
+		binary,
+		"pr", "create",
+		"--title", fixtureCreatePRTitle,
+		"--description", "Fixture pull request created by the bb pr create command.",
+		"--source", fixtureCreatePRBranch,
+		"--destination", "main",
+		"--reuse-existing",
+		"--json", "*",
+	)
+	cmd.Dir = fixture.PrimaryRepoDir
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr create failed: %v\n%s", err, output)
+	}
+
+	var pr bitbucket.PullRequest
+	if err := json.Unmarshal(output, &pr); err != nil {
+		t.Fatalf("parse pr create JSON: %v\n%s", err, output)
+	}
+
+	if pr.Title != fixtureCreatePRTitle || pr.Source.Branch.Name != fixtureCreatePRBranch || pr.Destination.Branch.Name != "main" {
 		t.Fatalf("unexpected pull request %+v", pr)
 	}
 }
@@ -385,6 +430,33 @@ func ensurePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspac
 	return created.ID
 }
 
+func ensureBranchCommit(t *testing.T, repoDir, branchName, fileName, content string) {
+	t.Helper()
+
+	configureGitIdentity(t, repoDir)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+
+	if remoteBranchExists(t, repoDir, branchName) {
+		runGitAllowFailure(t, repoDir, "switch", branchName)
+		runGit(t, repoDir, "pull", "--ff-only", "origin", branchName)
+	} else {
+		runGit(t, repoDir, "switch", "-c", branchName)
+	}
+
+	writeFile(t, filepath.Join(repoDir, fileName), content)
+	runGit(t, repoDir, "add", fileName)
+
+	if workingTreeClean(t, repoDir) {
+		runGit(t, repoDir, "push", "-u", "origin", branchName)
+		runGitAllowFailure(t, repoDir, "switch", "main")
+		return
+	}
+
+	runGit(t, repoDir, "commit", "-m", "Update "+branchName)
+	runGit(t, repoDir, "push", "-u", "origin", branchName)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+}
+
 func buildBinary(t *testing.T) string {
 	t.Helper()
 
@@ -457,6 +529,19 @@ func remoteBranchExists(t *testing.T, repoDir, branch string) bool {
 	cmd := exec.Command("git", "ls-remote", "--exit-code", "--heads", "origin", branch)
 	cmd.Dir = repoDir
 	return cmd.Run() == nil
+}
+
+func workingTreeClean(t *testing.T, repoDir string) bool {
+	t.Helper()
+
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = repoDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git status failed: %v\n%s", err, scrub(output))
+	}
+
+	return strings.TrimSpace(string(output)) == ""
 }
 
 func writeFile(t *testing.T, path, content string) {

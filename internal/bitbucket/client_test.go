@@ -1,0 +1,99 @@
+package bitbucket
+
+import (
+	"context"
+	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/auro/bitbucket_cli/internal/config"
+)
+
+func TestCurrentUserBearerAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/user" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer secret-token" {
+			t.Fatalf("unexpected authorization header %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"account_id":"123","display_name":"Auro"}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Token:     "secret-token",
+		TokenType: "bearer",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	user, err := client.CurrentUser(context.Background())
+	if err != nil {
+		t.Fatalf("CurrentUser returned error: %v", err)
+	}
+	if user.AccountID != "123" || user.DisplayName != "Auro" {
+		t.Fatalf("unexpected current user payload %+v", user)
+	}
+}
+
+func TestCurrentUserBasicAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("auro:app-password"))
+		if got := r.Header.Get("Authorization"); got != expected {
+			t.Fatalf("unexpected authorization header %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"display_name":"Auro"}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL)
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username:  "auro",
+		Token:     "app-password",
+		TokenType: "app-password",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if _, err := client.CurrentUser(context.Background()); err != nil {
+		t.Fatalf("CurrentUser returned error: %v", err)
+	}
+}
+
+func TestResolveBaseURLRejectsUnsupportedHosts(t *testing.T) {
+	t.Setenv("BB_API_BASE_URL", "")
+
+	if _, err := resolveBaseURL("example.com"); err == nil {
+		t.Fatalf("expected unsupported host error")
+	}
+}
+
+func TestResolveURLPreservesQuery(t *testing.T) {
+	t.Setenv("BB_API_BASE_URL", "https://api.bitbucket.org/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Token: "secret-token",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	rawURL, err := client.resolveURL("/repositories/acme/widgets/pullrequests?q=state=%22OPEN%22")
+	if err != nil {
+		t.Fatalf("resolveURL returned error: %v", err)
+	}
+
+	expected := "https://api.bitbucket.org/2.0/repositories/acme/widgets/pullrequests?q=state=%22OPEN%22"
+	if rawURL != expected {
+		t.Fatalf("expected URL %q, got %q", expected, rawURL)
+	}
+}

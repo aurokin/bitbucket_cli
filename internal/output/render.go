@@ -53,7 +53,7 @@ func Render(w io.Writer, opts FormatOptions, data any, humanRenderer func(io.Wri
 		return humanRenderer(w)
 	}
 
-	value, err := normalizeValue(data)
+	value, err := NormalizeValue(data)
 	if err != nil {
 		return err
 	}
@@ -66,20 +66,16 @@ func Render(w io.Writer, opts FormatOptions, data any, humanRenderer func(io.Wri
 	}
 
 	if opts.JQ != "" {
-		value, err = applyJQ(value, opts.JQ)
+		value, err = ApplyJQ(value, opts.JQ)
 		if err != nil {
 			return err
 		}
 	}
 
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	encoder.SetEscapeHTML(false)
-
-	return encoder.Encode(value)
+	return WriteJSON(w, value)
 }
 
-func normalizeValue(data any) (any, error) {
+func NormalizeValue(data any) (any, error) {
 	raw, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("marshal JSON output: %w", err)
@@ -91,6 +87,14 @@ func normalizeValue(data any) (any, error) {
 	}
 
 	return value, nil
+}
+
+func WriteJSON(w io.Writer, value any) error {
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+
+	return encoder.Encode(value)
 }
 
 func projectFields(value any, fields []string) (any, error) {
@@ -123,7 +127,7 @@ func projectFields(value any, fields []string) (any, error) {
 	}
 }
 
-func applyJQ(value any, query string) (any, error) {
+func ApplyJQ(value any, query string) (any, error) {
 	parsed, err := gojq.Parse(query)
 	if err != nil {
 		return nil, fmt.Errorf("parse jq expression: %w", err)

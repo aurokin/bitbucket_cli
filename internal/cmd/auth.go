@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/auro/bitbucket_cli/internal/bitbucket"
 	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
@@ -43,12 +45,17 @@ type authStatusPayload struct {
 }
 
 type authStatusHostRow struct {
-	Host            string `json:"host"`
-	Default         bool   `json:"default"`
-	Username        string `json:"username,omitempty"`
-	TokenConfigured bool   `json:"token_configured"`
-	TokenType       string `json:"token_type,omitempty"`
-	UpdatedAt       string `json:"updated_at,omitempty"`
+	Host                string `json:"host"`
+	Default             bool   `json:"default"`
+	Username            string `json:"username,omitempty"`
+	TokenConfigured     bool   `json:"token_configured"`
+	TokenType           string `json:"token_type,omitempty"`
+	UpdatedAt           string `json:"updated_at,omitempty"`
+	Authenticated       *bool  `json:"authenticated,omitempty"`
+	AuthenticationError string `json:"authentication_error,omitempty"`
+	AccountID           string `json:"account_id,omitempty"`
+	DisplayName         string `json:"display_name,omitempty"`
+	UUID                string `json:"uuid,omitempty"`
 }
 
 func newAuthLoginCmd() *cobra.Command {
@@ -92,7 +99,7 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd.Flags().StringVar(&host, "host", "bitbucket.org", "Bitbucket host to configure")
 	cmd.Flags().StringVar(&token, "token", "", "Token or app password to store")
 	cmd.Flags().BoolVar(&tokenFromStdin, "with-token", false, "Read the token from stdin")
-	cmd.Flags().StringVar(&tokenType, "token-type", "token", "Credential type label to store")
+	cmd.Flags().StringVar(&tokenType, "token-type", "bearer", "Credential type to store: bearer or app-password")
 	cmd.Flags().StringVar(&username, "username", "", "Username associated with the credential")
 	cmd.Flags().BoolVar(&setDefault, "default", true, "Set this host as the default")
 
@@ -101,6 +108,8 @@ func newAuthLoginCmd() *cobra.Command {
 
 func newAuthStatusCmd() *cobra.Command {
 	var flags formatFlags
+	var check bool
+	var host string
 
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -116,7 +125,10 @@ func newAuthStatusCmd() *cobra.Command {
 				return err
 			}
 
-			payload := buildAuthStatusPayload(cfg)
+			payload, err := buildAuthStatusPayload(context.Background(), cfg, strings.TrimSpace(host), check)
+			if err != nil {
+				return err
+			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if len(payload.Hosts) == 0 {
@@ -125,7 +137,7 @@ func newAuthStatusCmd() *cobra.Command {
 				}
 
 				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintln(tw, "HOST\tDEFAULT\tUSERNAME\tTOKEN TYPE\tUPDATED"); err != nil {
+				if _, err := fmt.Fprintln(tw, "HOST\tDEFAULT\tUSERNAME\tTOKEN TYPE\tAUTHENTICATED\tACCOUNT\tUPDATED"); err != nil {
 					return err
 				}
 				for _, host := range payload.Hosts {
@@ -133,7 +145,25 @@ func newAuthStatusCmd() *cobra.Command {
 					if host.Default {
 						defaultLabel = "yes"
 					}
-					if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", host.Host, defaultLabel, host.Username, host.TokenType, host.UpdatedAt); err != nil {
+
+					authLabel := ""
+					if host.Authenticated != nil {
+						if *host.Authenticated {
+							authLabel = "yes"
+						} else {
+							authLabel = "no"
+						}
+					}
+
+					accountLabel := host.DisplayName
+					if accountLabel == "" && host.AccountID != "" {
+						accountLabel = host.AccountID
+					}
+					if host.AuthenticationError != "" {
+						accountLabel = host.AuthenticationError
+					}
+
+					if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", host.Host, defaultLabel, host.Username, host.TokenType, authLabel, accountLabel, host.UpdatedAt); err != nil {
 						return err
 					}
 				}
@@ -145,6 +175,8 @@ func newAuthStatusCmd() *cobra.Command {
 	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().BoolVar(&check, "check", false, "Validate stored credentials with the Bitbucket API")
+	cmd.Flags().StringVar(&host, "host", "", "Only show status for a specific host")
 
 	return cmd
 }
@@ -208,13 +240,18 @@ func resolveTokenValue(r io.Reader, token string, tokenFromStdin bool) (string, 
 	return trimmed, nil
 }
 
-func buildAuthStatusPayload(cfg config.Config) authStatusPayload {
+func buildAuthStatusPayload(ctx context.Context, cfg config.Config, selectedHost string, check bool) (authStatusPayload, error) {
 	payload := authStatusPayload{
 		DefaultHost: cfg.DefaultHost,
 		Hosts:       make([]authStatusHostRow, 0, len(cfg.Hosts)),
 	}
 
-	for _, hostName := range cfg.HostNames() {
+	hostNames, err := statusHostNames(cfg, selectedHost)
+	if err != nil {
+		return authStatusPayload{}, err
+	}
+
+	for _, hostName := range hostNames {
 		host := cfg.Hosts[hostName]
 		row := authStatusHostRow{
 			Host:            hostName,
@@ -226,8 +263,43 @@ func buildAuthStatusPayload(cfg config.Config) authStatusPayload {
 		if !host.UpdatedAt.IsZero() {
 			row.UpdatedAt = host.UpdatedAt.Format(time.RFC3339)
 		}
+
+		if check {
+			client, err := bitbucket.NewClient(hostName, host)
+			if err != nil {
+				authenticated := false
+				row.Authenticated = &authenticated
+				row.AuthenticationError = err.Error()
+			} else {
+				currentUser, err := client.CurrentUser(ctx)
+				if err != nil {
+					authenticated := false
+					row.Authenticated = &authenticated
+					row.AuthenticationError = err.Error()
+				} else {
+					authenticated := true
+					row.Authenticated = &authenticated
+					row.AccountID = currentUser.AccountID
+					row.DisplayName = currentUser.DisplayName
+					row.UUID = currentUser.UUID
+				}
+			}
+		}
+
 		payload.Hosts = append(payload.Hosts, row)
 	}
 
-	return payload
+	return payload, nil
+}
+
+func statusHostNames(cfg config.Config, selectedHost string) ([]string, error) {
+	if selectedHost == "" {
+		return cfg.HostNames(), nil
+	}
+
+	if _, ok := cfg.Hosts[selectedHost]; !ok {
+		return nil, fmt.Errorf("no stored credentials found for %s", selectedHost)
+	}
+
+	return []string{selectedHost}, nil
 }

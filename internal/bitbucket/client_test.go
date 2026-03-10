@@ -10,12 +10,10 @@ import (
 	"github.com/auro/bitbucket_cli/internal/config"
 )
 
-func TestCurrentUserBearerAuth(t *testing.T) {
+func TestCurrentUserAPITokenAuth(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/2.0/user" {
-			t.Fatalf("unexpected path %q", r.URL.Path)
-		}
-		if got := r.Header.Get("Authorization"); got != "Bearer secret-token" {
+		expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("auro@example.com:api-token-secret"))
+		if got := r.Header.Get("Authorization"); got != expected {
 			t.Fatalf("unexpected authorization header %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -23,11 +21,12 @@ func TestCurrentUserBearerAuth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	t.Setenv("BB_API_BASE_URL", server.URL)
 
 	client, err := NewClient("bitbucket.org", config.HostConfig{
-		Token:     "secret-token",
-		TokenType: "bearer",
+		Username: "auro@example.com",
+		Token:    "api-token-secret",
+		AuthType: config.AuthTypeAPIToken,
 	})
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
@@ -42,38 +41,27 @@ func TestCurrentUserBearerAuth(t *testing.T) {
 	}
 }
 
-func TestCurrentUserBasicAuth(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		expected := "Basic " + base64.StdEncoding.EncodeToString([]byte("auro:app-password"))
-		if got := r.Header.Get("Authorization"); got != expected {
-			t.Fatalf("unexpected authorization header %q", got)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"display_name":"Auro"}`))
-	}))
-	defer server.Close()
-
-	t.Setenv("BB_API_BASE_URL", server.URL)
-
-	client, err := NewClient("bitbucket.org", config.HostConfig{
-		Username:  "auro",
-		Token:     "app-password",
-		TokenType: "app-password",
-	})
-	if err != nil {
-		t.Fatalf("NewClient returned error: %v", err)
-	}
-
-	if _, err := client.CurrentUser(context.Background()); err != nil {
-		t.Fatalf("CurrentUser returned error: %v", err)
-	}
-}
-
 func TestResolveBaseURLRejectsUnsupportedHosts(t *testing.T) {
 	t.Setenv("BB_API_BASE_URL", "")
 
 	if _, err := resolveBaseURL("example.com"); err == nil {
 		t.Fatalf("expected unsupported host error")
+	}
+}
+
+func TestApplyAuthorizationRejectsUnsupportedAuthTypes(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+
+	err = applyAuthorization(req, config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: "oauth-web",
+	})
+	if err == nil {
+		t.Fatalf("expected unsupported auth type error")
 	}
 }
 

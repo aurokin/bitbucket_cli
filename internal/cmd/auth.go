@@ -49,7 +49,7 @@ type authStatusHostRow struct {
 	Default             bool   `json:"default"`
 	Username            string `json:"username,omitempty"`
 	TokenConfigured     bool   `json:"token_configured"`
-	TokenType           string `json:"token_type,omitempty"`
+	AuthType            string `json:"auth_type,omitempty"`
 	UpdatedAt           string `json:"updated_at,omitempty"`
 	Authenticated       *bool  `json:"authenticated,omitempty"`
 	AuthenticationError string `json:"authentication_error,omitempty"`
@@ -62,7 +62,6 @@ func newAuthLoginCmd() *cobra.Command {
 	var host string
 	var token string
 	var tokenFromStdin bool
-	var tokenType string
 	var username string
 	var setDefault bool
 
@@ -74,6 +73,9 @@ func newAuthLoginCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if strings.TrimSpace(username) == "" {
+				return fmt.Errorf("--username is required and should be your Atlassian account email")
+			}
 
 			cfg, err := config.Load()
 			if err != nil {
@@ -83,7 +85,7 @@ func newAuthLoginCmd() *cobra.Command {
 			cfg.SetHost(host, config.HostConfig{
 				Username:  strings.TrimSpace(username),
 				Token:     resolvedToken,
-				TokenType: strings.TrimSpace(tokenType),
+				AuthType:  config.AuthTypeAPIToken,
 				UpdatedAt: time.Now().UTC(),
 			}, setDefault)
 
@@ -97,10 +99,9 @@ func newAuthLoginCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&host, "host", "bitbucket.org", "Bitbucket host to configure")
-	cmd.Flags().StringVar(&token, "token", "", "Token or app password to store")
-	cmd.Flags().BoolVar(&tokenFromStdin, "with-token", false, "Read the token from stdin")
-	cmd.Flags().StringVar(&tokenType, "token-type", "bearer", "Credential type to store: bearer or app-password")
-	cmd.Flags().StringVar(&username, "username", "", "Username associated with the credential")
+	cmd.Flags().StringVar(&token, "token", "", "Atlassian API token to store")
+	cmd.Flags().BoolVar(&tokenFromStdin, "with-token", false, "Read the API token from stdin")
+	cmd.Flags().StringVar(&username, "username", "", "Atlassian account email associated with the API token")
 	cmd.Flags().BoolVar(&setDefault, "default", true, "Set this host as the default")
 
 	return cmd
@@ -137,7 +138,7 @@ func newAuthStatusCmd() *cobra.Command {
 				}
 
 				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintln(tw, "HOST\tDEFAULT\tUSERNAME\tTOKEN TYPE\tAUTHENTICATED\tACCOUNT\tUPDATED"); err != nil {
+				if _, err := fmt.Fprintln(tw, "HOST\tDEFAULT\tUSERNAME\tAUTH TYPE\tAUTHENTICATED\tACCOUNT\tUPDATED"); err != nil {
 					return err
 				}
 				for _, host := range payload.Hosts {
@@ -163,7 +164,7 @@ func newAuthStatusCmd() *cobra.Command {
 						accountLabel = host.AuthenticationError
 					}
 
-					if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", host.Host, defaultLabel, host.Username, host.TokenType, authLabel, accountLabel, host.UpdatedAt); err != nil {
+					if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", host.Host, defaultLabel, host.Username, host.AuthType, authLabel, accountLabel, host.UpdatedAt); err != nil {
 						return err
 					}
 				}
@@ -258,7 +259,7 @@ func buildAuthStatusPayload(ctx context.Context, cfg config.Config, selectedHost
 			Default:         hostName == cfg.DefaultHost,
 			Username:        host.Username,
 			TokenConfigured: host.Token != "",
-			TokenType:       host.TokenType,
+			AuthType:        host.AuthType,
 		}
 		if !host.UpdatedAt.IsZero() {
 			row.UpdatedAt = host.UpdatedAt.Format(time.RFC3339)

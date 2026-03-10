@@ -24,9 +24,9 @@ func TestSaveAndLoadConfig(t *testing.T) {
 
 	cfg := Config{}
 	cfg.SetHost("bitbucket.org", HostConfig{
-		Username:  "auro",
-		Token:     "secret",
-		TokenType: "bearer",
+		Username: "auro",
+		Token:    "secret",
+		AuthType: AuthTypeAPIToken,
 	}, true)
 
 	if err := Save(cfg); err != nil {
@@ -45,7 +45,7 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected saved host in config")
 	}
-	if host.Username != "auro" || host.Token != "secret" || host.TokenType != "bearer" {
+	if host.Username != "auro" || host.Token != "secret" || host.AuthType != AuthTypeAPIToken {
 		t.Fatalf("unexpected host config %+v", host)
 	}
 
@@ -60,6 +60,40 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("unexpected config mode %o", info.Mode().Perm())
+	}
+}
+
+func TestLoadNormalizesLegacyTokenType(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", dir)
+
+	configPath := filepath.Join(dir, defaultConfigFile)
+	content := `{
+  "default_host": "bitbucket.org",
+  "hosts": {
+    "bitbucket.org": {
+      "username": "hunter@example.com",
+      "token": "secret",
+      "token_type": "app-password"
+    }
+  }
+}
+`
+	if err := os.WriteFile(configPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write legacy config: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	host := cfg.Hosts["bitbucket.org"]
+	if host.AuthType != AuthTypeAPIToken {
+		t.Fatalf("expected auth type %q, got %q", AuthTypeAPIToken, host.AuthType)
+	}
+	if host.TokenType != "" {
+		t.Fatalf("expected legacy token_type to be cleared, got %q", host.TokenType)
 	}
 }
 

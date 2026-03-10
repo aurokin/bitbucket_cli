@@ -29,7 +29,11 @@ func TestListPullRequests(t *testing.T) {
 
 	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
 
-	client, err := NewClient("bitbucket.org", config.HostConfig{Token: "secret"})
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
@@ -68,7 +72,11 @@ func TestListPullRequestsFollowsPagination(t *testing.T) {
 
 	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
 
-	client, err := NewClient("bitbucket.org", config.HostConfig{Token: "secret"})
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
 	}

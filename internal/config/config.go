@@ -24,9 +24,14 @@ type Config struct {
 type HostConfig struct {
 	Username  string    `json:"username,omitempty"`
 	Token     string    `json:"token,omitempty"`
+	AuthType  string    `json:"auth_type,omitempty"`
 	TokenType string    `json:"token_type,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
+
+const (
+	AuthTypeAPIToken = "api-token"
+)
 
 func Load() (Config, error) {
 	path, err := Path()
@@ -51,6 +56,10 @@ func Load() (Config, error) {
 		cfg.Hosts = map[string]HostConfig{}
 	}
 
+	for host, hostConfig := range cfg.Hosts {
+		cfg.Hosts[host] = NormalizeHostConfig(hostConfig)
+	}
+
 	return cfg, nil
 }
 
@@ -62,6 +71,10 @@ func Save(cfg Config) error {
 
 	if cfg.Hosts == nil {
 		cfg.Hosts = map[string]HostConfig{}
+	}
+
+	for host, hostConfig := range cfg.Hosts {
+		cfg.Hosts[host] = NormalizeHostConfig(hostConfig)
 	}
 
 	dir := filepath.Dir(path)
@@ -100,10 +113,29 @@ func (c *Config) SetHost(host string, hostConfig HostConfig, setDefault bool) {
 		c.Hosts = map[string]HostConfig{}
 	}
 
-	c.Hosts[host] = hostConfig
+	c.Hosts[host] = NormalizeHostConfig(hostConfig)
 	if setDefault || c.DefaultHost == "" {
 		c.DefaultHost = host
 	}
+}
+
+func NormalizeHostConfig(hostConfig HostConfig) HostConfig {
+	authType := strings.TrimSpace(hostConfig.AuthType)
+	if authType == "" {
+		switch strings.TrimSpace(hostConfig.TokenType) {
+		case "", "app-password", "basic", "bearer", "token", "oauth", "api-token":
+			authType = AuthTypeAPIToken
+		default:
+			authType = AuthTypeAPIToken
+		}
+	}
+
+	hostConfig.Username = strings.TrimSpace(hostConfig.Username)
+	hostConfig.Token = strings.TrimSpace(hostConfig.Token)
+	hostConfig.AuthType = authType
+	hostConfig.TokenType = ""
+
+	return hostConfig
 }
 
 func (c *Config) RemoveHost(host string) {

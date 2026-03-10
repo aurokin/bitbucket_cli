@@ -158,34 +158,22 @@ func resolveBaseURL(host string) (*url.URL, error) {
 }
 
 func applyAuthorization(req *http.Request, auth config.HostConfig) error {
+	auth = config.NormalizeHostConfig(auth)
+
 	token := strings.TrimSpace(auth.Token)
 	if token == "" {
 		return fmt.Errorf("no token configured for host")
 	}
 
-	switch normalizeTokenType(auth.TokenType) {
-	case "bearer":
-		req.Header.Set("Authorization", "Bearer "+token)
-		return nil
-	case "basic":
+	switch auth.AuthType {
+	case config.AuthTypeAPIToken:
 		if strings.TrimSpace(auth.Username) == "" {
-			return fmt.Errorf("username is required for basic auth")
+			return fmt.Errorf("username is required for api-token auth")
 		}
 		req.SetBasicAuth(auth.Username, token)
 		return nil
 	default:
-		return fmt.Errorf("unsupported token type %q", auth.TokenType)
-	}
-}
-
-func normalizeTokenType(tokenType string) string {
-	switch strings.ToLower(strings.TrimSpace(tokenType)) {
-	case "", "bearer", "token", "api-token", "oauth":
-		return "bearer"
-	case "basic", "app-password":
-		return "basic"
-	default:
-		return strings.ToLower(strings.TrimSpace(tokenType))
+		return fmt.Errorf("unsupported auth type %q", auth.AuthType)
 	}
 }
 

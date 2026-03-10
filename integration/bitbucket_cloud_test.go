@@ -147,6 +147,56 @@ func TestBitbucketCloudRepoCreate(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudRepoView(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "repo", "view", "--json", "*")
+	cmd.Dir = fixture.PrimaryRepoDir
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo view failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace  string `json:"workspace"`
+		Repo       string `json:"repo"`
+		Name       string `json:"name"`
+		ProjectKey string `json:"project_key"`
+		MainBranch string `json:"main_branch"`
+		Remote     string `json:"remote"`
+		Root       string `json:"root"`
+		Private    bool   `json:"private"`
+		HTMLURL    string `json:"html_url"`
+		HTTPSClone string `json:"https_clone"`
+		LocalClone string `json:"local_clone_url"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo view JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug {
+		t.Fatalf("unexpected repo identity %+v", payload)
+	}
+	if payload.ProjectKey != fixtureProjectKey || payload.MainBranch != "main" || payload.Remote != "origin" {
+		t.Fatalf("unexpected repo metadata %+v", payload)
+	}
+	if payload.Root == "" || payload.HTMLURL == "" || payload.HTTPSClone == "" || payload.LocalClone == "" {
+		t.Fatalf("expected repo view to include local and remote URLs %+v", payload)
+	}
+}
+
 func TestBitbucketCloudPRView(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

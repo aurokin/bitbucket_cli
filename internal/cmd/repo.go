@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"text/tabwriter"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -29,40 +30,140 @@ func newRepoCmd() *cobra.Command {
 
 func newRepoViewCmd() *cobra.Command {
 	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
 
 	cmd := &cobra.Command{
 		Use:   "view",
-		Short: "Show repository information for the current git checkout",
+		Short: "Show repository information",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
 				return err
 			}
 
-			repo, err := gitrepo.ResolveRepoContext(context.Background(), ".")
+			cfg, err := config.Load()
 			if err != nil {
 				return err
 			}
 
-			return output.Render(cmd.OutOrStdout(), opts, repo, func(w io.Writer) error {
+			localRepo, resolvedHost, resolvedWorkspace, resolvedRepo, err := resolveRepoViewTarget(context.Background(), host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			resolvedConfigHost, err := cfg.ResolveHost(resolvedHost)
+			if err != nil {
+				return err
+			}
+			hostConfig, ok := cfg.Hosts[resolvedConfigHost]
+			if !ok {
+				return fmt.Errorf("no stored credentials found for %s", resolvedConfigHost)
+			}
+
+			client, err := bitbucket.NewClient(resolvedConfigHost, hostConfig)
+			if err != nil {
+				return err
+			}
+
+			repository, err := client.GetRepository(context.Background(), resolvedWorkspace, resolvedRepo)
+			if err != nil {
+				return err
+			}
+
+			payload := repoViewPayload{
+				Host:        resolvedHost,
+				Workspace:   resolvedWorkspace,
+				RepoSlug:    repository.Slug,
+				Name:        repository.Name,
+				FullName:    repository.FullName,
+				Description: repository.Description,
+				Private:     repository.IsPrivate,
+				ProjectKey:  repository.Project.Key,
+				ProjectName: repository.Project.Name,
+				MainBranch:  repository.MainBranch.Name,
+				HTMLURL:     repository.Links.HTML.Href,
+				HTTPSClone:  cloneURLForName(repository.Links.Clone, "https"),
+				SSHClone:    cloneURLForName(repository.Links.Clone, "ssh"),
+			}
+			if localRepo != nil {
+				payload.RemoteName = localRepo.RemoteName
+				payload.RootDir = localRepo.RootDir
+				payload.LocalCloneURL = localRepo.CloneURL
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", repo.Workspace); err != nil {
+				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", repo.RepoSlug); err != nil {
+				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Host:\t%s\n", repo.Host); err != nil {
+				if _, err := fmt.Fprintf(tw, "Name:\t%s\n", payload.Name); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Remote:\t%s\n", repo.RemoteName); err != nil {
+				if _, err := fmt.Fprintf(tw, "Host:\t%s\n", payload.Host); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Clone URL:\t%s\n", repo.CloneURL); err != nil {
+				if _, err := fmt.Fprintf(tw, "Private:\t%t\n", payload.Private); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Root:\t%s\n", repo.RootDir); err != nil {
-					return err
+				if payload.ProjectKey != "" {
+					if _, err := fmt.Fprintf(tw, "Project:\t%s\n", payload.ProjectKey); err != nil {
+						return err
+					}
+				}
+				if payload.MainBranch != "" {
+					if _, err := fmt.Fprintf(tw, "Main Branch:\t%s\n", payload.MainBranch); err != nil {
+						return err
+					}
+				}
+				if payload.HTMLURL != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.HTMLURL); err != nil {
+						return err
+					}
+				}
+				if payload.HTTPSClone != "" {
+					if _, err := fmt.Fprintf(tw, "HTTPS Clone:\t%s\n", payload.HTTPSClone); err != nil {
+						return err
+					}
+				}
+				if payload.SSHClone != "" {
+					if _, err := fmt.Fprintf(tw, "SSH Clone:\t%s\n", payload.SSHClone); err != nil {
+						return err
+					}
+				}
+				if payload.RemoteName != "" {
+					if _, err := fmt.Fprintf(tw, "Remote:\t%s\n", payload.RemoteName); err != nil {
+						return err
+					}
+				}
+				if payload.LocalCloneURL != "" {
+					if _, err := fmt.Fprintf(tw, "Local Clone URL:\t%s\n", payload.LocalCloneURL); err != nil {
+						return err
+					}
+				}
+				if payload.RootDir != "" {
+					if _, err := fmt.Fprintf(tw, "Root:\t%s\n", payload.RootDir); err != nil {
+						return err
+					}
+				}
+				if payload.Description != "" {
+					if _, err := fmt.Fprintf(tw, "Description:\t%s\n", payload.Description); err != nil {
+						return err
+					}
+				}
+				if payload.FullName != "" {
+					if _, err := fmt.Fprintf(tw, "Full Name:\t%s\n", payload.FullName); err != nil {
+						return err
+					}
+				}
+				if payload.ProjectName != "" {
+					if _, err := fmt.Fprintf(tw, "Project Name:\t%s\n", payload.ProjectName); err != nil {
+						return err
+					}
 				}
 				return tw.Flush()
 			})
@@ -72,8 +173,72 @@ func newRepoViewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
 
 	return cmd
+}
+
+type repoViewPayload struct {
+	Host          string `json:"host"`
+	Workspace     string `json:"workspace"`
+	RepoSlug      string `json:"repo"`
+	Name          string `json:"name,omitempty"`
+	FullName      string `json:"full_name,omitempty"`
+	Description   string `json:"description,omitempty"`
+	Private       bool   `json:"private"`
+	ProjectKey    string `json:"project_key,omitempty"`
+	ProjectName   string `json:"project_name,omitempty"`
+	MainBranch    string `json:"main_branch,omitempty"`
+	HTMLURL       string `json:"html_url,omitempty"`
+	HTTPSClone    string `json:"https_clone,omitempty"`
+	SSHClone      string `json:"ssh_clone,omitempty"`
+	RemoteName    string `json:"remote,omitempty"`
+	LocalCloneURL string `json:"local_clone_url,omitempty"`
+	RootDir       string `json:"root,omitempty"`
+}
+
+func resolveRepoViewTarget(ctx context.Context, host, workspace, repo string) (*gitrepo.RepoContext, string, string, string, error) {
+	if workspace != "" && repo != "" {
+		return nil, host, workspace, repo, nil
+	}
+
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return nil, "", "", "", fmt.Errorf("get working directory: %w", err)
+	}
+
+	localRepo, err := gitrepo.ResolveRepoContext(ctx, currentDir)
+	if err != nil {
+		return nil, "", "", "", fmt.Errorf("resolve repository from flags or git remote: %w", err)
+	}
+
+	resolvedHost := host
+	if resolvedHost == "" {
+		resolvedHost = localRepo.Host
+	}
+
+	resolvedWorkspace := workspace
+	if resolvedWorkspace == "" {
+		resolvedWorkspace = localRepo.Workspace
+	}
+
+	resolvedRepo := repo
+	if resolvedRepo == "" {
+		resolvedRepo = localRepo.RepoSlug
+	}
+
+	return &localRepo, resolvedHost, resolvedWorkspace, resolvedRepo, nil
+}
+
+func cloneURLForName(targets []bitbucket.NamedCloneTarget, name string) string {
+	for _, target := range targets {
+		if target.Name == name {
+			return target.Href
+		}
+	}
+	return ""
 }
 
 func newRepoCreateCmd() *cobra.Command {

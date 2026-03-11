@@ -25,6 +25,7 @@ func newRepoCmd() *cobra.Command {
 		newRepoViewCmd(),
 		newRepoCreateCmd(),
 		newRepoCloneCmd(),
+		newRepoDeleteCmd(),
 	)
 
 	return repoCmd
@@ -399,6 +400,100 @@ func newRepoCloneCmd() *cobra.Command {
 	return cmd
 }
 
+func newRepoDeleteCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var yes bool
+
+	cmd := &cobra.Command{
+		Use:   "delete <repository>",
+		Short: "Delete a Bitbucket repository",
+		Long:  "Delete a Bitbucket repository in Bitbucket Cloud. Humans must confirm the exact workspace/repository unless --yes is provided. Scripts and agents should use --yes together with --no-prompt when they need deterministic behavior.",
+		Example: "  bb repo delete OhBizzle/bb-cli-delete-command-target --yes\n" +
+			"  bb repo delete bb-cli-delete-command-target --workspace OhBizzle --yes\n" +
+			"  bb repo delete https://bitbucket.org/OhBizzle/bb-cli-delete-command-target --json",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoSelector(host, workspace, args[0])
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			target, err := resolveRepoTarget(context.Background(), selector, client, false)
+			if err != nil {
+				return err
+			}
+
+			repository, err := client.GetRepository(context.Background(), target.Workspace, target.Repo)
+			if err != nil {
+				return err
+			}
+
+			confirmationTarget := target.Workspace + "/" + repository.Slug
+			if !yes {
+				if !promptsEnabled(cmd) {
+					return fmt.Errorf("repository deletion requires confirmation; pass --yes or run in an interactive terminal")
+				}
+				if err := confirmExactMatch(cmd, confirmationTarget); err != nil {
+					return err
+				}
+			}
+
+			if err := client.DeleteRepository(context.Background(), target.Workspace, repository.Slug); err != nil {
+				return err
+			}
+
+			payload := repoDeletePayload{
+				Host:      target.Host,
+				Workspace: target.Workspace,
+				RepoSlug:  repository.Slug,
+				Name:      repository.Name,
+				Deleted:   true,
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
+					return err
+				}
+				if payload.Name != "" {
+					if _, err := fmt.Fprintf(tw, "Name:\t%s\n", payload.Name); err != nil {
+						return err
+					}
+				}
+				if _, err := fmt.Fprintf(tw, "Deleted:\t%t\n", payload.Deleted); err != nil {
+					return err
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare repository target")
+	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
+
+	return cmd
+}
+
 type repoClonePayload struct {
 	Host      string `json:"host"`
 	Workspace string `json:"workspace"`
@@ -406,6 +501,14 @@ type repoClonePayload struct {
 	Name      string `json:"name,omitempty"`
 	Directory string `json:"directory"`
 	CloneURL  string `json:"clone_url,omitempty"`
+}
+
+type repoDeletePayload struct {
+	Host      string `json:"host"`
+	Workspace string `json:"workspace"`
+	RepoSlug  string `json:"repo"`
+	Name      string `json:"name,omitempty"`
+	Deleted   bool   `json:"deleted"`
 }
 
 func resolveWorkspaceForCreate(ctx context.Context, client workspaceResolver, workspace string) (string, error) {

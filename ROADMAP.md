@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb repo delete`
-  Delete repositories explicitly, but never as part of the default integration flow.
-
 - `bb pr status`
   Show relevant pull request status for the current repository or explicit target.
 

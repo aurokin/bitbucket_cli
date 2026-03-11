@@ -27,6 +27,7 @@ const (
 	fixturePrimaryRepoSlug   = "bb-cli-integration-primary"
 	fixtureSecondaryRepoSlug = "bb-cli-integration-secondary"
 	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
+	fixtureDeleteRepoSlug    = "bb-cli-delete-command-target"
 	fixtureFeatureBranch     = "bb-cli-int-feature"
 	fixturePRTitle           = "bb cli integration fixture pull request"
 	fixtureCreatePRBranch    = "bb-cli-create-command-branch"
@@ -253,6 +254,46 @@ func TestBitbucketCloudRepoClone(t *testing.T) {
 	}
 	if !strings.Contains(originURL, "x-bitbucket-api-token-auth@") {
 		t.Fatalf("expected sanitized origin remote to keep Bitbucket API token username, got %s", originURL)
+	}
+}
+
+func TestBitbucketCloudRepoDelete(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	ensureFixture(t, client, hostConfig, workspace)
+	_ = ensureRepository(t, client, workspace, fixtureDeleteRepoSlug)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "repo", "delete", workspace+"/"+fixtureDeleteRepoSlug, "--yes", "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo delete failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string `json:"workspace"`
+		Repo      string `json:"repo"`
+		Deleted   bool   `json:"deleted"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo delete JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixtureDeleteRepoSlug || !payload.Deleted {
+		t.Fatalf("unexpected repo delete payload %+v", payload)
+	}
+
+	if repositoryExists(t, client, workspace, fixtureDeleteRepoSlug) {
+		t.Fatalf("expected repository %s/%s to be deleted", workspace, fixtureDeleteRepoSlug)
 	}
 }
 
@@ -524,6 +565,27 @@ func ensureRepository(t *testing.T, client *bitbucket.Client, workspace, slug st
 	}
 	mustRequestJSON(t, client, http.MethodPost, fmt.Sprintf("/repositories/%s/%s", workspace, slug), body, &repo)
 	return repo
+}
+
+func repositoryExists(t *testing.T, client *bitbucket.Client, workspace, slug string) bool {
+	t.Helper()
+
+	resp, err := request(t, client, http.MethodGet, fmt.Sprintf("/repositories/%s/%s", workspace, slug), nil)
+	if err != nil {
+		t.Fatalf("lookup repository %s: %v", slug, err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return true
+	case http.StatusNotFound:
+		return false
+	default:
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("lookup repository %s failed: %s %s", slug, resp.Status, strings.TrimSpace(string(body)))
+		return false
+	}
 }
 
 func ensurePrimaryRepoContent(t *testing.T, repoDir string, hostConfig config.HostConfig) {

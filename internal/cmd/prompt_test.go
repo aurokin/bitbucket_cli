@@ -62,3 +62,30 @@ func TestPromptsDisabledWithInheritedFlag(t *testing.T) {
 		t.Fatal("expected promptsDisabled to respect inherited no-prompt flag")
 	}
 }
+
+func TestConfirmExactMatch(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(bytes.NewBufferString("OhBizzle/widgets\n"))
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := confirmExactMatch(cmd, "OhBizzle/widgets"); err != nil {
+		t.Fatalf("confirmExactMatch returned error: %v", err)
+	}
+}
+
+func TestConfirmExactMatchRejectsMismatch(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(bytes.NewBufferString("wrong/value\n"))
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	err := confirmExactMatch(cmd, "OhBizzle/widgets")
+	if err == nil || err.Error() != "confirmation did not match OhBizzle/widgets" {
+		t.Fatalf("expected mismatch error, got %v", err)
+	}
+}

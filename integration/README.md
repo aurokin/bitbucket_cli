@@ -10,7 +10,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Create them if they do not exist
 - Seed arbitrary git content into the primary and secondary repositories
 - Ensure there is an open pull request in the primary repository
-- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb pr list`, `bb pr view`, `bb pr create`, `bb pr checkout`, and `bb pr merge` commands against the seeded repositories
+- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr view`, `bb pr create`, `bb pr checkout`, and `bb pr merge` commands against the seeded repositories
 
 ## Fixture Names
 
@@ -25,6 +25,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoView -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoClone -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoCreate -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoDelete -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRCreate -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRCheckout -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRMerge -v
@@ -35,4 +36,5 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 ## Notes
 
 - The tests intentionally reuse existing fixtures to avoid unnecessary churn against the Bitbucket API.
-- They do not delete projects or repositories.
+- The `repo delete` test uses a dedicated sacrificial repository and recreates it only when needed.
+- They do not delete projects, and they do not delete the primary or secondary fixture repositories.

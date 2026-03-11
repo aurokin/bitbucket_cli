@@ -146,3 +146,22 @@ func (c *Client) CreateRepository(ctx context.Context, workspace, repoSlug strin
 
 	return repo, nil
 }
+
+func (c *Client) DeleteRepository(ctx context.Context, workspace, repoSlug string) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository slug are required")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s", url.PathEscape(workspace), url.PathEscape(repoSlug))
+	resp, err := c.Do(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -93,3 +93,31 @@ func TestCreateRepository(t *testing.T) {
 		t.Fatalf("unexpected repository %+v", repo)
 	}
 }
+
+func TestDeleteRepository(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/OhBizzle/widgets" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if err := client.DeleteRepository(context.Background(), "OhBizzle", "widgets"); err != nil {
+		t.Fatalf("DeleteRepository returned error: %v", err)
+	}
+}

@@ -81,3 +81,14 @@ func promptRequiredString(cmd *cobra.Command, label, defaultValue string) (strin
 		}
 	}
 }
+
+func confirmExactMatch(cmd *cobra.Command, expected string) error {
+	value, err := promptRequiredString(cmd, "Type "+expected+" to confirm", "")
+	if err != nil {
+		return err
+	}
+	if value != expected {
+		return fmt.Errorf("confirmation did not match %s", expected)
+	}
+	return nil
+}

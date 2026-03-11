@@ -9,16 +9,19 @@ import (
 )
 
 func main() {
-	content, err := cmdpkg.GenerateCLIReference()
+	writeGeneratedDoc(filepath.Join("docs", "cli-reference.md"), cmdpkg.GenerateCLIReference)
+	writeGeneratedDoc(filepath.Join("docs", "json-shapes.md"), cmdpkg.GenerateJSONShapesDoc)
+}
+
+func writeGeneratedDoc(path string, generate func() (string, error)) {
+	content, err := generate()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	outputPath := filepath.Join("docs", "cli-reference.md")
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		log.Fatal(err)
 	}
-	if err := os.WriteFile(outputPath, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		log.Fatal(err)
 	}
 }

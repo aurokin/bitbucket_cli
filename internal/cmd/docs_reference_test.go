@@ -26,6 +26,25 @@ func TestCLIReferenceMatchesGenerator(t *testing.T) {
 	}
 }
 
+func TestJSONShapesMatchesGenerator(t *testing.T) {
+	t.Parallel()
+
+	generated, err := GenerateJSONShapesDoc()
+	if err != nil {
+		t.Fatalf("GenerateJSONShapesDoc returned error: %v", err)
+	}
+
+	path := filepath.Join("..", "..", "docs", "json-shapes.md")
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read json shapes: %v", err)
+	}
+
+	if string(existing) != generated {
+		t.Fatalf("docs/json-shapes.md is out of date; run `go run ./cmd/gen-docs`")
+	}
+}
+
 func TestRootHelpHighlightsHumanAndAgentPaths(t *testing.T) {
 	t.Parallel()
 

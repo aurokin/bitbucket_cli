@@ -1,0 +1,345 @@
+package cmd
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
+
+	"github.com/auro/bitbucket_cli/internal/bitbucket"
+)
+
+type jsonShapeSection struct {
+	Title       string
+	Description string
+	Commands    []string
+	Type        any
+}
+
+// GenerateJSONShapesDoc renders representative JSON shapes from the current
+// payload structs and Bitbucket response models.
+func GenerateJSONShapesDoc() (string, error) {
+	sections := []jsonShapeSection{
+		{
+			Title:       "Repository View",
+			Description: "Representative shape for the repository view payload.",
+			Commands: []string{
+				"bb repo view --repo OhBizzle/bb-cli-integration-primary --json '*'",
+			},
+			Type: repoViewPayload{},
+		},
+		{
+			Title:       "Repository Clone And Delete",
+			Description: "Representative shapes for repository clone and delete payloads.",
+			Commands: []string{
+				"bb repo clone OhBizzle/bb-cli-integration-primary /tmp/bb-cli-integration-primary --json '*'",
+				"bb --no-prompt repo delete OhBizzle/example-repo --yes --json '*'",
+			},
+			Type: []any{repoClonePayload{}, repoDeletePayload{}},
+		},
+		{
+			Title:       "Pull Request List And View",
+			Description: "Representative shape for pull request list items and the pull request view payload.",
+			Commands: []string{
+				"bb pr list --repo OhBizzle/bb-cli-integration-primary --json '*'",
+				"bb pr view 1 --repo OhBizzle/bb-cli-integration-primary --json '*'",
+			},
+			Type: bitbucket.PullRequest{},
+		},
+		{
+			Title:       "Pull Request Status",
+			Description: "Representative shape for the pull request status payload.",
+			Commands: []string{
+				"bb pr status --repo OhBizzle/bb-cli-integration-primary --json '*'",
+			},
+			Type: prStatusPayload{},
+		},
+		{
+			Title:       "Pull Request Diff",
+			Description: "Representative shape for the pull request diff payload.",
+			Commands: []string{
+				"bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json '*'",
+			},
+			Type: prDiffPayload{},
+		},
+		{
+			Title:       "Issue List And View",
+			Description: "Representative shape for issue list items and the issue view payload.",
+			Commands: []string{
+				"bb issue list --repo OhBizzle/bb-cli-integration-issues --json '*'",
+				"bb issue view 1 --repo OhBizzle/bb-cli-integration-issues --json '*'",
+			},
+			Type: bitbucket.Issue{},
+		},
+		{
+			Title:       "Search Results",
+			Description: "Representative shapes for repository, pull request, and issue search results.",
+			Commands: []string{
+				"bb search repos bb-cli --workspace OhBizzle --json '*'",
+				"bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --json '*'",
+				"bb search issues broken --repo OhBizzle/bb-cli-integration-issues --json '*'",
+			},
+			Type: []any{bitbucket.Repository{}, bitbucket.PullRequest{}, bitbucket.Issue{}},
+		},
+		{
+			Title:       "Cross-Repository Status",
+			Description: "Representative shape for the cross-repository status payload.",
+			Commands: []string{
+				"bb status --workspace OhBizzle --json '*'",
+			},
+			Type: crossRepoStatusPayload{},
+		},
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("# JSON Shapes\n\n")
+	buf.WriteString("Representative JSON payload shapes for common commands.\n\n")
+	buf.WriteString("Generated from the current payload structs and Bitbucket response models. Field order follows the Go structs. Omitted fields in live output still depend on the selected command, flags, and Bitbucket data.\n\n")
+	buf.WriteString("Use [automation.md](./automation.md) for deterministic command patterns and [cli-reference.md](./cli-reference.md) for the full command surface.\n")
+
+	for _, section := range sections {
+		buf.WriteString("\n## ")
+		buf.WriteString(section.Title)
+		buf.WriteString("\n\n")
+		if section.Description != "" {
+			buf.WriteString(section.Description)
+			buf.WriteString("\n\n")
+		}
+
+		if len(section.Commands) == 1 {
+			buf.WriteString("Command:\n\n```bash\n")
+			buf.WriteString(section.Commands[0])
+			buf.WriteString("\n```\n")
+		} else {
+			buf.WriteString("Commands:\n\n```bash\n")
+			for i, command := range section.Commands {
+				if i > 0 {
+					buf.WriteByte('\n')
+				}
+				buf.WriteString(command)
+			}
+			buf.WriteString("\n```\n")
+		}
+
+		switch typed := section.Type.(type) {
+		case []any:
+			buf.WriteString("\nRepresentative shapes:\n")
+			for _, item := range typed {
+				rendered, err := representativeJSON(item)
+				if err != nil {
+					return "", err
+				}
+				buf.WriteString("\n```json\n")
+				buf.WriteString(rendered)
+				buf.WriteString("\n```\n")
+			}
+		default:
+			rendered, err := representativeJSON(section.Type)
+			if err != nil {
+				return "", err
+			}
+			buf.WriteString("\nRepresentative shape:\n\n```json\n")
+			buf.WriteString(rendered)
+			buf.WriteString("\n```\n")
+		}
+	}
+
+	return buf.String(), nil
+}
+
+func representativeJSON(example any) (string, error) {
+	value := buildRepresentativeValue(reflect.TypeOf(example), nil, 0)
+	data, err := json.MarshalIndent(value.Interface(), "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func buildRepresentativeValue(t reflect.Type, path []string, depth int) reflect.Value {
+	if t == nil {
+		return reflect.Value{}
+	}
+	if depth > 8 {
+		return reflect.Zero(t)
+	}
+
+	switch t.Kind() {
+	case reflect.Pointer:
+		value := reflect.New(t.Elem())
+		value.Elem().Set(buildRepresentativeValue(t.Elem(), path, depth+1))
+		return value
+	case reflect.Struct:
+		value := reflect.New(t).Elem()
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			if !field.IsExported() {
+				continue
+			}
+			name, ok := jsonFieldName(field)
+			if !ok {
+				continue
+			}
+			fieldValue := buildRepresentativeValue(field.Type, append(path, name), depth+1)
+			if fieldValue.IsValid() && value.Field(i).CanSet() {
+				value.Field(i).Set(fieldValue)
+			}
+		}
+		return value
+	case reflect.Slice:
+		slice := reflect.MakeSlice(t, 1, 1)
+		slice.Index(0).Set(buildRepresentativeValue(t.Elem(), append(path, "item"), depth+1))
+		return slice
+	case reflect.String:
+		return reflect.ValueOf(sampleString(path)).Convert(t)
+	case reflect.Bool:
+		return reflect.ValueOf(sampleBool(path)).Convert(t)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return reflect.ValueOf(sampleInt(path)).Convert(t)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return reflect.ValueOf(uint64(sampleInt(path))).Convert(t)
+	default:
+		return reflect.Zero(t)
+	}
+}
+
+func jsonFieldName(field reflect.StructField) (string, bool) {
+	tag := field.Tag.Get("json")
+	if tag == "-" {
+		return "", false
+	}
+	if tag == "" {
+		return field.Name, true
+	}
+	name := strings.Split(tag, ",")[0]
+	if name == "" {
+		return field.Name, true
+	}
+	return name, true
+}
+
+func sampleString(path []string) string {
+	key := lastPathElement(path)
+	parent := ""
+	if len(path) > 1 {
+		parent = path[len(path)-2]
+	}
+
+	switch key {
+	case "host":
+		return "bitbucket.org"
+	case "workspace":
+		return "workspace-slug"
+	case "repo":
+		return "repo-slug"
+	case "full_name":
+		return "workspace-slug/repo-slug"
+	case "name":
+		switch parent {
+		case "branch":
+			return "main"
+		case "project":
+			return "BBCLI"
+		default:
+			return "Example Name"
+		}
+	case "project_key", "key":
+		return "BBCLI"
+	case "project_name":
+		return "Bitbucket CLI"
+	case "main_branch":
+		return "main"
+	case "html_url", "href":
+		return "https://bitbucket.org/workspace-slug/repo-slug"
+	case "https_clone", "clone_url":
+		return "https://bitbucket.org/workspace-slug/repo-slug.git"
+	case "ssh_clone", "local_clone_url":
+		return "git@bitbucket.org:workspace-slug/repo-slug.git"
+	case "remote":
+		return "origin"
+	case "root", "directory":
+		return "/path/to/repo"
+	case "title":
+		return "Example title"
+	case "description", "raw", "message":
+		return "Example text"
+	case "state":
+		if parent == "stats" || parent == "item" && containsPath(path, "stats") {
+			return "modified"
+		}
+		return "OPEN"
+	case "status":
+		return "modified"
+	case "display_name":
+		return "Example User"
+	case "account_id":
+		return "account-id"
+	case "nickname":
+		return "example-user"
+	case "username":
+		return "user@example.com"
+	case "uuid":
+		return "{uuid}"
+	case "hash":
+		return "abc123def456"
+	case "path", "escaped_path":
+		return "file.txt"
+	case "type":
+		return "commit_file"
+	case "role":
+		return "REVIEWER"
+	case "default_merge_strategy":
+		return "merge_commit"
+	case "patch":
+		return "diff --git a/file.txt b/file.txt\n..."
+	case "created_on", "updated_on", "updated_at":
+		return "2026-03-11T00:00:00Z"
+	case "user":
+		return "Example User"
+	default:
+		return fmt.Sprintf("<%s>", strings.ReplaceAll(key, "_", "-"))
+	}
+}
+
+func sampleBool(path []string) bool {
+	key := lastPathElement(path)
+	switch key {
+	case "deleted", "approved", "private", "is_private", "close_source_branch":
+		return true
+	default:
+		return true
+	}
+}
+
+func sampleInt(path []string) int64 {
+	key := lastPathElement(path)
+	switch {
+	case strings.Contains(key, "count"):
+		return 2
+	case strings.Contains(key, "limit"):
+		return 20
+	case strings.Contains(key, "total"):
+		return 3
+	case strings.Contains(key, "repositories_scanned"):
+		return 4
+	default:
+		return 1
+	}
+}
+
+func lastPathElement(path []string) string {
+	if len(path) == 0 {
+		return "value"
+	}
+	return path[len(path)-1]
+}
+
+func containsPath(path []string, target string) bool {
+	for _, part := range path {
+		if part == target {
+			return true
+		}
+	}
+	return false
+}

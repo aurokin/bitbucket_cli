@@ -18,7 +18,7 @@ func newRepoCmd() *cobra.Command {
 		Use:     "repo",
 		Aliases: []string{"repos", "repository"},
 		Short:   "Work with Bitbucket repositories",
-		Long:    "Inspect and create Bitbucket repositories.",
+		Long:    "Inspect, create, clone, and delete Bitbucket repositories.",
 	}
 
 	repoCmd.AddCommand(

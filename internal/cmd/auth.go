@@ -71,7 +71,8 @@ func newAuthLoginCmd() *cobra.Command {
 		Short: "Store credentials for a Bitbucket host",
 		Long:  "Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email.",
 		Example: "  bb auth login --username you@example.com --with-token\n" +
-			"  bb auth login --username you@example.com --token $BITBUCKET_TOKEN",
+			"  bb auth login --username you@example.com --token $BITBUCKET_TOKEN\n" +
+			"  printf '%s\\n' \"$BITBUCKET_TOKEN\" | bb auth login --username you@example.com --with-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resolvedToken, err := resolveTokenValue(cmd.InOrStdin(), token, tokenFromStdin)
 			if err != nil {

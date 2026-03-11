@@ -37,7 +37,7 @@ func newSearchReposCmd() *cobra.Command {
 		Use:   "repos <query>",
 		Short: "Search repositories in a workspace",
 		Example: "  bb search repos integration --workspace OhBizzle\n" +
-			"  bb search repos bb-cli --json name,slug,description",
+			"  bb search repos bb-cli --workspace OhBizzle --json name,slug,description",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -124,7 +124,7 @@ func newSearchPRsCmd() *cobra.Command {
 		Use:   "prs <query>",
 		Short: "Search pull requests in one repository",
 		Example: "  bb search prs fixture --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb search prs feature --json id,title,state",
+			"  bb search prs feature --repo OhBizzle/bb-cli-integration-primary --json id,title,state",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -200,8 +200,8 @@ func newSearchIssuesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "issues <query>",
 		Short: "Search issues in one repository",
-		Example: "  bb search issues fixture --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb search issues bug --json id,title,state",
+		Example: "  bb search issues fixture --repo OhBizzle/bb-cli-integration-issues\n" +
+			"  bb search issues bug --repo OhBizzle/bb-cli-integration-issues --json id,title,state",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

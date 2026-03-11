@@ -23,10 +23,7 @@
 ## Follow-Up UX Work
 
 - Unified repo selector
-  Add a shared `--repo <workspace>/<repo>` style selector across commands.
-
-- Flexible target parsing and resolution
-  Accept repository slugs, `workspace/repo`, URLs, PR IDs, and other shorthand forms consistently, with heavy unit-test coverage for parsing and command behavior.
+  Standardize commands on the shared `--repo` target model so `--workspace` becomes secondary/disambiguation-only instead of a primary path.
 
 - More compact human-readable table output for wide terminals
 - Better remediation hints for common auth and repo-resolution failures

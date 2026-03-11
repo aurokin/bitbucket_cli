@@ -35,6 +35,7 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - Keep [docs/workflows.md](./docs/workflows.md) task-oriented for humans.
 - Keep [docs/automation.md](./docs/automation.md) deterministic for agents.
 - Keep [docs/flag-matrix.md](./docs/flag-matrix.md) generated from Cobra flags.
+- Keep [docs/error-index.md](./docs/error-index.md) generated from the recovery guidance catalog.
 - Keep [docs/json-fields.md](./docs/json-fields.md) generated from the current payload structs and response models.
 - Keep [docs/json-shapes.md](./docs/json-shapes.md) generated from the current payload structs and JSON-centric usage.
 - Keep [docs/recovery.md](./docs/recovery.md) generated from the current recovery guidance catalog.

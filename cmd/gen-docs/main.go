@@ -11,6 +11,7 @@ import (
 func main() {
 	writeGeneratedDoc(filepath.Join("docs", "cli-reference.md"), cmdpkg.GenerateCLIReference)
 	writeGeneratedDoc(filepath.Join("docs", "flag-matrix.md"), cmdpkg.GenerateFlagMatrixDoc)
+	writeGeneratedDoc(filepath.Join("docs", "error-index.md"), cmdpkg.GenerateErrorIndexDoc)
 	writeGeneratedDoc(filepath.Join("docs", "json-shapes.md"), cmdpkg.GenerateJSONShapesDoc)
 	writeGeneratedDoc(filepath.Join("docs", "json-fields.md"), cmdpkg.GenerateJSONFieldsDoc)
 	writeGeneratedDoc(filepath.Join("docs", "recovery.md"), cmdpkg.GenerateRecoveryDoc)

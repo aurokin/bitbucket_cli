@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -150,7 +151,16 @@ func GenerateJSONShapesDoc() (string, error) {
 
 func representativeJSON(example any) (string, error) {
 	value := buildRepresentativeValue(reflect.TypeOf(example), nil, 0)
-	data, err := json.MarshalIndent(value.Interface(), "", "  ")
+	raw, err := json.Marshal(value.Interface())
+	if err != nil {
+		return "", err
+	}
+	var decoded any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return "", err
+	}
+	trimmed := trimRepresentativeValue(decoded, nil, 0)
+	data, err := json.MarshalIndent(trimmed, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -204,6 +214,92 @@ func buildRepresentativeValue(t reflect.Type, path []string, depth int) reflect.
 	}
 }
 
+func trimRepresentativeValue(value any, path []string, depth int) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+
+		result := make(map[string]any, len(keys))
+		for _, key := range keys {
+			if shouldTrimJSONField(key, depth, path) {
+				continue
+			}
+			result[key] = trimRepresentativeValue(typed[key], append(path, key), depth+1)
+		}
+		return result
+	case []any:
+		if len(typed) == 0 {
+			return typed
+		}
+		return []any{trimRepresentativeValue(typed[0], append(path, "item"), depth+1)}
+	default:
+		return typed
+	}
+}
+
+func shouldTrimJSONField(name string, depth int, path []string) bool {
+	if isSummaryContext(path) {
+		if _, ok := summaryEssentialFields[name]; ok {
+			return false
+		}
+		return true
+	}
+
+	if depth < 3 {
+		return false
+	}
+
+	if _, ok := summaryEssentialFields[name]; ok {
+		return false
+	}
+	return true
+}
+
+var summaryEssentialFields = map[string]struct{}{
+	"account_id":       {},
+	"author":           {},
+	"branch":           {},
+	"created":          {},
+	"current_branch":   {},
+	"current_user":     {},
+	"description":      {},
+	"display_name":     {},
+	"host":             {},
+	"html":             {},
+	"href":             {},
+	"id":               {},
+	"issue":            {},
+	"links":            {},
+	"name":             {},
+	"nickname":         {},
+	"path":             {},
+	"pull_request":     {},
+	"raw":              {},
+	"repo":             {},
+	"repository":       {},
+	"review_requested": {},
+	"source":           {},
+	"state":            {},
+	"title":            {},
+	"user":             {},
+	"username":         {},
+	"workspace":        {},
+}
+
+func isSummaryContext(path []string) bool {
+	for _, part := range path {
+		switch part {
+		case "current_branch", "created", "review_requested", "authored_prs", "review_requested_prs", "your_issues", "pull_request", "issue":
+			return true
+		}
+	}
+	return false
+}
+
 func jsonFieldName(field reflect.StructField) (string, bool) {
 	tag := field.Tag.Get("json")
 	if tag == "-" {
@@ -250,6 +346,11 @@ func sampleString(path []string) string {
 		return "Bitbucket CLI"
 	case "main_branch":
 		return "main"
+	case "item":
+		if parent == "merge_strategies" {
+			return "merge_commit"
+		}
+		return "<item>"
 	case "html_url", "href":
 		return "https://bitbucket.org/workspace-slug/repo-slug"
 	case "https_clone", "clone_url":

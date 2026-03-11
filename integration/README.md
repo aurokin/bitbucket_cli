@@ -12,6 +12,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Ensure there is an open pull request in the primary repository
 - Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue view`, `bb issue create`, `bb issue close`, `bb issue reopen`, and `bb status` commands against the seeded repositories
 - Smoke-test the human-readable output paths for repo, pull request, issue, and search commands
+- Smoke-test representative structured-output commands used by the generated docs
 
 ## Fixture Names
 
@@ -40,6 +41,7 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudIssueFlow -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudStatus -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudHumanOutputSmoke -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudGeneratedDocsSmoke -v
 ```
 
 ## Notes

@@ -83,6 +83,25 @@ func TestFlagMatrixMatchesGenerator(t *testing.T) {
 	}
 }
 
+func TestErrorIndexMatchesGenerator(t *testing.T) {
+	t.Parallel()
+
+	generated, err := GenerateErrorIndexDoc()
+	if err != nil {
+		t.Fatalf("GenerateErrorIndexDoc returned error: %v", err)
+	}
+
+	path := filepath.Join("..", "..", "docs", "error-index.md")
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read error index: %v", err)
+	}
+
+	if string(existing) != generated {
+		t.Fatalf("docs/error-index.md is out of date; run `go run ./cmd/gen-docs`")
+	}
+}
+
 func TestJSONFieldsMatchesGenerator(t *testing.T) {
 	t.Parallel()
 

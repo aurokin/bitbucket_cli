@@ -57,6 +57,11 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"--repo",
 		"--json",
 	})
+	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "error-index.md"), []string{
+		"authentication failed",
+		"Missing Token Scopes Or Insufficient Access",
+		"bb auth login",
+	})
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "recovery.md"), []string{
 		"bb auth login",
 		"bb auth status --check",

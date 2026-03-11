@@ -20,22 +20,22 @@ Representative shape:
 
 ```json
 {
-  "host": "bitbucket.org",
-  "workspace": "workspace-slug",
-  "repo": "repo-slug",
-  "name": "Example Name",
-  "full_name": "workspace-slug/repo-slug",
   "description": "Example text",
+  "full_name": "workspace-slug/repo-slug",
+  "host": "bitbucket.org",
+  "html_url": "https://bitbucket.org/workspace-slug/repo-slug",
+  "https_clone": "https://bitbucket.org/workspace-slug/repo-slug.git",
+  "local_clone_url": "git@bitbucket.org:workspace-slug/repo-slug.git",
+  "main_branch": "main",
+  "name": "Example Name",
   "private": true,
   "project_key": "BBCLI",
   "project_name": "Bitbucket CLI",
-  "main_branch": "main",
-  "html_url": "https://bitbucket.org/workspace-slug/repo-slug",
-  "https_clone": "https://bitbucket.org/workspace-slug/repo-slug.git",
-  "ssh_clone": "git@bitbucket.org:workspace-slug/repo-slug.git",
   "remote": "origin",
-  "local_clone_url": "git@bitbucket.org:workspace-slug/repo-slug.git",
-  "root": "/path/to/repo"
+  "repo": "repo-slug",
+  "root": "/path/to/repo",
+  "ssh_clone": "git@bitbucket.org:workspace-slug/repo-slug.git",
+  "workspace": "workspace-slug"
 }
 ```
 
@@ -54,22 +54,22 @@ Representative shapes:
 
 ```json
 {
-  "host": "bitbucket.org",
-  "workspace": "workspace-slug",
-  "repo": "repo-slug",
-  "name": "Example Name",
+  "clone_url": "https://bitbucket.org/workspace-slug/repo-slug.git",
   "directory": "/path/to/repo",
-  "clone_url": "https://bitbucket.org/workspace-slug/repo-slug.git"
+  "host": "bitbucket.org",
+  "name": "Example Name",
+  "repo": "repo-slug",
+  "workspace": "workspace-slug"
 }
 ```
 
 ```json
 {
+  "deleted": true,
   "host": "bitbucket.org",
-  "workspace": "workspace-slug",
-  "repo": "repo-slug",
   "name": "Example Name",
-  "deleted": true
+  "repo": "repo-slug",
+  "workspace": "workspace-slug"
 }
 ```
 
@@ -88,81 +88,81 @@ Representative shape:
 
 ```json
 {
-  "id": 1,
-  "title": "Example title",
-  "description": "Example text",
-  "state": "OPEN",
   "author": {
+    "account_id": "account-id",
     "display_name": "Example User",
-    "nickname": "example-user",
-    "account_id": "account-id"
-  },
-  "reviewers": [
-    {
-      "display_name": "Example User",
-      "nickname": "example-user",
-      "account_id": "account-id"
-    }
-  ],
-  "participants": [
-    {
-      "user": {
-        "display_name": "Example User",
-        "nickname": "example-user",
-        "account_id": "account-id"
-      },
-      "role": "REVIEWER",
-      "approved": true,
-      "state": "OPEN"
-    }
-  ],
-  "source": {
-    "branch": {
-      "name": "main",
-      "merge_strategies": [
-        "\u003citem\u003e"
-      ],
-      "default_merge_strategy": "merge_commit"
-    },
-    "commit": {
-      "hash": "abc123def456"
-    },
-    "repository": {
-      "name": "Example Name",
-      "full_name": "workspace-slug/repo-slug"
-    }
-  },
-  "destination": {
-    "branch": {
-      "name": "main",
-      "merge_strategies": [
-        "\u003citem\u003e"
-      ],
-      "default_merge_strategy": "merge_commit"
-    },
-    "commit": {
-      "hash": "abc123def456"
-    },
-    "repository": {
-      "name": "Example Name",
-      "full_name": "workspace-slug/repo-slug"
-    }
+    "nickname": "example-user"
   },
   "close_source_branch": true,
-  "queued": true,
-  "merge_commit": {
-    "hash": "abc123def456"
+  "comment_count": 2,
+  "created_on": "2026-03-11T00:00:00Z",
+  "description": "Example text",
+  "destination": {
+    "branch": {
+      "default_merge_strategy": "merge_commit",
+      "merge_strategies": [
+        "merge_commit"
+      ],
+      "name": "main"
+    },
+    "commit": {
+      "hash": "abc123def456"
+    },
+    "repository": {
+      "full_name": "workspace-slug/repo-slug",
+      "name": "Example Name"
+    }
   },
   "draft": true,
-  "comment_count": 2,
-  "task_count": 2,
-  "updated_on": "2026-03-11T00:00:00Z",
-  "created_on": "2026-03-11T00:00:00Z",
+  "id": 1,
   "links": {
     "html": {
       "href": "https://bitbucket.org/workspace-slug/repo-slug"
     }
-  }
+  },
+  "merge_commit": {
+    "hash": "abc123def456"
+  },
+  "participants": [
+    {
+      "approved": true,
+      "role": "REVIEWER",
+      "state": "OPEN",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    }
+  ],
+  "queued": true,
+  "reviewers": [
+    {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    }
+  ],
+  "source": {
+    "branch": {
+      "default_merge_strategy": "merge_commit",
+      "merge_strategies": [
+        "merge_commit"
+      ],
+      "name": "main"
+    },
+    "commit": {
+      "hash": "abc123def456"
+    },
+    "repository": {
+      "full_name": "workspace-slug/repo-slug",
+      "name": "Example Name"
+    }
+  },
+  "state": "OPEN",
+  "task_count": 2,
+  "title": "Example title",
+  "updated_on": "2026-03-11T00:00:00Z"
 }
 ```
 
@@ -180,251 +180,92 @@ Representative shape:
 
 ```json
 {
-  "host": "bitbucket.org",
-  "workspace": "workspace-slug",
-  "repo": "repo-slug",
+  "created": [
+    {
+      "author": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      },
+      "description": "Example text",
+      "id": 1,
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "main"
+        },
+        "repository": {
+          "name": "Example Name"
+        }
+      },
+      "state": "OPEN",
+      "title": "Example title"
+    }
+  ],
+  "current_branch": {
+    "author": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    },
+    "description": "Example text",
+    "id": 1,
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "source": {
+      "branch": {
+        "name": "main"
+      },
+      "repository": {
+        "name": "Example Name"
+      }
+    },
+    "state": "OPEN",
+    "title": "Example title"
+  },
+  "current_branch_name": "\u003ccurrent-branch-name\u003e",
   "current_user": {
     "account_id": "account-id",
     "display_name": "Example User",
     "username": "user@example.com",
     "uuid": "{uuid}"
   },
-  "current_branch_name": "\u003ccurrent-branch-name\u003e",
-  "current_branch": {
-    "id": 1,
-    "title": "Example title",
-    "description": "Example text",
-    "state": "OPEN",
-    "author": {
-      "display_name": "Example User",
-      "nickname": "example-user",
-      "account_id": "account-id"
-    },
-    "reviewers": [
-      {
-        "display_name": "Example User",
-        "nickname": "example-user",
-        "account_id": "account-id"
-      }
-    ],
-    "participants": [
-      {
-        "user": {
-          "display_name": "Example User",
-          "nickname": "example-user",
-          "account_id": "account-id"
-        },
-        "role": "REVIEWER",
-        "approved": true,
-        "state": "OPEN"
-      }
-    ],
-    "source": {
-      "branch": {
-        "name": "main",
-        "merge_strategies": [
-          "\u003citem\u003e"
-        ],
-        "default_merge_strategy": "merge_commit"
-      },
-      "commit": {
-        "hash": "abc123def456"
-      },
-      "repository": {
-        "name": "Example Name",
-        "full_name": "workspace-slug/repo-slug"
-      }
-    },
-    "destination": {
-      "branch": {
-        "name": "main",
-        "merge_strategies": [
-          "\u003citem\u003e"
-        ],
-        "default_merge_strategy": "merge_commit"
-      },
-      "commit": {
-        "hash": "abc123def456"
-      },
-      "repository": {
-        "name": "Example Name",
-        "full_name": "workspace-slug/repo-slug"
-      }
-    },
-    "close_source_branch": true,
-    "queued": true,
-    "merge_commit": {
-      "hash": "abc123def456"
-    },
-    "draft": true,
-    "comment_count": 2,
-    "task_count": 2,
-    "updated_on": "2026-03-11T00:00:00Z",
-    "created_on": "2026-03-11T00:00:00Z",
-    "links": {
-      "html": {
-        "href": "https://bitbucket.org/workspace-slug/repo-slug"
-      }
-    }
-  },
-  "created": [
-    {
-      "id": 1,
-      "title": "Example title",
-      "description": "Example text",
-      "state": "OPEN",
-      "author": {
-        "display_name": "Example User",
-        "nickname": "example-user",
-        "account_id": "account-id"
-      },
-      "reviewers": [
-        {
-          "display_name": "Example User",
-          "nickname": "example-user",
-          "account_id": "account-id"
-        }
-      ],
-      "participants": [
-        {
-          "user": {
-            "display_name": "Example User",
-            "nickname": "example-user",
-            "account_id": "account-id"
-          },
-          "role": "REVIEWER",
-          "approved": true,
-          "state": "OPEN"
-        }
-      ],
-      "source": {
-        "branch": {
-          "name": "main",
-          "merge_strategies": [
-            "\u003citem\u003e"
-          ],
-          "default_merge_strategy": "merge_commit"
-        },
-        "commit": {
-          "hash": "abc123def456"
-        },
-        "repository": {
-          "name": "Example Name",
-          "full_name": "workspace-slug/repo-slug"
-        }
-      },
-      "destination": {
-        "branch": {
-          "name": "main",
-          "merge_strategies": [
-            "\u003citem\u003e"
-          ],
-          "default_merge_strategy": "merge_commit"
-        },
-        "commit": {
-          "hash": "abc123def456"
-        },
-        "repository": {
-          "name": "Example Name",
-          "full_name": "workspace-slug/repo-slug"
-        }
-      },
-      "close_source_branch": true,
-      "queued": true,
-      "merge_commit": {
-        "hash": "abc123def456"
-      },
-      "draft": true,
-      "comment_count": 2,
-      "task_count": 2,
-      "updated_on": "2026-03-11T00:00:00Z",
-      "created_on": "2026-03-11T00:00:00Z",
-      "links": {
-        "html": {
-          "href": "https://bitbucket.org/workspace-slug/repo-slug"
-        }
-      }
-    }
-  ],
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
   "review_requested": [
     {
-      "id": 1,
-      "title": "Example title",
-      "description": "Example text",
-      "state": "OPEN",
       "author": {
+        "account_id": "account-id",
         "display_name": "Example User",
-        "nickname": "example-user",
-        "account_id": "account-id"
+        "nickname": "example-user"
       },
-      "reviewers": [
-        {
-          "display_name": "Example User",
-          "nickname": "example-user",
-          "account_id": "account-id"
-        }
-      ],
-      "participants": [
-        {
-          "user": {
-            "display_name": "Example User",
-            "nickname": "example-user",
-            "account_id": "account-id"
-          },
-          "role": "REVIEWER",
-          "approved": true,
-          "state": "OPEN"
-        }
-      ],
-      "source": {
-        "branch": {
-          "name": "main",
-          "merge_strategies": [
-            "\u003citem\u003e"
-          ],
-          "default_merge_strategy": "merge_commit"
-        },
-        "commit": {
-          "hash": "abc123def456"
-        },
-        "repository": {
-          "name": "Example Name",
-          "full_name": "workspace-slug/repo-slug"
-        }
-      },
-      "destination": {
-        "branch": {
-          "name": "main",
-          "merge_strategies": [
-            "\u003citem\u003e"
-          ],
-          "default_merge_strategy": "merge_commit"
-        },
-        "commit": {
-          "hash": "abc123def456"
-        },
-        "repository": {
-          "name": "Example Name",
-          "full_name": "workspace-slug/repo-slug"
-        }
-      },
-      "close_source_branch": true,
-      "queued": true,
-      "merge_commit": {
-        "hash": "abc123def456"
-      },
-      "draft": true,
-      "comment_count": 2,
-      "task_count": 2,
-      "updated_on": "2026-03-11T00:00:00Z",
-      "created_on": "2026-03-11T00:00:00Z",
+      "description": "Example text",
+      "id": 1,
       "links": {
         "html": {
           "href": "https://bitbucket.org/workspace-slug/repo-slug"
         }
-      }
+      },
+      "source": {
+        "branch": {
+          "name": "main"
+        },
+        "repository": {
+          "name": "Example Name"
+        }
+      },
+      "state": "OPEN",
+      "title": "Example title"
     }
-  ]
+  ],
+  "workspace": "workspace-slug"
 }
 ```
 
@@ -443,28 +284,24 @@ Representative shape:
 ```json
 {
   "host": "bitbucket.org",
-  "workspace": "workspace-slug",
-  "repo": "repo-slug",
   "id": 1,
-  "title": "Example title",
   "patch": "diff --git a/file.txt b/file.txt\n...",
+  "repo": "repo-slug",
   "stats": [
     {
-      "status": "modified",
-      "old": {
-        "path": "file.txt",
-        "escaped_path": "file.txt",
-        "type": "commit_file"
-      },
-      "new": {
-        "path": "file.txt",
-        "escaped_path": "file.txt",
-        "type": "commit_file"
-      },
       "lines_added": 1,
-      "lines_removed": 1
+      "lines_removed": 1,
+      "new": {
+        "path": "file.txt"
+      },
+      "old": {
+        "path": "file.txt"
+      },
+      "status": "modified"
     }
-  ]
+  ],
+  "title": "Example title",
+  "workspace": "workspace-slug"
 }
 ```
 
@@ -483,31 +320,31 @@ Representative shape:
 
 ```json
 {
-  "id": 1,
-  "title": "Example title",
-  "state": "OPEN",
-  "kind": "\u003ckind\u003e",
-  "priority": "\u003cpriority\u003e",
+  "assignee": {
+    "account_id": "account-id",
+    "display_name": "Example User",
+    "nickname": "example-user"
+  },
   "content": {
     "raw": "Example text"
   },
-  "reporter": {
-    "display_name": "Example User",
-    "account_id": "account-id",
-    "nickname": "example-user"
-  },
-  "assignee": {
-    "display_name": "Example User",
-    "account_id": "account-id",
-    "nickname": "example-user"
-  },
   "created_on": "2026-03-11T00:00:00Z",
-  "updated_on": "2026-03-11T00:00:00Z",
+  "id": 1,
+  "kind": "\u003ckind\u003e",
   "links": {
     "html": {
       "href": "https://bitbucket.org/workspace-slug/repo-slug"
     }
-  }
+  },
+  "priority": "\u003cpriority\u003e",
+  "reporter": {
+    "account_id": "account-id",
+    "display_name": "Example User",
+    "nickname": "example-user"
+  },
+  "state": "OPEN",
+  "title": "Example title",
+  "updated_on": "2026-03-11T00:00:00Z"
 }
 ```
 
@@ -527,140 +364,140 @@ Representative shapes:
 
 ```json
 {
-  "name": "Example Name",
-  "slug": "\u003cslug\u003e",
-  "full_name": "workspace-slug/repo-slug",
   "description": "Example text",
+  "full_name": "workspace-slug/repo-slug",
   "is_private": true,
-  "updated_on": "2026-03-11T00:00:00Z",
-  "project": {
-    "key": "BBCLI",
-    "name": "BBCLI"
+  "links": {
+    "clone": [
+      {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug",
+        "name": "Example Name"
+      }
+    ],
+    "html": {
+      "href": "https://bitbucket.org/workspace-slug/repo-slug"
+    }
   },
   "mainbranch": {
     "name": "Example Name"
   },
-  "links": {
-    "html": {
-      "href": "https://bitbucket.org/workspace-slug/repo-slug"
-    },
-    "clone": [
-      {
-        "name": "Example Name",
-        "href": "https://bitbucket.org/workspace-slug/repo-slug"
-      }
-    ]
-  }
+  "name": "Example Name",
+  "project": {
+    "key": "BBCLI",
+    "name": "BBCLI"
+  },
+  "slug": "\u003cslug\u003e",
+  "updated_on": "2026-03-11T00:00:00Z"
 }
 ```
 
 ```json
 {
-  "id": 1,
-  "title": "Example title",
-  "description": "Example text",
-  "state": "OPEN",
   "author": {
+    "account_id": "account-id",
     "display_name": "Example User",
-    "nickname": "example-user",
-    "account_id": "account-id"
+    "nickname": "example-user"
   },
-  "reviewers": [
-    {
-      "display_name": "Example User",
-      "nickname": "example-user",
-      "account_id": "account-id"
+  "close_source_branch": true,
+  "comment_count": 2,
+  "created_on": "2026-03-11T00:00:00Z",
+  "description": "Example text",
+  "destination": {
+    "branch": {
+      "default_merge_strategy": "merge_commit",
+      "merge_strategies": [
+        "merge_commit"
+      ],
+      "name": "main"
+    },
+    "commit": {
+      "hash": "abc123def456"
+    },
+    "repository": {
+      "full_name": "workspace-slug/repo-slug",
+      "name": "Example Name"
     }
-  ],
+  },
+  "draft": true,
+  "id": 1,
+  "links": {
+    "html": {
+      "href": "https://bitbucket.org/workspace-slug/repo-slug"
+    }
+  },
+  "merge_commit": {
+    "hash": "abc123def456"
+  },
   "participants": [
     {
-      "user": {
-        "display_name": "Example User",
-        "nickname": "example-user",
-        "account_id": "account-id"
-      },
-      "role": "REVIEWER",
       "approved": true,
-      "state": "OPEN"
+      "role": "REVIEWER",
+      "state": "OPEN",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    }
+  ],
+  "queued": true,
+  "reviewers": [
+    {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
     }
   ],
   "source": {
     "branch": {
-      "name": "main",
+      "default_merge_strategy": "merge_commit",
       "merge_strategies": [
-        "\u003citem\u003e"
+        "merge_commit"
       ],
-      "default_merge_strategy": "merge_commit"
+      "name": "main"
     },
     "commit": {
       "hash": "abc123def456"
     },
     "repository": {
-      "name": "Example Name",
-      "full_name": "workspace-slug/repo-slug"
+      "full_name": "workspace-slug/repo-slug",
+      "name": "Example Name"
     }
   },
-  "destination": {
-    "branch": {
-      "name": "main",
-      "merge_strategies": [
-        "\u003citem\u003e"
-      ],
-      "default_merge_strategy": "merge_commit"
-    },
-    "commit": {
-      "hash": "abc123def456"
-    },
-    "repository": {
-      "name": "Example Name",
-      "full_name": "workspace-slug/repo-slug"
-    }
-  },
-  "close_source_branch": true,
-  "queued": true,
-  "merge_commit": {
-    "hash": "abc123def456"
-  },
-  "draft": true,
-  "comment_count": 2,
+  "state": "OPEN",
   "task_count": 2,
-  "updated_on": "2026-03-11T00:00:00Z",
-  "created_on": "2026-03-11T00:00:00Z",
-  "links": {
-    "html": {
-      "href": "https://bitbucket.org/workspace-slug/repo-slug"
-    }
-  }
+  "title": "Example title",
+  "updated_on": "2026-03-11T00:00:00Z"
 }
 ```
 
 ```json
 {
-  "id": 1,
-  "title": "Example title",
-  "state": "OPEN",
-  "kind": "\u003ckind\u003e",
-  "priority": "\u003cpriority\u003e",
+  "assignee": {
+    "account_id": "account-id",
+    "display_name": "Example User",
+    "nickname": "example-user"
+  },
   "content": {
     "raw": "Example text"
   },
-  "reporter": {
-    "display_name": "Example User",
-    "account_id": "account-id",
-    "nickname": "example-user"
-  },
-  "assignee": {
-    "display_name": "Example User",
-    "account_id": "account-id",
-    "nickname": "example-user"
-  },
   "created_on": "2026-03-11T00:00:00Z",
-  "updated_on": "2026-03-11T00:00:00Z",
+  "id": 1,
+  "kind": "\u003ckind\u003e",
   "links": {
     "html": {
       "href": "https://bitbucket.org/workspace-slug/repo-slug"
     }
-  }
+  },
+  "priority": "\u003cpriority\u003e",
+  "reporter": {
+    "account_id": "account-id",
+    "display_name": "Example User",
+    "nickname": "example-user"
+  },
+  "state": "OPEN",
+  "title": "Example title",
+  "updated_on": "2026-03-11T00:00:00Z"
 }
 ```
 
@@ -678,221 +515,98 @@ Representative shape:
 
 ```json
 {
-  "user": "Example User",
-  "workspaces": [
-    "\u003citem\u003e"
+  "authored_prs": [
+    {
+      "pull_request": {
+        "author": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        },
+        "description": "Example text",
+        "id": 1,
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        },
+        "source": {
+          "branch": {
+            "name": "main"
+          },
+          "repository": {
+            "name": "Example Name"
+          }
+        },
+        "state": "OPEN",
+        "title": "Example title"
+      },
+      "repo": "repo-slug",
+      "workspace": "workspace-slug"
+    }
   ],
-  "repositories_scanned": 4,
-  "repo_limit_per_workspace": 20,
-  "item_limit_per_section": 20,
   "authored_prs_total": 3,
-  "review_requested_prs_total": 3,
-  "your_issues_total": 3,
+  "item_limit_per_section": 20,
+  "repo_limit_per_workspace": 20,
+  "repositories_scanned": 4,
   "repositories_without_issue_tracker": 1,
-  "workspaces_at_repo_limit": [
-    "\u003citem\u003e"
+  "review_requested_prs": [
+    {
+      "pull_request": {
+        "author": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        },
+        "description": "Example text",
+        "id": 1,
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        },
+        "source": {
+          "branch": {
+            "name": "main"
+          },
+          "repository": {
+            "name": "Example Name"
+          }
+        },
+        "state": "OPEN",
+        "title": "Example title"
+      },
+      "repo": "repo-slug",
+      "workspace": "workspace-slug"
+    }
   ],
+  "review_requested_prs_total": 3,
+  "user": "Example User",
   "warnings": [
     "\u003citem\u003e"
   ],
-  "authored_prs": [
-    {
-      "workspace": "workspace-slug",
-      "repo": "repo-slug",
-      "pull_request": {
-        "id": 1,
-        "title": "Example title",
-        "description": "Example text",
-        "state": "OPEN",
-        "author": {
-          "display_name": "Example User",
-          "nickname": "example-user",
-          "account_id": "account-id"
-        },
-        "reviewers": [
-          {
-            "display_name": "Example User",
-            "nickname": "example-user",
-            "account_id": "account-id"
-          }
-        ],
-        "participants": [
-          {
-            "user": {
-              "display_name": "Example User",
-              "nickname": "example-user",
-              "account_id": "account-id"
-            },
-            "role": "REVIEWER",
-            "approved": true,
-            "state": "OPEN"
-          }
-        ],
-        "source": {
-          "branch": {
-            "name": "main",
-            "merge_strategies": [
-              "\u003citem\u003e"
-            ],
-            "default_merge_strategy": "merge_commit"
-          },
-          "commit": {
-            "hash": "abc123def456"
-          },
-          "repository": {
-            "name": "Example Name",
-            "full_name": "workspace-slug/repo-slug"
-          }
-        },
-        "destination": {
-          "branch": {
-            "name": "main",
-            "merge_strategies": [
-              "\u003citem\u003e"
-            ],
-            "default_merge_strategy": "merge_commit"
-          },
-          "commit": {
-            "hash": "abc123def456"
-          },
-          "repository": {
-            "name": "Example Name",
-            "full_name": "workspace-slug/repo-slug"
-          }
-        },
-        "close_source_branch": true,
-        "queued": true,
-        "merge_commit": {
-          "hash": "abc123def456"
-        },
-        "draft": true,
-        "comment_count": 2,
-        "task_count": 2,
-        "updated_on": "2026-03-11T00:00:00Z",
-        "created_on": "2026-03-11T00:00:00Z",
-        "links": {
-          "html": {
-            "href": "https://bitbucket.org/workspace-slug/repo-slug"
-          }
-        }
-      }
-    }
+  "workspaces": [
+    "\u003citem\u003e"
   ],
-  "review_requested_prs": [
-    {
-      "workspace": "workspace-slug",
-      "repo": "repo-slug",
-      "pull_request": {
-        "id": 1,
-        "title": "Example title",
-        "description": "Example text",
-        "state": "OPEN",
-        "author": {
-          "display_name": "Example User",
-          "nickname": "example-user",
-          "account_id": "account-id"
-        },
-        "reviewers": [
-          {
-            "display_name": "Example User",
-            "nickname": "example-user",
-            "account_id": "account-id"
-          }
-        ],
-        "participants": [
-          {
-            "user": {
-              "display_name": "Example User",
-              "nickname": "example-user",
-              "account_id": "account-id"
-            },
-            "role": "REVIEWER",
-            "approved": true,
-            "state": "OPEN"
-          }
-        ],
-        "source": {
-          "branch": {
-            "name": "main",
-            "merge_strategies": [
-              "\u003citem\u003e"
-            ],
-            "default_merge_strategy": "merge_commit"
-          },
-          "commit": {
-            "hash": "abc123def456"
-          },
-          "repository": {
-            "name": "Example Name",
-            "full_name": "workspace-slug/repo-slug"
-          }
-        },
-        "destination": {
-          "branch": {
-            "name": "main",
-            "merge_strategies": [
-              "\u003citem\u003e"
-            ],
-            "default_merge_strategy": "merge_commit"
-          },
-          "commit": {
-            "hash": "abc123def456"
-          },
-          "repository": {
-            "name": "Example Name",
-            "full_name": "workspace-slug/repo-slug"
-          }
-        },
-        "close_source_branch": true,
-        "queued": true,
-        "merge_commit": {
-          "hash": "abc123def456"
-        },
-        "draft": true,
-        "comment_count": 2,
-        "task_count": 2,
-        "updated_on": "2026-03-11T00:00:00Z",
-        "created_on": "2026-03-11T00:00:00Z",
-        "links": {
-          "html": {
-            "href": "https://bitbucket.org/workspace-slug/repo-slug"
-          }
-        }
-      }
-    }
+  "workspaces_at_repo_limit": [
+    "\u003citem\u003e"
   ],
   "your_issues": [
     {
-      "workspace": "workspace-slug",
-      "repo": "repo-slug",
       "issue": {
         "id": 1,
-        "title": "Example title",
-        "state": "OPEN",
-        "kind": "\u003ckind\u003e",
-        "priority": "\u003cpriority\u003e",
-        "content": {
-          "raw": "Example text"
-        },
-        "reporter": {
-          "display_name": "Example User",
-          "account_id": "account-id",
-          "nickname": "example-user"
-        },
-        "assignee": {
-          "display_name": "Example User",
-          "account_id": "account-id",
-          "nickname": "example-user"
-        },
-        "created_on": "2026-03-11T00:00:00Z",
-        "updated_on": "2026-03-11T00:00:00Z",
         "links": {
           "html": {
             "href": "https://bitbucket.org/workspace-slug/repo-slug"
           }
-        }
-      }
+        },
+        "state": "OPEN",
+        "title": "Example title"
+      },
+      "repo": "repo-slug",
+      "workspace": "workspace-slug"
     }
-  ]
+  ],
+  "your_issues_total": 3
 }
 ```

@@ -770,6 +770,117 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	issueRepo := ensureIssueRepository(t, client, workspace)
+	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
+	binary := buildBinary(t)
+
+	authStatusCmd := exec.Command(binary, "auth", "status", "--check", "--json", "default_host,hosts")
+	authStatusCmd.Env = os.Environ()
+	authStatusOutput, err := authStatusCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb auth status generated-docs smoke failed: %v\n%s", err, authStatusOutput)
+	}
+	var authStatus struct {
+		DefaultHost string `json:"default_host"`
+		Hosts       []struct {
+			Host            string `json:"host"`
+			TokenConfigured bool   `json:"token_configured"`
+		} `json:"hosts"`
+	}
+	if err := json.Unmarshal(authStatusOutput, &authStatus); err != nil {
+		t.Fatalf("parse auth status JSON: %v\n%s", err, authStatusOutput)
+	}
+	if authStatus.DefaultHost == "" || len(authStatus.Hosts) == 0 || !authStatus.Hosts[0].TokenConfigured {
+		t.Fatalf("unexpected auth status payload %+v", authStatus)
+	}
+
+	repoViewCmd := exec.Command(binary, "repo", "view", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "host,workspace,repo,name")
+	repoViewCmd.Env = os.Environ()
+	repoViewOutput, err := repoViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo view generated-docs smoke failed: %v\n%s", err, repoViewOutput)
+	}
+	var repoView struct {
+		Host      string `json:"host"`
+		Workspace string `json:"workspace"`
+		Repo      string `json:"repo"`
+		Name      string `json:"name"`
+	}
+	if err := json.Unmarshal(repoViewOutput, &repoView); err != nil {
+		t.Fatalf("parse repo view JSON: %v\n%s", err, repoViewOutput)
+	}
+	if repoView.Workspace != workspace || repoView.Repo != fixture.PrimaryRepo.Slug || repoView.Name == "" {
+		t.Fatalf("unexpected repo view payload %+v", repoView)
+	}
+
+	prStatusCmd := exec.Command(binary, "pr", "status", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "workspace,repo,current_branch_name,created,review_requested")
+	prStatusCmd.Dir = fixture.PrimaryRepoDir
+	prStatusCmd.Env = os.Environ()
+	prStatusOutput, err := prStatusCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr status generated-docs smoke failed: %v\n%s", err, prStatusOutput)
+	}
+	var prStatus struct {
+		Workspace         string                  `json:"workspace"`
+		Repo              string                  `json:"repo"`
+		CurrentBranchName string                  `json:"current_branch_name"`
+		Created           []bitbucket.PullRequest `json:"created"`
+	}
+	if err := json.Unmarshal(prStatusOutput, &prStatus); err != nil {
+		t.Fatalf("parse pr status JSON: %v\n%s", err, prStatusOutput)
+	}
+	if prStatus.Workspace != workspace || prStatus.Repo != fixture.PrimaryRepo.Slug {
+		t.Fatalf("unexpected pr status payload %+v", prStatus)
+	}
+
+	issueViewCmd := exec.Command(binary, "issue", "view", fmt.Sprintf("%d", issueID), "--repo", workspace+"/"+issueRepo.Slug, "--json", "id,title,state")
+	issueViewCmd.Env = os.Environ()
+	issueViewOutput, err := issueViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue view generated-docs smoke failed: %v\n%s", err, issueViewOutput)
+	}
+	var issueView struct {
+		ID    int    `json:"id"`
+		Title string `json:"title"`
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(issueViewOutput, &issueView); err != nil {
+		t.Fatalf("parse issue view JSON: %v\n%s", err, issueViewOutput)
+	}
+	if issueView.ID != issueID || issueView.Title == "" {
+		t.Fatalf("unexpected issue view payload %+v", issueView)
+	}
+
+	statusCmd := exec.Command(binary, "status", "--workspace", workspace, "--json", "user,workspaces,warnings")
+	statusCmd.Env = os.Environ()
+	statusOutput, err := statusCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb status generated-docs smoke failed: %v\n%s", err, statusOutput)
+	}
+	var statusPayload struct {
+		User       string   `json:"user"`
+		Workspaces []string `json:"workspaces"`
+		Warnings   []string `json:"warnings"`
+	}
+	if err := json.Unmarshal(statusOutput, &statusPayload); err != nil {
+		t.Fatalf("parse status JSON: %v\n%s", err, statusOutput)
+	}
+	if statusPayload.User == "" || len(statusPayload.Workspaces) == 0 || statusPayload.Workspaces[0] != workspace {
+		t.Fatalf("unexpected status payload %+v", statusPayload)
+	}
+}
+
 func TestBitbucketCloudPRView(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

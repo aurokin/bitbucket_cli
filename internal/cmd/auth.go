@@ -97,8 +97,10 @@ func newAuthLoginCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Stored credentials for %s\n", host)
-			return err
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Stored credentials for %s as %s\n", host, strings.TrimSpace(username)); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb auth status --check --host %s", host))
 		},
 	}
 
@@ -142,8 +144,10 @@ func newAuthStatusCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if len(payload.Hosts) == 0 {
-					_, err := io.WriteString(w, "No authenticated hosts.\n")
-					return err
+					if _, err := io.WriteString(w, "No authenticated hosts.\n"); err != nil {
+						return err
+					}
+					return writeNextStep(w, "bb auth login --username <email> --with-token")
 				}
 
 				accountWidth := authStatusAccountWidth(output.TerminalWidth(w))
@@ -255,8 +259,10 @@ func newAuthLogoutCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Removed credentials for %s\n", resolvedHost)
-			return err
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Removed credentials for %s\n", resolvedHost); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb auth login --host %s --username <email> --with-token", resolvedHost))
 		},
 	}
 

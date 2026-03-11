@@ -141,8 +141,10 @@ func newConfigSetCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Set %s=%v\n", value.Key, value.Value)
-			return err
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Set %s=%v\n", value.Key, value.Value); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb config get %s", value.Key))
 		},
 	}
 
@@ -169,8 +171,11 @@ func newConfigUnsetCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Unset %s\n", normalizeConfigKey(args[0]))
-			return err
+			key := normalizeConfigKey(args[0])
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Unset %s\n", key); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), "bb config list")
 		},
 	}
 

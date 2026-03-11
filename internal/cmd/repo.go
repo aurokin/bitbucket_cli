@@ -288,7 +288,10 @@ func newRepoCreateCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb repo clone %s/%s", target.Workspace, createdRepo.Slug))
 			})
 		},
 	}
@@ -407,7 +410,10 @@ func newRepoCloneCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb repo view --repo %s/%s", payload.Workspace, payload.RepoSlug))
 			})
 		},
 	}
@@ -506,7 +512,10 @@ func newRepoDeleteCmd() *cobra.Command {
 				if _, err := fmt.Fprintf(tw, "Deleted:\t%t\n", payload.Deleted); err != nil {
 					return err
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb repo create %s/%s", payload.Workspace, payload.RepoSlug))
 			})
 		},
 	}

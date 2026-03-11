@@ -87,6 +87,9 @@ func newPRCloseCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, closedPR, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", closedPR.ID); err != nil {
 					return err
@@ -108,7 +111,10 @@ func newPRCloseCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", closedPR.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
 			})
 		},
 	}
@@ -172,6 +178,12 @@ func newPRCommentCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, comment, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(w, "Pull Request: #%d\n", prTarget.ID); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", comment.ID); err != nil {
 					return err
@@ -189,7 +201,10 @@ func newPRCommentCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", prTarget.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
 			})
 		},
 	}
@@ -271,6 +286,12 @@ func newPRDiffCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if stat {
+					if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+						return err
+					}
+					if _, err := fmt.Fprintf(w, "Pull Request: #%d %s\n\n", payload.ID, payload.Title); err != nil {
+						return err
+					}
 					return writePRDiffStatTable(w, stats)
 				}
 				_, err := io.WriteString(w, patch)
@@ -390,7 +411,13 @@ func newPRStatusCmd() *cobra.Command {
 				if _, err := fmt.Fprintln(w, "Review Requested"); err != nil {
 					return err
 				}
-				return writePRStatusSection(w, payload.ReviewRequested...)
+				if err := writePRStatusSection(w, payload.ReviewRequested...); err != nil {
+					return err
+				}
+				if len(payload.Created) == 0 && len(payload.ReviewRequested) == 0 && payload.CurrentBranch == nil {
+					return writeNextStep(w, fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.Repo))
+				}
+				return nil
 			})
 		},
 	}
@@ -453,8 +480,10 @@ func newPRListCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, prs, func(w io.Writer) error {
 				if len(prs) == 0 {
-					_, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", target.Workspace, target.Repo)
-					return err
+					if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
+						return err
+					}
+					return writeNextStep(w, fmt.Sprintf("bb pr create --repo %s/%s --title '<title>'", target.Workspace, target.Repo))
 				}
 
 				return writePRListTable(w, prs)
@@ -530,8 +559,13 @@ func newPRCheckoutCmd() *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Checked out %s for PR #%d\n", pr.Source.Branch.Name, pr.ID)
-			return err
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Checked out %s/%s PR #%d onto %s\n", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, pr.ID, pr.Source.Branch.Name); err != nil {
+				return err
+			}
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Root: %s\n", repoContext.RootDir); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb pr view %d --repo %s/%s", pr.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
 		},
 	}
 
@@ -605,6 +639,9 @@ func newPRMergeCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, mergedPR, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", mergedPR.ID); err != nil {
 					return err
@@ -636,7 +673,10 @@ func newPRMergeCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", mergedPR.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
 			})
 		},
 	}
@@ -733,6 +773,9 @@ func newPRCreateCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", repoTarget.Workspace, repoTarget.Repo); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
 					return err
@@ -754,7 +797,10 @@ func newPRCreateCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", pr.ID, repoTarget.Workspace, repoTarget.Repo))
 			})
 		},
 	}

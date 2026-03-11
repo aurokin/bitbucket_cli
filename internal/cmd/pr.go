@@ -1103,7 +1103,7 @@ func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.Curre
 
 func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {
 	if len(prs) == 0 {
-		_, err := fmt.Fprintln(w, "  none")
+		_, err := fmt.Fprintln(w, "  None.")
 		return err
 	}
 

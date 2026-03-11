@@ -666,6 +666,60 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected repo view next step:\n%s", repoViewOutput)
 	}
 
+	repoCreateCmd := exec.Command(binary, "repo", "create", fixtureCreateRepoSlug, "--workspace", workspace, "--project-key", fixtureProjectKey, "--reuse-existing")
+	repoCreateCmd.Env = os.Environ()
+	repoCreateOutput, err := repoCreateCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo create human output failed: %v\n%s", err, repoCreateOutput)
+	}
+	if !strings.Contains(string(repoCreateOutput), "Repository: "+workspace+"/"+fixtureCreateRepoSlug) {
+		t.Fatalf("expected repo header in repo create output:\n%s", repoCreateOutput)
+	}
+	if !strings.Contains(string(repoCreateOutput), "Next: bb repo clone "+workspace+"/"+fixtureCreateRepoSlug) {
+		t.Fatalf("expected repo create next step:\n%s", repoCreateOutput)
+	}
+
+	cloneDir := filepath.Join(t.TempDir(), fixture.PrimaryRepo.Slug+"-human-clone")
+	repoCloneCmd := exec.Command(binary, "repo", "clone", workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir)
+	repoCloneCmd.Env = os.Environ()
+	repoCloneOutput, err := repoCloneCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo clone human output failed: %v\n%s", err, repoCloneOutput)
+	}
+	if !strings.Contains(string(repoCloneOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in repo clone output:\n%s", repoCloneOutput)
+	}
+	if !strings.Contains(string(repoCloneOutput), "Next: bb repo view --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo clone next step:\n%s", repoCloneOutput)
+	}
+
+	_ = ensureRepository(t, client, workspace, fixtureDeleteRepoSlug)
+	repoDeleteCmd := exec.Command(binary, "repo", "delete", workspace+"/"+fixtureDeleteRepoSlug, "--yes")
+	repoDeleteCmd.Env = os.Environ()
+	repoDeleteOutput, err := repoDeleteCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo delete human output failed: %v\n%s", err, repoDeleteOutput)
+	}
+	if !strings.Contains(string(repoDeleteOutput), "Repository: "+workspace+"/"+fixtureDeleteRepoSlug) {
+		t.Fatalf("expected repo header in repo delete output:\n%s", repoDeleteOutput)
+	}
+	if !strings.Contains(string(repoDeleteOutput), "Status: deleted") {
+		t.Fatalf("expected deleted status in repo delete output:\n%s", repoDeleteOutput)
+	}
+	if !strings.Contains(string(repoDeleteOutput), "Next: bb repo create "+workspace+"/"+fixtureDeleteRepoSlug) {
+		t.Fatalf("expected repo delete next step:\n%s", repoDeleteOutput)
+	}
+
+	prListCmd := exec.Command(binary, "pr", "list", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
+	prListCmd.Env = os.Environ()
+	prListOutput, err := prListCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr list human output failed: %v\n%s", err, prListOutput)
+	}
+	if !strings.Contains(string(prListOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in pr list output:\n%s", prListOutput)
+	}
+
 	prViewCmd := exec.Command(binary, "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
 	prViewCmd.Env = os.Environ()
 	prViewOutput, err := prViewCmd.CombinedOutput()
@@ -690,6 +744,16 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	}
 	if !strings.Contains(string(issueViewOutput), "Next: bb issue edit "+fmt.Sprintf("%d", issueID)+" --repo "+workspace+"/"+issueRepo.Slug) {
 		t.Fatalf("expected issue view next step:\n%s", issueViewOutput)
+	}
+
+	issueListCmd := exec.Command(binary, "issue", "list", "--repo", workspace+"/"+issueRepo.Slug)
+	issueListCmd.Env = os.Environ()
+	issueListOutput, err := issueListCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue list human output failed: %v\n%s", err, issueListOutput)
+	}
+	if !strings.Contains(string(issueListOutput), "Repository: "+workspace+"/"+issueRepo.Slug) {
+		t.Fatalf("expected repo header in issue list output:\n%s", issueListOutput)
 	}
 
 	searchPRsCmd := exec.Command(binary, "search", "prs", "fixture", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)

@@ -394,7 +394,7 @@ func boolToInt(value bool) int {
 
 func writeCrossRepoPRTable(w io.Writer, prs []crossRepoPullRequest) error {
 	if len(prs) == 0 {
-		_, err := fmt.Fprintln(w, "none")
+		_, err := fmt.Fprintln(w, "None.")
 		return err
 	}
 
@@ -423,7 +423,7 @@ func writeCrossRepoPRTable(w io.Writer, prs []crossRepoPullRequest) error {
 
 func writeCrossRepoIssueTable(w io.Writer, issues []crossRepoIssue) error {
 	if len(issues) == 0 {
-		_, err := fmt.Fprintln(w, "none")
+		_, err := fmt.Fprintln(w, "None.")
 		return err
 	}
 

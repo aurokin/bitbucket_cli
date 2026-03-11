@@ -4,9 +4,6 @@
 
 ## Follow-Up UX Work
 
-- Unified repo selector
-  Standardize commands on the shared `--repo` target model so `--workspace` becomes secondary/disambiguation-only instead of a primary path.
-
 - More compact human-readable table output for wide terminals
 - Better remediation hints for common auth and repo-resolution failures
 

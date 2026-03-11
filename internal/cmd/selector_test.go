@@ -131,6 +131,102 @@ func TestParseRepoSelector(t *testing.T) {
 	}
 }
 
+func TestParseRepoTargetInput(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name          string
+		hostFlag      string
+		workspaceFlag string
+		repoFlag      string
+		positional    string
+		want          repoSelector
+		wantErr       string
+	}{
+		{
+			name:          "workspace flag applies to positional bare repo",
+			workspaceFlag: "OhBizzle",
+			positional:    "widgets",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:       "repo flag only",
+			repoFlag:   "OhBizzle/widgets",
+			positional: "",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:          "workspace flag merges with repo flag bare repo",
+			workspaceFlag: "OhBizzle",
+			repoFlag:      "widgets",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:          "matching repo flag and positional",
+			workspaceFlag: "OhBizzle",
+			repoFlag:      "widgets",
+			positional:    "OhBizzle/widgets",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:       "host mismatch with repo url",
+			hostFlag:   "example.com",
+			positional: "https://bitbucket.org/OhBizzle/widgets",
+			wantErr:    `repository host "example.com" does not match "bitbucket.org"`,
+		},
+		{
+			name:          "workspace mismatch",
+			workspaceFlag: "Other",
+			positional:    "OhBizzle/widgets",
+			wantErr:       `repository workspace "Other" does not match "OhBizzle"`,
+		},
+		{
+			name:          "workspace only is allowed until required later",
+			workspaceFlag: "OhBizzle",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := parseRepoTargetInput(tc.hostFlag, tc.workspaceFlag, tc.repoFlag, tc.positional)
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr {
+					t.Fatalf("expected error %q, got %v", tc.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("did not expect error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %+v, got %+v", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestParsePullRequestSelector(t *testing.T) {
 	t.Parallel()
 
@@ -328,6 +424,18 @@ func TestResolvePullRequestTarget(t *testing.T) {
 			t.Fatalf("expected mismatch error, got %v", err)
 		}
 	})
+}
+
+func TestRequireExplicitRepoTarget(t *testing.T) {
+	t.Parallel()
+
+	if err := requireExplicitRepoTarget(repoSelector{Workspace: "OhBizzle"}); err == nil || err.Error() != "repository is required; pass <repo>, <workspace>/<repo>, or --repo" {
+		t.Fatalf("expected missing repository error, got %v", err)
+	}
+
+	if err := requireExplicitRepoTarget(repoSelector{Workspace: "OhBizzle", Repo: "widgets"}); err != nil {
+		t.Fatalf("did not expect error: %v", err)
+	}
 }
 
 func withLocalRepoContext(t *testing.T, repo gitrepo.RepoContext, err error) {

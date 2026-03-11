@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -175,7 +176,7 @@ func newRepoViewCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
@@ -213,6 +214,7 @@ func newRepoCreateCmd() *cobra.Command {
 	var flags formatFlags
 	var host string
 	var workspace string
+	var repo string
 	var projectKey string
 	var description string
 	var private bool
@@ -220,29 +222,39 @@ func newRepoCreateCmd() *cobra.Command {
 	var name string
 
 	cmd := &cobra.Command{
-		Use:   "create <slug>",
+		Use:   "create [repository]",
 		Short: "Create a repository in Bitbucket Cloud",
-		Long:  "Create a repository in Bitbucket Cloud. Use --reuse-existing when the command may be run repeatedly.",
-		Example: "  bb repo create my-repo --workspace OhBizzle --project-key BBCLI\n" +
-			"  bb repo create my-repo --workspace OhBizzle --reuse-existing --json",
-		Args: cobra.ExactArgs(1),
+		Long:  "Create a repository in Bitbucket Cloud. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. Use --reuse-existing when the command may be run repeatedly.",
+		Example: "  bb repo create OhBizzle/my-repo --project-key BBCLI\n" +
+			"  bb repo create --repo OhBizzle/my-repo --reuse-existing --json\n" +
+			"  bb repo create my-repo --workspace OhBizzle",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
 				return err
 			}
 
-			_, client, err := resolveAuthenticatedClient(host)
+			selector, err := parseRepoTargetInput(host, workspace, repo, firstArg(args))
+			if err != nil {
+				return err
+			}
+			if err := requireExplicitRepoTarget(selector); err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
 			if err != nil {
 				return err
 			}
 
-			resolvedWorkspace, err := resolveWorkspaceForCreate(context.Background(), client, workspace)
+			selector.Host = resolvedHost
+			target, err := resolveRepoTarget(context.Background(), selector, client, false)
 			if err != nil {
 				return err
 			}
 
-			repo, err := client.CreateRepository(context.Background(), resolvedWorkspace, args[0], bitbucket.CreateRepositoryOptions{
+			createdRepo, err := client.CreateRepository(context.Background(), target.Workspace, target.Repo, bitbucket.CreateRepositoryOptions{
 				Name:          name,
 				Description:   description,
 				ProjectKey:    projectKey,
@@ -253,27 +265,27 @@ func newRepoCreateCmd() *cobra.Command {
 				return err
 			}
 
-			return output.Render(cmd.OutOrStdout(), opts, repo, func(w io.Writer) error {
+			return output.Render(cmd.OutOrStdout(), opts, createdRepo, func(w io.Writer) error {
 				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", resolvedWorkspace); err != nil {
+				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", target.Workspace); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", repo.Slug); err != nil {
+				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", createdRepo.Slug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Name:\t%s\n", repo.Name); err != nil {
+				if _, err := fmt.Fprintf(tw, "Name:\t%s\n", createdRepo.Name); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Private:\t%t\n", repo.IsPrivate); err != nil {
+				if _, err := fmt.Fprintf(tw, "Private:\t%t\n", createdRepo.IsPrivate); err != nil {
 					return err
 				}
-				if repo.Project.Key != "" {
-					if _, err := fmt.Fprintf(tw, "Project:\t%s\n", repo.Project.Key); err != nil {
+				if createdRepo.Project.Key != "" {
+					if _, err := fmt.Fprintf(tw, "Project:\t%s\n", createdRepo.Project.Key); err != nil {
 						return err
 					}
 				}
-				if repo.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", repo.Links.HTML.Href); err != nil {
+				if createdRepo.Links.HTML.Href != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", createdRepo.Links.HTML.Href); err != nil {
 						return err
 					}
 				}
@@ -286,7 +298,8 @@ func newRepoCreateCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug; inferred when only one workspace is available")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&projectKey, "project-key", "", "Bitbucket project key for the repository")
 	cmd.Flags().StringVar(&description, "description", "", "Repository description")
 	cmd.Flags().BoolVar(&private, "private", true, "Create the repository as private")
@@ -300,24 +313,34 @@ func newRepoCloneCmd() *cobra.Command {
 	var flags formatFlags
 	var host string
 	var workspace string
+	var repo string
 
 	cmd := &cobra.Command{
-		Use:   "clone <repository> [directory]",
+		Use:   "clone [repository] [directory]",
 		Short: "Clone a Bitbucket repository locally",
-		Long:  "Clone a Bitbucket repository over HTTPS using the configured API token. The origin remote is rewritten after cloning so the token is not stored in git config.",
+		Long:  "Clone a Bitbucket repository over HTTPS using the configured API token. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. The origin remote is rewritten after cloning so the token is not stored in git config.",
 		Example: "  bb repo clone OhBizzle/bb-cli-integration-primary\n" +
+			"  bb repo clone --repo OhBizzle/bb-cli-integration-primary ./tmp/repo\n" +
 			"  bb repo clone bb-cli-integration-primary --workspace OhBizzle\n" +
 			"  bb repo clone https://bitbucket.org/OhBizzle/bb-cli-integration-primary\n" +
 			"  bb repo clone OhBizzle/bb-cli-integration-primary ./tmp/repo --json",
-		Args: cobra.RangeArgs(1, 2),
+		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, args[0])
+			repoArg, targetDir, err := resolveRepoCloneInput(args, repo)
 			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoTargetInput(host, workspace, repo, repoArg)
+			if err != nil {
+				return err
+			}
+			if err := requireExplicitRepoTarget(selector); err != nil {
 				return err
 			}
 
@@ -347,9 +370,8 @@ func newRepoCloneCmd() *cobra.Command {
 				return fmt.Errorf("repository %s/%s does not expose an HTTPS clone URL", target.Workspace, repository.Slug)
 			}
 
-			targetDir := repository.Slug
-			if len(args) == 2 {
-				targetDir = args[1]
+			if targetDir == "" {
+				targetDir = repository.Slug
 			}
 
 			if err := gitrepo.CloneRepository(context.Background(), httpsCloneURL, hostConfig.Token, targetDir); err != nil {
@@ -395,7 +417,8 @@ func newRepoCloneCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
 }
@@ -404,24 +427,29 @@ func newRepoDeleteCmd() *cobra.Command {
 	var flags formatFlags
 	var host string
 	var workspace string
+	var repo string
 	var yes bool
 
 	cmd := &cobra.Command{
-		Use:   "delete <repository>",
+		Use:   "delete [repository]",
 		Short: "Delete a Bitbucket repository",
-		Long:  "Delete a Bitbucket repository in Bitbucket Cloud. Humans must confirm the exact workspace/repository unless --yes is provided. Scripts and agents should use --yes together with --no-prompt when they need deterministic behavior.",
+		Long:  "Delete a Bitbucket repository in Bitbucket Cloud. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. Humans must confirm the exact workspace/repository unless --yes is provided. Scripts and agents should use --yes together with --no-prompt when they need deterministic behavior.",
 		Example: "  bb repo delete OhBizzle/bb-cli-delete-command-target --yes\n" +
+			"  bb repo delete --repo OhBizzle/bb-cli-delete-command-target --yes\n" +
 			"  bb repo delete bb-cli-delete-command-target --workspace OhBizzle --yes\n" +
 			"  bb repo delete https://bitbucket.org/OhBizzle/bb-cli-delete-command-target --json",
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, args[0])
+			selector, err := parseRepoTargetInput(host, workspace, repo, firstArg(args))
 			if err != nil {
+				return err
+			}
+			if err := requireExplicitRepoTarget(selector); err != nil {
 				return err
 			}
 
@@ -488,7 +516,8 @@ func newRepoDeleteCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 
 	return cmd
@@ -528,4 +557,33 @@ func resolveWorkspaceForCreate(ctx context.Context, client workspaceResolver, wo
 	}
 
 	return "", fmt.Errorf("multiple workspaces available; specify --workspace")
+}
+
+func firstArg(args []string) string {
+	if len(args) == 0 {
+		return ""
+	}
+	return args[0]
+}
+
+func resolveRepoCloneInput(args []string, repoFlag string) (string, string, error) {
+	if strings.TrimSpace(repoFlag) != "" {
+		switch len(args) {
+		case 0:
+			return "", "", nil
+		case 1:
+			return "", args[0], nil
+		default:
+			return "", "", fmt.Errorf("when --repo is provided, pass at most one clone directory argument")
+		}
+	}
+
+	switch len(args) {
+	case 0:
+		return "", "", fmt.Errorf("repository is required; pass <repo>, <workspace>/<repo>, or --repo")
+	case 1:
+		return args[0], "", nil
+	default:
+		return args[0], args[1], nil
+	}
 }

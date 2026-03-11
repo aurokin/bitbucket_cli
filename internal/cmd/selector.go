@@ -81,6 +81,56 @@ func parseRepoSelector(hostFlag, workspaceFlag, repoFlag string) (repoSelector, 
 	return repoTarget, nil
 }
 
+func parseRepoTargetInput(hostFlag, workspaceFlag, repoFlag, positional string) (repoSelector, error) {
+	hostFlag = strings.TrimSpace(hostFlag)
+	workspaceFlag = strings.TrimSpace(workspaceFlag)
+	repoFlag = strings.TrimSpace(repoFlag)
+	positional = strings.TrimSpace(positional)
+
+	selector := repoSelector{Host: hostFlag}
+	if workspaceFlag != "" {
+		selector.Workspace = workspaceFlag
+	}
+
+	if repoFlag != "" {
+		repoTarget, err := parseRepositoryReference(repoFlag)
+		if err != nil {
+			return repoSelector{}, err
+		}
+
+		selector, err = mergeRepoSelectors(selector, repoTarget)
+		if err != nil {
+			return repoSelector{}, err
+		}
+	}
+
+	if positional != "" {
+		positionalTarget, err := parseRepositoryReference(positional)
+		if err != nil {
+			return repoSelector{}, err
+		}
+
+		selector, err = mergeRepoSelectors(selector, positionalTarget)
+		if err != nil {
+			return repoSelector{}, err
+		}
+	}
+
+	if selector.Repo != "" {
+		selector.Explicit = true
+	}
+
+	return selector, nil
+}
+
+func requireExplicitRepoTarget(selector repoSelector) error {
+	if strings.TrimSpace(selector.Repo) != "" {
+		return nil
+	}
+
+	return fmt.Errorf("repository is required; pass <repo>, <workspace>/<repo>, or --repo")
+}
+
 func parseRepositoryReference(raw string) (repoSelector, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {

@@ -118,7 +118,7 @@ func newPRCloseCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
@@ -199,7 +199,7 @@ func newPRCommentCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&body, "body", "", "Comment body text")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", "Read the comment body from a file, or '-' for stdin")
@@ -284,7 +284,7 @@ func newPRDiffCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().BoolVar(&stat, "stat", false, "Show a concise per-file diff summary instead of the full patch")
 
@@ -400,7 +400,7 @@ func newPRStatusCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().IntVar(&limit, "limit", 50, "Maximum number of open pull requests to inspect for status")
 
@@ -482,7 +482,7 @@ func newPRListCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&state, "state", "OPEN", "Filter pull requests by state: OPEN, MERGED, DECLINED, SUPERSEDED, or ALL")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Maximum number of pull requests to return")
@@ -552,7 +552,7 @@ func newPRCheckoutCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
@@ -661,7 +661,7 @@ func newPRMergeCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&message, "message", "", "Merge commit message")
 	cmd.Flags().StringVar(&strategy, "strategy", "", "Merge strategy to use; required when Bitbucket does not expose a default")
@@ -779,7 +779,7 @@ func newPRCreateCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&title, "title", "", "Pull request title; defaults to the source branch name")
 	cmd.Flags().StringVar(&description, "description", "", "Pull request description")
@@ -876,7 +876,7 @@ func newPRViewCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd

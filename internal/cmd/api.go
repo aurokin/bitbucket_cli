@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/auro/bitbucket_cli/internal/bitbucket"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -51,7 +52,7 @@ func newAPICmd() *cobra.Command {
 			}
 
 			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				return fmt.Errorf("bitbucket API returned %s: %s", resp.Status, strings.TrimSpace(string(responseBody)))
+				return bitbucket.NewAPIError(resp.StatusCode, resp.Status, responseBody)
 			}
 
 			return writeAPIResponse(cmd.OutOrStdout(), responseBody, jq)

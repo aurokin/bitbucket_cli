@@ -188,7 +188,20 @@ func newAuthStatusCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+
+				for _, host := range payload.Hosts {
+					if host.AuthenticationError == "" {
+						continue
+					}
+					if _, err := fmt.Fprintf(w, "\n%s auth error: %s\n", host.Host, host.AuthenticationError); err != nil {
+						return err
+					}
+				}
+
+				return nil
 			})
 		},
 	}
@@ -304,13 +317,13 @@ func buildAuthStatusPayload(ctx context.Context, cfg config.Config, selectedHost
 			if err != nil {
 				authenticated := false
 				row.Authenticated = &authenticated
-				row.AuthenticationError = err.Error()
+				row.AuthenticationError = userFacingError(err).Error()
 			} else {
 				currentUser, err := client.CurrentUser(ctx)
 				if err != nil {
 					authenticated := false
 					row.Authenticated = &authenticated
-					row.AuthenticationError = err.Error()
+					row.AuthenticationError = userFacingError(err).Error()
 				} else {
 					authenticated := true
 					row.Authenticated = &authenticated

@@ -85,3 +85,29 @@ func TestResolveURLPreservesQuery(t *testing.T) {
 		t.Fatalf("expected URL %q, got %q", expected, rawURL)
 	}
 }
+
+func TestNewAPIErrorParsesNestedMessage(t *testing.T) {
+	t.Parallel()
+
+	err := NewAPIError(401, "401 Unauthorized", []byte(`{"type":"error","error":{"message":"Token is invalid or expired"}}`))
+	apiErr, ok := AsAPIError(err)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if apiErr.Message != "Token is invalid or expired" {
+		t.Fatalf("unexpected message %q", apiErr.Message)
+	}
+}
+
+func TestNewAPIErrorFallsBackToRawBody(t *testing.T) {
+	t.Parallel()
+
+	err := NewAPIError(403, "403 Forbidden", []byte(`plain text error`))
+	apiErr, ok := AsAPIError(err)
+	if !ok {
+		t.Fatalf("expected APIError, got %T", err)
+	}
+	if apiErr.Message != "plain text error" {
+		t.Fatalf("unexpected message %q", apiErr.Message)
+	}
+}

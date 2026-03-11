@@ -32,7 +32,7 @@ func NewRootCmd() *cobra.Command {
 func Execute() error {
 	rootCmd := NewRootCmd()
 	rootCmd.SetArgs(normalizeCLIArgs(os.Args[1:]))
-	return rootCmd.Execute()
+	return userFacingError(rootCmd.Execute())
 }
 
 func normalizeCLIArgs(args []string) []string {

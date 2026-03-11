@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -184,15 +185,124 @@ func requireSuccess(resp *http.Response) error {
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32*1024))
 	if err != nil {
-		return fmt.Errorf("bitbucket API returned %s", resp.Status)
+		body = nil
 	}
 
+	return newAPIError(resp.StatusCode, resp.Status, body)
+}
+
+type APIError struct {
+	StatusCode int
+	Status     string
+	Message    string
+	Body       string
+}
+
+func (e *APIError) Error() string {
+	switch {
+	case e == nil:
+		return ""
+	case e.Message != "":
+		return fmt.Sprintf("bitbucket API returned %s: %s", e.Status, e.Message)
+	case e.Status != "":
+		return fmt.Sprintf("bitbucket API returned %s", e.Status)
+	default:
+		return "bitbucket API request failed"
+	}
+}
+
+func (e *APIError) Is(target error) bool {
+	other, ok := target.(*APIError)
+	if !ok {
+		return false
+	}
+	if other.StatusCode != 0 && e.StatusCode != other.StatusCode {
+		return false
+	}
+	return true
+}
+
+func AsAPIError(err error) (*APIError, bool) {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return nil, false
+	}
+	return apiErr, true
+}
+
+func NewAPIError(statusCode int, status string, body []byte) error {
+	return newAPIError(statusCode, status, body)
+}
+
+func newAPIError(statusCode int, status string, body []byte) error {
+	return &APIError{
+		StatusCode: statusCode,
+		Status:     strings.TrimSpace(status),
+		Message:    parseAPIErrorMessage(body),
+		Body:       strings.TrimSpace(string(body)),
+	}
+}
+
+func parseAPIErrorMessage(body []byte) string {
 	trimmed := strings.TrimSpace(string(body))
 	if trimmed == "" {
-		return fmt.Errorf("bitbucket API returned %s", resp.Status)
+		return ""
 	}
 
-	return fmt.Errorf("bitbucket API returned %s: %s", resp.Status, trimmed)
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return trimmed
+	}
+
+	if message := nestedString(payload, "error", "message"); message != "" {
+		return message
+	}
+	if message := nestedString(payload, "error", "detail"); message != "" {
+		return message
+	}
+	if message := stringValue(payload["error"]); message != "" {
+		return message
+	}
+	if message := stringValue(payload["message"]); message != "" {
+		return message
+	}
+
+	return trimmed
+}
+
+func nestedString(payload map[string]any, keys ...string) string {
+	current := any(payload)
+	for _, key := range keys {
+		typed, ok := current.(map[string]any)
+		if !ok {
+			return ""
+		}
+		current, ok = typed[key]
+		if !ok {
+			return ""
+		}
+	}
+	return stringValue(current)
+}
+
+func stringValue(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	case []any:
+		parts := make([]string, 0, len(typed))
+		for _, item := range typed {
+			if part := stringValue(item); part != "" {
+				parts = append(parts, part)
+			}
+		}
+		return strings.Join(parts, "; ")
+	case map[string]any:
+		if message := nestedString(typed, "message"); message != "" {
+			return message
+		}
+	}
+	return ""
 }
 
 type CurrentUser struct {

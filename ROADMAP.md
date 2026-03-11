@@ -2,10 +2,6 @@
 
 ## Next Commands
 
-## Follow-Up UX Work
-
-- Better remediation hints for common auth and repo-resolution failures
-
 ## Later Phase
 
 - Browser login

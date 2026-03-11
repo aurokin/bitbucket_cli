@@ -95,3 +95,35 @@ func TestCreateIssue(t *testing.T) {
 		t.Fatalf("unexpected issue %+v", issue)
 	}
 }
+
+func TestChangeIssueState(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/issues/2/changes" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"changes":{"state":{"new":"resolved"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if err := client.ChangeIssueState(context.Background(), "acme", "widgets", 2, IssueChangeOptions{
+		State:   "resolved",
+		Message: "Closing this issue",
+	}); err != nil {
+		t.Fatalf("ChangeIssueState returned error: %v", err)
+	}
+}

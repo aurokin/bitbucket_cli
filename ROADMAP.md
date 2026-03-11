@@ -4,9 +4,6 @@
 
 ## Later Phase
 
-- Issues support
-  Add issue listing, viewing, creation, and state transitions.
-
 - Cross-repo status
   Add a `status` view for relevant pull requests, review requests, mentions, and other work across repositories.
 

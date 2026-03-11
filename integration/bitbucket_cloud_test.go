@@ -26,6 +26,7 @@ const (
 	fixtureProjectName       = "bb-cli integration"
 	fixturePrimaryRepoSlug   = "bb-cli-integration-primary"
 	fixtureSecondaryRepoSlug = "bb-cli-integration-secondary"
+	fixtureIssuesRepoSlug    = "bb-cli-integration-issues"
 	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
 	fixtureDeleteRepoSlug    = "bb-cli-delete-command-target"
 	fixtureFeatureBranch     = "bb-cli-int-feature"
@@ -67,6 +68,7 @@ type repository struct {
 	Name       string `json:"name"`
 	Slug       string `json:"slug"`
 	FullName   string `json:"full_name"`
+	HasIssues  bool   `json:"has_issues"`
 	MainBranch branch `json:"mainbranch"`
 }
 
@@ -288,6 +290,96 @@ func TestBitbucketCloudPRClose(t *testing.T) {
 	updated := getPullRequest(t, client, workspace, fixture.PrimaryRepo.Slug, prID)
 	if updated.State != "DECLINED" {
 		t.Fatalf("expected pull request %d to be declined, got %+v", prID, updated)
+	}
+}
+
+func TestBitbucketCloudIssueFlow(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	ensureFixture(t, client, hostConfig, workspace)
+	issueRepo := ensureIssueRepository(t, client, workspace)
+	binary := buildBinary(t)
+
+	createCmd := exec.Command(
+		binary,
+		"issue", "create",
+		"--repo", workspace+"/"+issueRepo.Slug,
+		"--title", "bb cli issue integration flow",
+		"--body", "created by the issue integration flow",
+		"--json", "*",
+	)
+	createCmd.Env = os.Environ()
+
+	createOutput, err := createCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue create failed: %v\n%s", err, createOutput)
+	}
+
+	var created bitbucket.Issue
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse issue create JSON: %v\n%s", err, createOutput)
+	}
+	if created.ID == 0 || created.Title == "" {
+		t.Fatalf("unexpected issue create payload %+v", created)
+	}
+
+	listCmd := exec.Command(binary, "issue", "list", "--repo", workspace+"/"+issueRepo.Slug, "--json", "*")
+	listCmd.Env = os.Environ()
+	listOutput, err := listCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue list failed: %v\n%s", err, listOutput)
+	}
+
+	var issues []bitbucket.Issue
+	if err := json.Unmarshal(listOutput, &issues); err != nil {
+		t.Fatalf("parse issue list JSON: %v\n%s", err, listOutput)
+	}
+	var found bool
+	for _, issue := range issues {
+		if issue.ID == created.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected created issue %d in issue list %+v", created.ID, issues)
+	}
+
+	closeCmd := exec.Command(binary, "issue", "close", fmt.Sprintf("%d", created.ID), "--repo", workspace+"/"+issueRepo.Slug, "--json", "*")
+	closeCmd.Env = os.Environ()
+	closeOutput, err := closeCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue close failed: %v\n%s", err, closeOutput)
+	}
+
+	var closed bitbucket.Issue
+	if err := json.Unmarshal(closeOutput, &closed); err != nil {
+		t.Fatalf("parse issue close JSON: %v\n%s", err, closeOutput)
+	}
+	if closed.State != "resolved" {
+		t.Fatalf("expected resolved issue, got %+v", closed)
+	}
+
+	reopenCmd := exec.Command(binary, "issue", "reopen", fmt.Sprintf("%d", created.ID), "--repo", workspace+"/"+issueRepo.Slug, "--json", "*")
+	reopenCmd.Env = os.Environ()
+	reopenOutput, err := reopenCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue reopen failed: %v\n%s", err, reopenOutput)
+	}
+
+	var reopened bitbucket.Issue
+	if err := json.Unmarshal(reopenOutput, &reopened); err != nil {
+		t.Fatalf("parse issue reopen JSON: %v\n%s", err, reopenOutput)
+	}
+	if reopened.State != "new" {
+		t.Fatalf("expected reopened issue to be new, got %+v", reopened)
 	}
 }
 
@@ -736,6 +828,21 @@ func ensureRepository(t *testing.T, client *bitbucket.Client, workspace, slug st
 		},
 	}
 	mustRequestJSON(t, client, http.MethodPost, fmt.Sprintf("/repositories/%s/%s", workspace, slug), body, &repo)
+	return repo
+}
+
+func ensureIssueRepository(t *testing.T, client *bitbucket.Client, workspace string) repository {
+	t.Helper()
+
+	repo := ensureRepository(t, client, workspace, fixtureIssuesRepoSlug)
+	if repo.HasIssues {
+		return repo
+	}
+
+	body := map[string]any{
+		"has_issues": true,
+	}
+	mustRequestJSON(t, client, http.MethodPut, fmt.Sprintf("/repositories/%s/%s", workspace, fixtureIssuesRepoSlug), body, &repo)
 	return repo
 }
 

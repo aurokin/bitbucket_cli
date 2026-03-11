@@ -10,7 +10,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Create them if they do not exist
 - Seed arbitrary git content into the primary and secondary repositories
 - Ensure there is an open pull request in the primary repository
-- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, and `bb pr merge` commands against the seeded repositories
+- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue view`, `bb issue create`, `bb issue close`, and `bb issue reopen` commands against the seeded repositories
 
 ## Fixture Names
 
@@ -18,6 +18,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Project name: `bb-cli integration`
 - Primary repo: `bb-cli-integration-primary`
 - Secondary repo: `bb-cli-integration-secondary`
+- Issues repo: `bb-cli-integration-issues`
 
 ## Run
 
@@ -35,6 +36,7 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRComment -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRClose -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRView -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudIssueFlow -v
 ```
 
 ## Notes
@@ -42,3 +44,4 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 - The tests intentionally reuse existing fixtures to avoid unnecessary churn against the Bitbucket API.
 - The `repo delete` test uses a dedicated sacrificial repository and recreates it only when needed.
 - They do not delete projects, and they do not delete the primary or secondary fixture repositories.
+- The issue flow uses a dedicated repository with Bitbucket issue tracking enabled.

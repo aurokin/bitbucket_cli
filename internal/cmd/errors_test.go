@@ -46,6 +46,18 @@ func TestUserFacingErrorNotFound(t *testing.T) {
 	}
 }
 
+func TestUserFacingErrorNoIssueTracker(t *testing.T) {
+	t.Parallel()
+
+	err := userFacingError(bitbucket.NewAPIError(404, "404 Not Found", []byte(`{"type":"error","error":{"message":"Repository has no issue tracker."}}`)))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "issue tracking enabled") {
+		t.Fatalf("expected issue tracker guidance, got %q", err.Error())
+	}
+}
+
 func TestUserFacingErrorRepoResolutionHints(t *testing.T) {
 	t.Parallel()
 

@@ -27,6 +27,7 @@ func NewRootCmd() *cobra.Command {
 		newAliasCmd(),
 		newExtensionCmd(),
 		newSearchCmd(),
+		newIssueCmd(),
 		newRepoCmd(),
 		newAuthCmd(),
 		newPRCmd(),

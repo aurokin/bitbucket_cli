@@ -64,6 +64,11 @@ type issueListResponse struct {
 	Next   string  `json:"next,omitempty"`
 }
 
+type IssueChangeOptions struct {
+	State   string
+	Message string
+}
+
 func (c *Client) ListIssues(ctx context.Context, workspace, repoSlug string, options ListIssuesOptions) ([]Issue, error) {
 	if workspace == "" || repoSlug == "" {
 		return nil, fmt.Errorf("workspace and repository are required")
@@ -236,4 +241,45 @@ func (c *Client) UpdateIssue(ctx context.Context, workspace, repoSlug string, id
 	}
 
 	return issue, nil
+}
+
+func (c *Client) ChangeIssueState(ctx context.Context, workspace, repoSlug string, id int, options IssueChangeOptions) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return fmt.Errorf("issue ID must be greater than zero")
+	}
+	if options.State == "" {
+		return fmt.Errorf("issue state is required")
+	}
+
+	body := map[string]any{
+		"changes": map[string]any{
+			"state": map[string]string{
+				"new": options.State,
+			},
+		},
+	}
+	if options.Message != "" {
+		body["message"] = map[string]string{"raw": options.Message}
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return fmt.Errorf("marshal issue change request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/issues/%d/changes", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return err
+	}
+
+	return nil
 }

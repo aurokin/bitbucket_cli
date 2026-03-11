@@ -92,3 +92,33 @@ func TestIssueNextSteps(t *testing.T) {
 		t.Fatalf("unexpected issue view next step %q", got)
 	}
 }
+
+func TestWriteIssueTableWithRepositoryHeader(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	issues := []bitbucket.Issue{
+		{
+			ID:        1,
+			Title:     "Fixture issue",
+			State:     "new",
+			UpdatedOn: "2026-03-11T00:00:00Z",
+			Reporter:  bitbucket.IssueActor{DisplayName: "Hunter Sadler"},
+		},
+	}
+
+	if err := writeTargetHeader(&buf, "Repository", "acme", "widgets"); err != nil {
+		t.Fatalf("writeTargetHeader returned error: %v", err)
+	}
+	if err := writeIssueTable(&buf, issues); err != nil {
+		t.Fatalf("writeIssueTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "Repository: acme/widgets") {
+		t.Fatalf("expected repository header, got %q", got)
+	}
+	if !strings.Contains(got, "Fixture issue") {
+		t.Fatalf("expected issue row, got %q", got)
+	}
+}

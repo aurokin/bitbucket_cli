@@ -13,6 +13,14 @@ func writeTargetHeader(w io.Writer, label, workspace, repo string) error {
 	return err
 }
 
+func writeLabelValue(w io.Writer, label, value string) error {
+	if label == "" || value == "" {
+		return nil
+	}
+	_, err := fmt.Fprintf(w, "%s: %s\n", label, value)
+	return err
+}
+
 func writeNextStep(w io.Writer, command string) error {
 	if command == "" {
 		return nil

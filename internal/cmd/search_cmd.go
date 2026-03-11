@@ -72,6 +72,12 @@ func newSearchReposCmd() *cobra.Command {
 					return writeNextStep(w, searchReposNextStep(resolvedWorkspace, repos))
 				}
 
+				if err := writeLabelValue(w, "Workspace", resolvedWorkspace); err != nil {
+					return err
+				}
+				if err := writeLabelValue(w, "Query", args[0]); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintln(tw, "name\tslug\tprivate\tproject\tupdated"); err != nil {
 					return err
@@ -159,6 +165,12 @@ func newSearchPRsCmd() *cobra.Command {
 					}
 					return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
 				}
+				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeLabelValue(w, "Query", args[0]); err != nil {
+					return err
+				}
 				if err := writePRListTable(w, prs); err != nil {
 					return err
 				}
@@ -230,6 +242,12 @@ func newSearchIssuesCmd() *cobra.Command {
 					return writeNextStep(w, searchIssuesNextStep(target.Workspace, target.Repo, issues))
 				}
 
+				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeLabelValue(w, "Query", args[0]); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintln(tw, "#\ttitle\tstate\treporter\tupdated"); err != nil {
 					return err

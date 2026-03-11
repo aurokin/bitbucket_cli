@@ -71,6 +71,9 @@ func newIssueListCmd() *cobra.Command {
 					}
 					return writeNextStep(w, issueListEmptyNextStep(target.Workspace, target.Repo))
 				}
+				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
 				return writeIssueTable(w, issues)
 			})
 		},

@@ -486,6 +486,9 @@ func newPRListCmd() *cobra.Command {
 					return writeNextStep(w, fmt.Sprintf("bb pr create --repo %s/%s --title '<title>'", target.Workspace, target.Repo))
 				}
 
+				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
 				return writePRListTable(w, prs)
 			})
 		},

@@ -28,3 +28,15 @@ func TestWriteNextStep(t *testing.T) {
 		t.Fatalf("unexpected next step %q", got)
 	}
 }
+
+func TestWriteLabelValue(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	if err := writeLabelValue(&buf, "Query", "fix auth"); err != nil {
+		t.Fatalf("writeLabelValue returned error: %v", err)
+	}
+	if got := buf.String(); got != "Query: fix auth\n" {
+		t.Fatalf("unexpected label/value output %q", got)
+	}
+}

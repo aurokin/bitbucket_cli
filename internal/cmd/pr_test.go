@@ -293,3 +293,37 @@ func TestPRViewNextStep(t *testing.T) {
 		t.Fatalf("unexpected PR view next step %q", got)
 	}
 }
+
+func TestWritePRListTableWithRepositoryHeader(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	prs := []bitbucket.PullRequest{
+		{
+			ID:        7,
+			Title:     "Fixture PR",
+			State:     "OPEN",
+			UpdatedOn: "2026-03-10T12:34:56Z",
+			Author:    bitbucket.PullRequestActor{DisplayName: "Hunter Sadler"},
+			Source:    bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/test"}},
+			Destination: bitbucket.PullRequestRef{
+				Branch: bitbucket.PullRequestBranch{Name: "main"},
+			},
+		},
+	}
+
+	if err := writeTargetHeader(&buf, "Repository", "acme", "widgets"); err != nil {
+		t.Fatalf("writeTargetHeader returned error: %v", err)
+	}
+	if err := writePRListTable(&buf, prs); err != nil {
+		t.Fatalf("writePRListTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "Repository: acme/widgets") {
+		t.Fatalf("expected repository header, got %q", got)
+	}
+	if !strings.Contains(got, "Fixture PR") {
+		t.Fatalf("expected PR row, got %q", got)
+	}
+}

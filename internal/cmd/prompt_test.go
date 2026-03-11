@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -87,5 +90,32 @@ func TestConfirmExactMatchRejectsMismatch(t *testing.T) {
 	err := confirmExactMatch(cmd, "OhBizzle/widgets")
 	if err == nil || err.Error() != "confirmation did not match OhBizzle/widgets" {
 		t.Fatalf("expected mismatch error, got %v", err)
+	}
+}
+
+func TestPromptsDisabledFromConfig(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", configDir)
+
+	disabled := false
+	if err := config.Save(config.Config{
+		Settings: config.Settings{
+			Prompt: &disabled,
+		},
+	}); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.PersistentFlags().Bool("no-prompt", false, "")
+	cmd.SetIn(bytes.NewBufferString(""))
+	cmd.SetOut(bytes.NewBuffer(nil))
+
+	if !promptsDisabled(cmd) {
+		t.Fatal("expected promptsDisabled to honor config default")
+	}
+
+	if _, err := os.Stat(filepath.Join(configDir, "config.json")); err != nil {
+		t.Fatalf("expected config file to exist: %v", err)
 	}
 }

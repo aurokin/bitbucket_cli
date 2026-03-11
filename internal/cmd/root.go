@@ -20,6 +20,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(
 		newVersionCmd(),
+		newConfigCmd(),
 		newRepoCmd(),
 		newAuthCmd(),
 		newPRCmd(),

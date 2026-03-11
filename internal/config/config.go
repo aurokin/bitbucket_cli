@@ -19,7 +19,22 @@ const (
 type Config struct {
 	DefaultHost string                `json:"default_host,omitempty"`
 	Hosts       map[string]HostConfig `json:"hosts,omitempty"`
+	Settings    Settings              `json:"settings,omitempty"`
+	Aliases     map[string]string     `json:"aliases,omitempty"`
 }
+
+type Settings struct {
+	Prompt       *bool  `json:"prompt,omitempty"`
+	Browser      string `json:"browser,omitempty"`
+	Editor       string `json:"editor,omitempty"`
+	Pager        string `json:"pager,omitempty"`
+	OutputFormat string `json:"output_format,omitempty"`
+}
+
+const (
+	OutputFormatTable = "table"
+	OutputFormatJSON  = "json"
+)
 
 type HostConfig struct {
 	Username  string    `json:"username,omitempty"`
@@ -55,10 +70,14 @@ func Load() (Config, error) {
 	if cfg.Hosts == nil {
 		cfg.Hosts = map[string]HostConfig{}
 	}
+	if cfg.Aliases == nil {
+		cfg.Aliases = map[string]string{}
+	}
 
 	for host, hostConfig := range cfg.Hosts {
 		cfg.Hosts[host] = NormalizeHostConfig(hostConfig)
 	}
+	cfg.Settings = NormalizeSettings(cfg.Settings)
 
 	return cfg, nil
 }
@@ -72,10 +91,14 @@ func Save(cfg Config) error {
 	if cfg.Hosts == nil {
 		cfg.Hosts = map[string]HostConfig{}
 	}
+	if cfg.Aliases == nil {
+		cfg.Aliases = map[string]string{}
+	}
 
 	for host, hostConfig := range cfg.Hosts {
 		cfg.Hosts[host] = NormalizeHostConfig(hostConfig)
 	}
+	cfg.Settings = NormalizeSettings(cfg.Settings)
 
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -136,6 +159,37 @@ func NormalizeHostConfig(hostConfig HostConfig) HostConfig {
 	hostConfig.TokenType = ""
 
 	return hostConfig
+}
+
+func NormalizeSettings(settings Settings) Settings {
+	settings.Browser = strings.TrimSpace(settings.Browser)
+	settings.Editor = strings.TrimSpace(settings.Editor)
+	settings.Pager = strings.TrimSpace(settings.Pager)
+
+	switch strings.TrimSpace(settings.OutputFormat) {
+	case "", OutputFormatTable:
+		settings.OutputFormat = ""
+	case OutputFormatJSON:
+		settings.OutputFormat = OutputFormatJSON
+	default:
+		settings.OutputFormat = ""
+	}
+
+	return settings
+}
+
+func (c Config) PromptEnabled() bool {
+	if c.Settings.Prompt == nil {
+		return true
+	}
+	return *c.Settings.Prompt
+}
+
+func (c Config) EffectiveOutputFormat() string {
+	if c.Settings.OutputFormat == OutputFormatJSON {
+		return OutputFormatJSON
+	}
+	return OutputFormatTable
 }
 
 func (c *Config) RemoveHost(host string) {

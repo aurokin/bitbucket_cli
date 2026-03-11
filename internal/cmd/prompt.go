@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -31,10 +32,14 @@ func promptsDisabled(cmd *cobra.Command) bool {
 
 	flag := cmd.Flag("no-prompt")
 	if flag == nil {
-		return false
+		return configDisablesPrompts()
 	}
 
-	return flag.Value.String() == "true"
+	if flag.Value.String() == "true" {
+		return true
+	}
+
+	return configDisablesPrompts()
 }
 
 func promptsEnabled(cmd *cobra.Command) bool {
@@ -43,6 +48,15 @@ func promptsEnabled(cmd *cobra.Command) bool {
 	}
 
 	return isInteractiveIO(cmd.InOrStdin(), cmd.OutOrStdout())
+}
+
+func configDisablesPrompts() bool {
+	cfg, err := config.Load()
+	if err != nil {
+		return false
+	}
+
+	return !cfg.PromptEnabled()
 }
 
 func promptRequiredString(cmd *cobra.Command, label, defaultValue string) (string, error) {

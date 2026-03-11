@@ -4,9 +4,6 @@
 
 ## Later Phase
 
-- Config
-  Add persistent CLI behavior/config management for prompts, editor, browser, pager, output defaults, and other operational settings.
-
 - Aliases and extensibility
   Add user-defined command aliases plus an extension model so humans and agents can adapt workflows without changing core commands.
 

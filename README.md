@@ -63,6 +63,12 @@ Automation conventions:
 - use `--jq` to keep agent output token-efficient
 - use `--no-prompt` for mutations and any non-interactive flow
 
+## Additional Docs
+
+- [Human workflows](./docs/workflows.md)
+- [Automation guide](./docs/automation.md)
+- [CLI reference](./docs/cli-reference.md)
+
 ## Command Families
 
 - `bb version`

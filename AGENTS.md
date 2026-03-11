@@ -32,6 +32,9 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - Keep `README.md` task-oriented for humans.
 - Keep `AGENTS.md` concise and deterministic for automation.
 - When a command has a safe next step, prefer documenting it explicitly in help text and human-readable output.
+- Keep [docs/workflows.md](./docs/workflows.md) task-oriented for humans.
+- Keep [docs/automation.md](./docs/automation.md) deterministic for agents.
+- Regenerate [docs/cli-reference.md](./docs/cli-reference.md) with `go run ./cmd/gen-docs` when command help changes.
 
 ## Local Skills
 - No repo-local skills discovered under `.claude/skills` or `plugins/*/skills`.

@@ -34,6 +34,8 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - When a command has a safe next step, prefer documenting it explicitly in help text and human-readable output.
 - Keep [docs/workflows.md](./docs/workflows.md) task-oriented for humans.
 - Keep [docs/automation.md](./docs/automation.md) deterministic for agents.
+- Keep [docs/json-shapes.md](./docs/json-shapes.md) aligned with the current payload structs and JSON-centric usage.
+- Keep [docs/recovery.md](./docs/recovery.md) aligned with the current user-facing error guidance.
 - Regenerate [docs/cli-reference.md](./docs/cli-reference.md) with `go run ./cmd/gen-docs` when command help changes.
 
 ## Local Skills

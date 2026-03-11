@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb pr comment`
-  Add pull request comments from flags, stdin, or editor-driven flows.
-
 - `bb pr close`
   Close pull requests explicitly without merging them.
 

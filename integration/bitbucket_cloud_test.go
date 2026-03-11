@@ -213,6 +213,44 @@ func TestBitbucketCloudPRDiff(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRComment(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	commentBody := fmt.Sprintf("integration comment %d", time.Now().UTC().UnixNano())
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	cmd := exec.Command(binary, "pr", "comment", prURL, "--body", commentBody, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr comment failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		ID      int `json:"id"`
+		Content struct {
+			Raw string `json:"raw"`
+		} `json:"content"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr comment JSON: %v\n%s", err, output)
+	}
+
+	if payload.ID == 0 || payload.Content.Raw != commentBody {
+		t.Fatalf("unexpected pr comment payload %+v", payload)
+	}
+}
+
 func TestBitbucketCloudRepoCreate(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

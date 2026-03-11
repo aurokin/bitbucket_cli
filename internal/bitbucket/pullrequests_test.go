@@ -431,3 +431,46 @@ func TestListPullRequestDiffStats(t *testing.T) {
 		t.Fatalf("unexpected first diffstat %+v", stats[0])
 	}
 }
+
+func TestCreatePullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		content := body["content"].(map[string]any)
+		if content["raw"] != "Looks good to me" {
+			t.Fatalf("unexpected comment body %#v", body)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":15,"content":{"raw":"Looks good to me"},"user":{"display_name":"Auro"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	comment, err := client.CreatePullRequestComment(context.Background(), "acme", "widgets", 7, "Looks good to me")
+	if err != nil {
+		t.Fatalf("CreatePullRequestComment returned error: %v", err)
+	}
+	if comment.ID != 15 || comment.Content.Raw != "Looks good to me" {
+		t.Fatalf("unexpected pull request comment %+v", comment)
+	}
+}

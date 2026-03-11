@@ -27,6 +27,7 @@ func newPRCmd() *cobra.Command {
 		newPRListCmd(),
 		newPRStatusCmd(),
 		newPRDiffCmd(),
+		newPRCommentCmd(),
 		newPRViewCmd(),
 		newPRCreateCmd(),
 		newPRCheckoutCmd(),
@@ -34,6 +35,90 @@ func newPRCmd() *cobra.Command {
 	)
 
 	return prCmd
+}
+
+func newPRCommentCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+	var body string
+	var bodyFile string
+
+	cmd := &cobra.Command{
+		Use:   "comment <id-or-url>",
+		Short: "Add a comment to a pull request",
+		Long:  "Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage.",
+		Example: "  bb pr comment 1 --body 'Looks good'\n" +
+			"  bb pr comment 1 --repo OhBizzle/bb-cli-integration-primary --body-file comment.md\n" +
+			"  printf 'Ship it\\n' | bb pr comment https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --body-file - --json",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			commentBody, err := resolveCommentBody(cmd.InOrStdin(), body, bodyFile)
+			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoSelector(host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+
+			comment, err := client.CreatePullRequestComment(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID, commentBody)
+			if err != nil {
+				return err
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, comment, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", comment.ID); err != nil {
+					return err
+				}
+				if comment.User.DisplayName != "" {
+					if _, err := fmt.Fprintf(tw, "Author:\t%s\n", comment.User.DisplayName); err != nil {
+						return err
+					}
+				}
+				if _, err := fmt.Fprintf(tw, "Body:\t%s\n", comment.Content.Raw); err != nil {
+					return err
+				}
+				if comment.Links.HTML.Href != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", comment.Links.HTML.Href); err != nil {
+						return err
+					}
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().StringVar(&body, "body", "", "Comment body text")
+	cmd.Flags().StringVar(&bodyFile, "body-file", "", "Read the comment body from a file, or '-' for stdin")
+	cmd.MarkFlagsMutuallyExclusive("body", "body-file")
+
+	return cmd
 }
 
 func newPRDiffCmd() *cobra.Command {
@@ -948,6 +1033,26 @@ func diffStatus(stat bitbucket.PullRequestDiffStat) string {
 		return "changed"
 	}
 	return status
+}
+
+func resolveCommentBody(stdin io.Reader, body, bodyFile string) (string, error) {
+	if trimmed := strings.TrimSpace(body); trimmed != "" {
+		return trimmed, nil
+	}
+
+	if strings.TrimSpace(bodyFile) != "" {
+		data, err := readRequestBody(stdin, bodyFile)
+		if err != nil {
+			return "", err
+		}
+		trimmed := strings.TrimSpace(string(data))
+		if trimmed == "" {
+			return "", fmt.Errorf("comment body is empty")
+		}
+		return trimmed, nil
+	}
+
+	return "", fmt.Errorf("provide a comment body with --body or --body-file")
 }
 
 func sameActor(user bitbucket.CurrentUser, actor bitbucket.PullRequestActor) bool {

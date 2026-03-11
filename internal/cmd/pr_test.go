@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -198,5 +199,25 @@ func TestDiffPath(t *testing.T) {
 	}
 	if got := diffPath(added); got != "file.txt" {
 		t.Fatalf("expected new path, got %q", got)
+	}
+}
+
+func TestResolveCommentBody(t *testing.T) {
+	t.Parallel()
+
+	body, err := resolveCommentBody(bytes.NewBufferString(""), "Looks good", "")
+	if err != nil {
+		t.Fatalf("resolveCommentBody returned error: %v", err)
+	}
+	if body != "Looks good" {
+		t.Fatalf("expected inline body, got %q", body)
+	}
+
+	body, err = resolveCommentBody(bytes.NewBufferString("From stdin\n"), "", "-")
+	if err != nil {
+		t.Fatalf("resolveCommentBody returned error: %v", err)
+	}
+	if body != "From stdin" {
+		t.Fatalf("expected stdin body, got %q", body)
 	}
 }

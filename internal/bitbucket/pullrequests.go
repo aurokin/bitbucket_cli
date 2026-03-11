@@ -122,6 +122,23 @@ type pullRequestDiffStatResponse struct {
 	Next   string                `json:"next,omitempty"`
 }
 
+type PullRequestComment struct {
+	ID        int                       `json:"id"`
+	Content   PullRequestCommentContent `json:"content"`
+	User      PullRequestActor          `json:"user"`
+	CreatedOn string                    `json:"created_on,omitempty"`
+	UpdatedOn string                    `json:"updated_on,omitempty"`
+	Links     PullRequestCommentLinks   `json:"links,omitempty"`
+}
+
+type PullRequestCommentContent struct {
+	Raw string `json:"raw,omitempty"`
+}
+
+type PullRequestCommentLinks struct {
+	HTML Link `json:"html"`
+}
+
 type mergeTaskStatusResponse struct {
 	TaskStatus  string      `json:"task_status"`
 	MergeResult PullRequest `json:"merge_result,omitempty"`
@@ -406,6 +423,45 @@ func (c *Client) ListPullRequestDiffStats(ctx context.Context, workspace, repoSl
 	}
 
 	return all, nil
+}
+
+func (c *Client) CreatePullRequestComment(ctx context.Context, workspace, repoSlug string, id int, body string) (PullRequestComment, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestComment{}, fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return PullRequestComment{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if strings.TrimSpace(body) == "" {
+		return PullRequestComment{}, fmt.Errorf("comment body is required")
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"content": map[string]string{
+			"raw": body,
+		},
+	})
+	if err != nil {
+		return PullRequestComment{}, fmt.Errorf("marshal pull request comment request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return PullRequestComment{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestComment{}, err
+	}
+
+	var comment PullRequestComment
+	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
+		return PullRequestComment{}, fmt.Errorf("decode pull request comment: %w", err)
+	}
+
+	return comment, nil
 }
 
 func (c *Client) waitForMergeTask(ctx context.Context, taskURL string, interval, timeout time.Duration) (PullRequest, error) {

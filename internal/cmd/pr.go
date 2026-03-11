@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -47,7 +46,8 @@ func newPRListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List pull requests for a repository",
 		Example: "  bb pr list\n" +
-			"  bb pr list --workspace OhBizzle --repo bb-cli-integration-primary\n" +
+			"  bb pr list --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr list --repo https://bitbucket.org/OhBizzle/bb-cli-integration-primary\n" +
 			"  bb pr list --state ALL --json id,title,state",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -55,17 +55,23 @@ func newPRListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			selector, err := parseRepoSelector(host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
 			if err != nil {
 				return err
 			}
 
-			prs, err := client.ListPullRequests(context.Background(), resolvedWorkspace, resolvedRepo, bitbucket.ListPullRequestsOptions{
+			selector.Host = resolvedHost
+			target, err := resolveRepoTarget(context.Background(), selector, client, true)
+			if err != nil {
+				return err
+			}
+
+			prs, err := client.ListPullRequests(context.Background(), target.Workspace, target.Repo, bitbucket.ListPullRequestsOptions{
 				State: state,
 				Limit: limit,
 			})
@@ -75,7 +81,7 @@ func newPRListCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, prs, func(w io.Writer) error {
 				if len(prs) == 0 {
-					_, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", resolvedWorkspace, resolvedRepo)
+					_, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", target.Workspace, target.Repo)
 					return err
 				}
 
@@ -103,8 +109,8 @@ func newPRListCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
-	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&state, "state", "OPEN", "Filter pull requests by state: OPEN, MERGED, DECLINED, SUPERSEDED, or ALL")
 	cmd.Flags().IntVar(&limit, "limit", 20, "Maximum number of pull requests to return")
 
@@ -117,47 +123,48 @@ func newPRCheckoutCmd() *cobra.Command {
 	var repo string
 
 	cmd := &cobra.Command{
-		Use:   "checkout <id>",
+		Use:   "checkout <id-or-url>",
 		Short: "Check out a pull request locally",
 		Long:  "Fetch the pull request source branch from the current repository's remote and switch to it locally.",
 		Example: "  bb pr checkout 1\n" +
-			"  bb pr checkout 1 --workspace OhBizzle --repo bb-cli-integration-primary",
+			"  bb pr checkout 1 --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr checkout https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			prID, err := strconv.Atoi(args[0])
-			if err != nil || prID <= 0 {
-				return fmt.Errorf("invalid pull request ID %q", args[0])
-			}
-
-			currentDir, err := os.Getwd()
-			if err != nil {
-				return fmt.Errorf("get working directory: %w", err)
-			}
-
-			repoContext, err := gitrepo.ResolveRepoContext(context.Background(), currentDir)
+			repoContext, err := resolveLocalRepoContext(context.Background())
 			if err != nil {
 				return fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
 			}
 
-			resolvedHost := host
-			if resolvedHost == "" {
-				resolvedHost = repoContext.Host
-			}
-			resolvedWorkspace := workspace
-			if resolvedWorkspace == "" {
-				resolvedWorkspace = repoContext.Workspace
-			}
-			resolvedRepo := repo
-			if resolvedRepo == "" {
-				resolvedRepo = repoContext.RepoSlug
-			}
-
-			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			selector, err := parseRepoSelector(host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			selector, err = mergeRepoSelectors(selector, repoSelector{
+				Host:      repoContext.Host,
+				Workspace: repoContext.Workspace,
+				Repo:      repoContext.RepoSlug,
+			})
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+			if prTarget.RepoTarget.Workspace != repoContext.Workspace || prTarget.RepoTarget.Repo != repoContext.RepoSlug {
+				return fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
 			if err != nil {
 				return err
 			}
@@ -172,8 +179,8 @@ func newPRCheckoutCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
-	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
 }
@@ -188,10 +195,11 @@ func newPRMergeCmd() *cobra.Command {
 	var closeSourceBranch bool
 
 	cmd := &cobra.Command{
-		Use:   "merge <id>",
+		Use:   "merge <id-or-url>",
 		Short: "Merge a pull request",
 		Long:  "Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request.",
 		Example: "  bb pr merge 7\n" +
+			"  bb pr merge 7 --repo OhBizzle/bb-cli-integration-primary\n" +
 			"  bb pr merge 7 --strategy merge_commit\n" +
 			"  bb pr merge 7 --message 'Ship feature' --close-source-branch --json",
 		Args: cobra.ExactArgs(1),
@@ -201,22 +209,23 @@ func newPRMergeCmd() *cobra.Command {
 				return err
 			}
 
-			prID, err := strconv.Atoi(args[0])
-			if err != nil || prID <= 0 {
-				return fmt.Errorf("invalid pull request ID %q", args[0])
-			}
-
-			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			selector, err := parseRepoSelector(host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
 			if err != nil {
 				return err
 			}
 
-			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
 			if err != nil {
 				return err
 			}
@@ -229,7 +238,7 @@ func newPRMergeCmd() *cobra.Command {
 				return err
 			}
 
-			mergedPR, err := client.MergePullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID, bitbucket.MergePullRequestOptions{
+			mergedPR, err := client.MergePullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID, bitbucket.MergePullRequestOptions{
 				Message:           message,
 				CloseSourceBranch: closeSourceBranch,
 				MergeStrategy:     mergeStrategy,
@@ -279,8 +288,8 @@ func newPRMergeCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
-	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&message, "message", "", "Merge commit message")
 	cmd.Flags().StringVar(&strategy, "strategy", "", "Merge strategy to use; required when Bitbucket does not expose a default")
 	cmd.Flags().BoolVar(&closeSourceBranch, "close-source-branch", false, "Close the source branch when the pull request is merged")
@@ -314,26 +323,31 @@ func newPRCreateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			explicitRepoSelector := workspace != "" && repo != ""
 
-			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			selector, err := parseRepoSelector(host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			repoTarget, err := resolveRepoTarget(context.Background(), selector, client, true)
 			if err != nil {
 				return err
 			}
 
 			interactive := promptsEnabled(cmd)
 
-			sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, explicitRepoSelector, resolvedWorkspace, resolvedRepo)
+			sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, repoTarget.Explicit, repoTarget.Workspace, repoTarget.Repo)
 			if err != nil {
 				return err
 			}
 
-			destinationBranch, err := resolveDestinationBranchInput(cmd, client, resolvedWorkspace, resolvedRepo, destination, interactive)
+			destinationBranch, err := resolveDestinationBranchInput(cmd, client, repoTarget.Workspace, repoTarget.Repo, destination, interactive)
 			if err != nil {
 				return err
 			}
@@ -348,7 +362,7 @@ func newPRCreateCmd() *cobra.Command {
 				}
 			}
 
-			pr, err := client.CreatePullRequest(context.Background(), resolvedWorkspace, resolvedRepo, bitbucket.CreatePullRequestOptions{
+			pr, err := client.CreatePullRequest(context.Background(), repoTarget.Workspace, repoTarget.Repo, bitbucket.CreatePullRequestOptions{
 				Title:             title,
 				Description:       description,
 				SourceBranch:      sourceBranch,
@@ -392,8 +406,8 @@ func newPRCreateCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
-	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&title, "title", "", "Pull request title; defaults to the source branch name")
 	cmd.Flags().StringVar(&description, "description", "", "Pull request description")
 	cmd.Flags().StringVar(&source, "source", "", "Source branch; defaults to the current git branch")
@@ -412,11 +426,11 @@ func newPRViewCmd() *cobra.Command {
 	var repo string
 
 	cmd := &cobra.Command{
-		Use:   "view <id>",
+		Use:   "view <id-or-url>",
 		Short: "View a pull request",
 		Example: "  bb pr view 1\n" +
 			"  bb pr view 1 --json title,state,source,destination\n" +
-			"  bb pr view 1 --workspace OhBizzle --repo bb-cli-integration-primary",
+			"  bb pr view https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -424,22 +438,23 @@ func newPRViewCmd() *cobra.Command {
 				return err
 			}
 
-			prID, err := strconv.Atoi(args[0])
-			if err != nil || prID <= 0 {
-				return fmt.Errorf("invalid pull request ID %q", args[0])
-			}
-
-			resolvedHost, resolvedWorkspace, resolvedRepo, err := resolvePRRepository(context.Background(), host, workspace, repo)
+			selector, err := parseRepoSelector(host, workspace, repo)
 			if err != nil {
 				return err
 			}
 
-			_, client, err := resolveAuthenticatedClient(resolvedHost)
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
 			if err != nil {
 				return err
 			}
 
-			pr, err := client.GetPullRequest(context.Background(), resolvedWorkspace, resolvedRepo, prID)
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
 			if err != nil {
 				return err
 			}
@@ -488,47 +503,10 @@ func newPRViewCmd() *cobra.Command {
 	cmd.Flags().Lookup("json").NoOptDefVal = "*"
 	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
-	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug")
-	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository slug")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
-}
-
-func resolvePRRepository(ctx context.Context, host, workspace, repo string) (string, string, string, error) {
-	if err := validateRepoSelector(workspace, repo); err != nil {
-		return "", "", "", err
-	}
-
-	if workspace != "" && repo != "" {
-		return host, workspace, repo, nil
-	}
-
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return "", "", "", fmt.Errorf("get working directory: %w", err)
-	}
-
-	repoContext, err := gitrepo.ResolveRepoContext(ctx, currentDir)
-	if err != nil {
-		return "", "", "", fmt.Errorf("could not determine the repository from the current directory; run inside a Bitbucket git checkout or pass --workspace and --repo")
-	}
-
-	resolvedHost := host
-	if resolvedHost == "" {
-		resolvedHost = repoContext.Host
-	}
-
-	resolvedWorkspace := workspace
-	if resolvedWorkspace == "" {
-		resolvedWorkspace = repoContext.Workspace
-	}
-
-	resolvedRepo := repo
-	if resolvedRepo == "" {
-		resolvedRepo = repoContext.RepoSlug
-	}
-
-	return resolvedHost, resolvedWorkspace, resolvedRepo, nil
 }
 
 func resolveSourceBranch(source string) (string, error) {

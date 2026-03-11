@@ -2,73 +2,110 @@ package cmd
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
+
+	"github.com/auro/bitbucket_cli/internal/bitbucket"
+	gitrepo "github.com/auro/bitbucket_cli/internal/git"
 )
 
-func TestValidateRepoSelector(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name      string
-		workspace string
-		repo      string
-		wantErr   bool
-	}{
-		{name: "none", wantErr: false},
-		{name: "both", workspace: "OhBizzle", repo: "repo", wantErr: false},
-		{name: "workspace only", workspace: "OhBizzle", wantErr: true},
-		{name: "repo only", repo: "repo", wantErr: true},
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			err := validateRepoSelector(tc.workspace, tc.repo)
-			if tc.wantErr && err == nil {
-				t.Fatalf("expected error")
-			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("did not expect error: %v", err)
-			}
-		})
-	}
+type stubWorkspaceResolver struct {
+	workspaces []bitbucket.Workspace
+	err        error
 }
 
-func TestResolveRepoCloneTarget(t *testing.T) {
+func (s stubWorkspaceResolver) ListWorkspaces(context.Context) ([]bitbucket.Workspace, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.workspaces, nil
+}
+
+func TestParseRepoSelector(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name          string
+		hostFlag      string
 		workspaceFlag string
-		target        string
-		wantWorkspace string
-		wantRepo      string
-		wantErr       bool
+		repoFlag      string
+		want          repoSelector
+		wantErr       string
 	}{
 		{
-			name:          "workspace slash repo",
-			target:        "OhBizzle/widgets",
-			wantWorkspace: "OhBizzle",
-			wantRepo:      "widgets",
+			name: "none",
+			want: repoSelector{},
 		},
 		{
-			name:          "repo with workspace flag",
+			name:          "workspace without repo",
+			repoFlag:      "",
+			wantErr:       "--workspace requires --repo",
 			workspaceFlag: "OhBizzle",
-			target:        "widgets",
-			wantWorkspace: "OhBizzle",
-			wantRepo:      "widgets",
 		},
 		{
-			name:          "mismatched workspace flag",
+			name:     "bare repo",
+			repoFlag: "widgets",
+			want: repoSelector{
+				Repo:     "widgets",
+				Explicit: true,
+			},
+		},
+		{
+			name:          "bare repo with workspace flag",
+			workspaceFlag: "OhBizzle",
+			repoFlag:      "widgets",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:     "workspace repo",
+			repoFlag: "OhBizzle/widgets",
+			want: repoSelector{
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:          "workspace mismatch",
 			workspaceFlag: "Other",
-			target:        "OhBizzle/widgets",
-			wantErr:       true,
+			repoFlag:      "OhBizzle/widgets",
+			wantErr:       `--workspace "Other" does not match repository target "OhBizzle/widgets"`,
 		},
 		{
-			name:    "too many slashes",
-			target:  "one/two/three",
-			wantErr: true,
+			name:     "https repository url",
+			repoFlag: "https://bitbucket.org/OhBizzle/widgets",
+			want: repoSelector{
+				Host:      "bitbucket.org",
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:     "ssh clone url",
+			repoFlag: "ssh://git@bitbucket.org/OhBizzle/widgets.git",
+			want: repoSelector{
+				Host:      "bitbucket.org",
+				Workspace: "OhBizzle",
+				Repo:      "widgets",
+				Explicit:  true,
+			},
+		},
+		{
+			name:     "host mismatch",
+			hostFlag: "example.com",
+			repoFlag: "https://bitbucket.org/OhBizzle/widgets",
+			wantErr:  `--host "example.com" does not match repository target "https://bitbucket.org/OhBizzle/widgets"`,
+		},
+		{
+			name:     "invalid extra path",
+			repoFlag: "https://bitbucket.org/OhBizzle/widgets/pull-requests/1",
+			wantErr:  `repository URL "https://bitbucket.org/OhBizzle/widgets/pull-requests/1" must point to a repository`,
 		},
 	}
 
@@ -77,19 +114,264 @@ func TestResolveRepoCloneTarget(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			workspace, repo, err := resolveRepoCloneTarget(context.Background(), nil, tc.workspaceFlag, tc.target)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatal("expected error")
+			got, err := parseRepoSelector(tc.hostFlag, tc.workspaceFlag, tc.repoFlag)
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr {
+					t.Fatalf("expected error %q, got %v", tc.wantErr, err)
 				}
 				return
 			}
 			if err != nil {
 				t.Fatalf("did not expect error: %v", err)
 			}
-			if workspace != tc.wantWorkspace || repo != tc.wantRepo {
-				t.Fatalf("unexpected clone target: workspace=%q repo=%q", workspace, repo)
+			if got != tc.want {
+				t.Fatalf("expected %+v, got %+v", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestParsePullRequestSelector(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		raw     string
+		want    pullRequestSelector
+		wantErr string
+	}{
+		{
+			name: "numeric id",
+			raw:  "42",
+			want: pullRequestSelector{ID: 42},
+		},
+		{
+			name: "url",
+			raw:  "https://bitbucket.org/OhBizzle/widgets/pull-requests/42",
+			want: pullRequestSelector{
+				Repo: repoSelector{
+					Host:      "bitbucket.org",
+					Workspace: "OhBizzle",
+					Repo:      "widgets",
+					Explicit:  true,
+				},
+				ID: 42,
+			},
+		},
+		{
+			name:    "invalid path",
+			raw:     "https://bitbucket.org/OhBizzle/widgets/src/main.go",
+			wantErr: `pull request URL "https://bitbucket.org/OhBizzle/widgets/src/main.go" must point to a Bitbucket pull request`,
+		},
+		{
+			name:    "invalid raw",
+			raw:     "feature-branch",
+			wantErr: "pull request must be provided as an ID or Bitbucket pull request URL",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := parsePullRequestSelector(tc.raw)
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr {
+					t.Fatalf("expected error %q, got %v", tc.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("did not expect error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %+v, got %+v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestMergeRepoSelectors(t *testing.T) {
+	t.Parallel()
+
+	base := repoSelector{Host: "bitbucket.org", Workspace: "OhBizzle", Repo: "widgets", Explicit: true}
+	extra := repoSelector{Host: "bitbucket.org", Workspace: "OhBizzle", Repo: "widgets", Explicit: true}
+
+	merged, err := mergeRepoSelectors(base, extra)
+	if err != nil {
+		t.Fatalf("mergeRepoSelectors returned error: %v", err)
+	}
+	if merged != base {
+		t.Fatalf("expected %+v, got %+v", base, merged)
+	}
+
+	_, err = mergeRepoSelectors(base, repoSelector{Workspace: "Other"})
+	if err == nil || err.Error() != `repository workspace "OhBizzle" does not match "Other"` {
+		t.Fatalf("expected workspace mismatch error, got %v", err)
+	}
+}
+
+func TestResolveRepoTarget(t *testing.T) {
+	t.Run("falls back to local repository", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{
+			Host:      "bitbucket.org",
+			Workspace: "OhBizzle",
+			RepoSlug:  "widgets",
+			RootDir:   "/tmp/widgets",
+		}, nil)
+
+		target, err := resolveRepoTarget(context.Background(), repoSelector{}, nil, true)
+		if err != nil {
+			t.Fatalf("resolveRepoTarget returned error: %v", err)
+		}
+		if target.Workspace != "OhBizzle" || target.Repo != "widgets" || target.Host != "bitbucket.org" {
+			t.Fatalf("unexpected target %+v", target)
+		}
+		if target.LocalRepo == nil || target.LocalRepo.RootDir != "/tmp/widgets" {
+			t.Fatalf("expected local repo context, got %+v", target)
+		}
+	})
+
+	t.Run("infers workspace from single available workspace", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		target, err := resolveRepoTarget(context.Background(), repoSelector{
+			Host:     "bitbucket.org",
+			Repo:     "widgets",
+			Explicit: true,
+		}, stubWorkspaceResolver{
+			workspaces: []bitbucket.Workspace{{Slug: "OhBizzle"}},
+		}, false)
+		if err != nil {
+			t.Fatalf("resolveRepoTarget returned error: %v", err)
+		}
+		if target.Workspace != "OhBizzle" || target.Repo != "widgets" {
+			t.Fatalf("unexpected target %+v", target)
+		}
+	})
+
+	t.Run("uses matching local repo for bare repo", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{
+			Host:      "bitbucket.org",
+			Workspace: "OhBizzle",
+			RepoSlug:  "widgets",
+		}, nil)
+
+		target, err := resolveRepoTarget(context.Background(), repoSelector{
+			Repo:     "widgets",
+			Explicit: true,
+		}, stubWorkspaceResolver{
+			workspaces: []bitbucket.Workspace{{Slug: "Other"}},
+		}, true)
+		if err != nil {
+			t.Fatalf("resolveRepoTarget returned error: %v", err)
+		}
+		if target.Workspace != "OhBizzle" {
+			t.Fatalf("expected local workspace, got %+v", target)
+		}
+	})
+
+	t.Run("fails when workspace is ambiguous", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolveRepoTarget(context.Background(), repoSelector{
+			Repo:     "widgets",
+			Explicit: true,
+		}, stubWorkspaceResolver{
+			workspaces: []bitbucket.Workspace{{Slug: "One"}, {Slug: "Two"}},
+		}, false)
+		if err == nil || err.Error() != "multiple workspaces available; specify --workspace" {
+			t.Fatalf("expected ambiguous workspace error, got %v", err)
+		}
+	})
+}
+
+func TestResolvePullRequestTarget(t *testing.T) {
+	t.Run("uses url repository context", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/OhBizzle/widgets/pull-requests/7", false)
+		if err != nil {
+			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
+		}
+		if target.ID != 7 || target.RepoTarget.Workspace != "OhBizzle" || target.RepoTarget.Repo != "widgets" {
+			t.Fatalf("unexpected pull request target %+v", target)
+		}
+	})
+
+	t.Run("uses local repo for numeric id", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{
+			Host:      "bitbucket.org",
+			Workspace: "OhBizzle",
+			RepoSlug:  "widgets",
+		}, nil)
+
+		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, nil, "7", true)
+		if err != nil {
+			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
+		}
+		if target.ID != 7 || target.RepoTarget.Workspace != "OhBizzle" || target.RepoTarget.Repo != "widgets" {
+			t.Fatalf("unexpected pull request target %+v", target)
+		}
+	})
+
+	t.Run("rejects mismatched flag and url", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolvePullRequestTarget(context.Background(), repoSelector{
+			Workspace: "Other",
+			Repo:      "widgets",
+			Explicit:  true,
+		}, stubWorkspaceResolver{}, "https://bitbucket.org/OhBizzle/widgets/pull-requests/7", false)
+		if err == nil || err.Error() != `repository workspace "Other" does not match "OhBizzle"` {
+			t.Fatalf("expected mismatch error, got %v", err)
+		}
+	})
+}
+
+func withLocalRepoContext(t *testing.T, repo gitrepo.RepoContext, err error) {
+	t.Helper()
+
+	originalGetwd := getWorkingDirectory
+	originalResolve := resolveRepoAtDir
+
+	getWorkingDirectory = func() (string, error) {
+		return "/tmp/worktree", nil
+	}
+	resolveRepoAtDir = func(context.Context, string) (gitrepo.RepoContext, error) {
+		if err != nil {
+			return gitrepo.RepoContext{}, err
+		}
+		return repo, nil
+	}
+
+	t.Cleanup(func() {
+		getWorkingDirectory = originalGetwd
+		resolveRepoAtDir = originalResolve
+	})
+}
+
+func TestCoalesce(t *testing.T) {
+	t.Parallel()
+
+	if got := coalesce("", " ", "value", "other"); got != "value" {
+		t.Fatalf("expected value, got %q", got)
+	}
+}
+
+func TestResolveLocalRepoContextPropagatesGetwdError(t *testing.T) {
+	originalGetwd := getWorkingDirectory
+	originalResolve := resolveRepoAtDir
+	getWorkingDirectory = func() (string, error) { return "", fmt.Errorf("boom") }
+	resolveRepoAtDir = originalResolve
+	t.Cleanup(func() {
+		getWorkingDirectory = originalGetwd
+		resolveRepoAtDir = originalResolve
+	})
+
+	_, err := resolveLocalRepoContext(context.Background())
+	if err == nil || err.Error() != "get working directory: boom" {
+		t.Fatalf("expected getwd error, got %v", err)
 	}
 }

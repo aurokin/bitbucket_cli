@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -147,8 +146,9 @@ func newAuthStatusCmd() *cobra.Command {
 					return err
 				}
 
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintln(tw, "HOST\tDEFAULT\tUSERNAME\tAUTH TYPE\tAUTHENTICATED\tACCOUNT\tUPDATED"); err != nil {
+				accountWidth := authStatusAccountWidth(output.TerminalWidth(w))
+				tw := output.NewTableWriter(w)
+				if _, err := fmt.Fprintln(tw, "host\tdefault\tuser\tauth\tok\taccount\tupdated"); err != nil {
 					return err
 				}
 				for _, host := range payload.Hosts {
@@ -174,7 +174,17 @@ func newAuthStatusCmd() *cobra.Command {
 						accountLabel = host.AuthenticationError
 					}
 
-					if _, err := fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", host.Host, defaultLabel, host.Username, host.AuthType, authLabel, accountLabel, host.UpdatedAt); err != nil {
+					if _, err := fmt.Fprintf(
+						tw,
+						"%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+						output.Truncate(host.Host, 20),
+						defaultLabel,
+						output.Truncate(host.Username, 24),
+						output.Truncate(host.AuthType, 12),
+						authLabel,
+						output.Truncate(accountLabel, accountWidth),
+						host.UpdatedAt,
+					); err != nil {
 						return err
 					}
 				}
@@ -190,6 +200,17 @@ func newAuthStatusCmd() *cobra.Command {
 	cmd.Flags().StringVar(&host, "host", "", "Only show status for a specific host")
 
 	return cmd
+}
+
+func authStatusAccountWidth(termWidth int) int {
+	switch {
+	case termWidth >= 160:
+		return 42
+	case termWidth >= 132:
+		return 30
+	default:
+		return 22
+	}
 }
 
 func newAuthLogoutCmd() *cobra.Command {

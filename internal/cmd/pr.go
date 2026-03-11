@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
@@ -88,7 +87,7 @@ func newPRCloseCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, closedPR, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", closedPR.ID); err != nil {
 					return err
 				}
@@ -173,7 +172,7 @@ func newPRCommentCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, comment, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", comment.ID); err != nil {
 					return err
 				}
@@ -458,22 +457,7 @@ func newPRListCmd() *cobra.Command {
 					return err
 				}
 
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-				if _, err := fmt.Fprintln(tw, "ID\tTITLE\tSTATE\tAUTHOR\tSOURCE\tDESTINATION\tUPDATED"); err != nil {
-					return err
-				}
-				for _, pr := range prs {
-					updated := pr.UpdatedOn
-					if updated != "" {
-						if parsed, parseErr := time.Parse(time.RFC3339, pr.UpdatedOn); parseErr == nil {
-							updated = parsed.Local().Format("2006-01-02 15:04")
-						}
-					}
-					if _, err := fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", pr.ID, pr.Title, pr.State, pr.Author.DisplayName, pr.Source.Branch.Name, pr.Destination.Branch.Name, updated); err != nil {
-						return err
-					}
-				}
-				return tw.Flush()
+				return writePRListTable(w, prs)
 			})
 		},
 	}
@@ -621,7 +605,7 @@ func newPRMergeCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, mergedPR, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", mergedPR.ID); err != nil {
 					return err
 				}
@@ -749,7 +733,7 @@ func newPRCreateCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
 					return err
 				}
@@ -833,7 +817,7 @@ func newPRViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
 					return err
 				}
@@ -1080,8 +1064,9 @@ func writePRDiffStatTable(w io.Writer, stats []bitbucket.PullRequestDiffStat) er
 		return err
 	}
 
-	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	if _, err := fmt.Fprintln(tw, "STATUS\tFILE\t+ADDED\t-REMOVED"); err != nil {
+	pathWidth := diffStatPathWidth(output.TerminalWidth(w))
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintln(tw, "status\tfile\t+add\t-rem"); err != nil {
 		return err
 	}
 
@@ -1090,15 +1075,81 @@ func writePRDiffStatTable(w io.Writer, stats []bitbucket.PullRequestDiffStat) er
 	for _, stat := range stats {
 		totalAdded += stat.LinesAdded
 		totalRemoved += stat.LinesRemoved
-		if _, err := fmt.Fprintf(tw, "%s\t%s\t%d\t%d\n", diffStatus(stat), diffPath(stat), stat.LinesAdded, stat.LinesRemoved); err != nil {
+		if _, err := fmt.Fprintf(tw, "%s\t%s\t%d\t%d\n", output.Truncate(diffStatus(stat), 10), output.TruncateMiddle(diffPath(stat), pathWidth), stat.LinesAdded, stat.LinesRemoved); err != nil {
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(tw, "TOTAL\t%d files\t%d\t%d\n", len(stats), totalAdded, totalRemoved); err != nil {
+	if _, err := fmt.Fprintf(tw, "total\t%d files\t%d\t%d\n", len(stats), totalAdded, totalRemoved); err != nil {
 		return err
 	}
 
 	return tw.Flush()
+}
+
+func writePRListTable(w io.Writer, prs []bitbucket.PullRequest) error {
+	titleWidth, authorWidth, branchWidth := prListColumnWidths(output.TerminalWidth(w))
+
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintln(tw, "#\ttitle\tstate\tauthor\tsrc\tdst\tupdated"); err != nil {
+		return err
+	}
+
+	for _, pr := range prs {
+		if _, err := fmt.Fprintf(
+			tw,
+			"%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			pr.ID,
+			output.Truncate(pr.Title, titleWidth),
+			output.Truncate(pr.State, 10),
+			output.Truncate(pr.Author.DisplayName, authorWidth),
+			output.TruncateMiddle(pr.Source.Branch.Name, branchWidth),
+			output.TruncateMiddle(pr.Destination.Branch.Name, branchWidth),
+			formatPRUpdated(pr.UpdatedOn),
+		); err != nil {
+			return err
+		}
+	}
+
+	return tw.Flush()
+}
+
+func formatPRUpdated(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	parsed, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return raw
+	}
+
+	return parsed.Local().Format("2006-01-02 15:04")
+}
+
+func prListColumnWidths(termWidth int) (title, author, branch int) {
+	switch {
+	case termWidth >= 160:
+		return 52, 18, 24
+	case termWidth >= 132:
+		return 40, 16, 18
+	case termWidth >= 110:
+		return 32, 14, 14
+	default:
+		return 24, 12, 12
+	}
+}
+
+func diffStatPathWidth(termWidth int) int {
+	switch {
+	case termWidth >= 160:
+		return 72
+	case termWidth >= 132:
+		return 56
+	case termWidth >= 110:
+		return 44
+	default:
+		return 32
+	}
 }
 
 func diffPath(stat bitbucket.PullRequestDiffStat) string {

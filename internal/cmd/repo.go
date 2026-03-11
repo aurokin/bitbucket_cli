@@ -6,7 +6,6 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
 	gitrepo "github.com/auro/bitbucket_cli/internal/git"
@@ -96,7 +95,7 @@ func newRepoViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
 					return err
 				}
@@ -266,7 +265,7 @@ func newRepoCreateCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, createdRepo, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", target.Workspace); err != nil {
 					return err
 				}
@@ -393,7 +392,7 @@ func newRepoCloneCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
 					return err
 				}
@@ -492,7 +491,7 @@ func newRepoDeleteCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
 					return err
 				}

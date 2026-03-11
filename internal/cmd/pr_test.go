@@ -221,3 +221,67 @@ func TestResolveCommentBody(t *testing.T) {
 		t.Fatalf("expected stdin body, got %q", body)
 	}
 }
+
+func TestWritePRListTableCompactsWideFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	prs := []bitbucket.PullRequest{
+		{
+			ID:        7,
+			Title:     "Add a very long pull request title that should be truncated for human output",
+			State:     "OPEN",
+			UpdatedOn: "2026-03-10T12:34:56Z",
+			Author: bitbucket.PullRequestActor{
+				DisplayName: "Hunter Sadler With A Long Name",
+			},
+			Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/some-super-long-branch-name-for-testing"}},
+			Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+	}
+
+	if err := writePRListTable(&buf, prs); err != nil {
+		t.Fatalf("writePRListTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "#\ttitle\tstate\tauthor\tsrc\tdst\tupdated") && !strings.Contains(got, "# title") {
+		t.Fatalf("expected compact header, got %q", got)
+	}
+	if !strings.Contains(got, "…") {
+		t.Fatalf("expected truncation marker in output, got %q", got)
+	}
+	if !strings.Contains(got, "2026-03-10") {
+		t.Fatalf("expected compact timestamp, got %q", got)
+	}
+}
+
+func TestWritePRDiffStatTableCompactsPaths(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	stats := []bitbucket.PullRequestDiffStat{
+		{
+			Status:       "modified",
+			LinesAdded:   10,
+			LinesRemoved: 4,
+			Old:          &bitbucket.PullRequestDiffRef{Path: "src/components/a/very/long/path/original-file-name.go"},
+			New:          &bitbucket.PullRequestDiffRef{Path: "src/components/a/very/long/path/renamed-file-name.go"},
+		},
+	}
+
+	if err := writePRDiffStatTable(&buf, stats); err != nil {
+		t.Fatalf("writePRDiffStatTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "status") || !strings.Contains(got, "file") {
+		t.Fatalf("expected compact header, got %q", got)
+	}
+	if !strings.Contains(got, "…") {
+		t.Fatalf("expected truncated path in output, got %q", got)
+	}
+	if !strings.Contains(got, "total") {
+		t.Fatalf("expected total row, got %q", got)
+	}
+}

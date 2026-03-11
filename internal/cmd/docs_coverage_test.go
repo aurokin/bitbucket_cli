@@ -45,6 +45,18 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"bb issue view",
 		"bb status",
 	})
+	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "json-fields.md"), []string{
+		"bb repo view",
+		"bb pr status",
+		"bb issue view",
+		"bb auth status",
+	})
+	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "flag-matrix.md"), []string{
+		"bb pr create",
+		"--no-prompt",
+		"--repo",
+		"--json",
+	})
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "recovery.md"), []string{
 		"bb auth login",
 		"bb auth status --check",

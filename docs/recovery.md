@@ -2,7 +2,7 @@
 
 Common failure modes, what they mean, and the next command to run.
 
-These paths are based on the current CLI guidance and Bitbucket Cloud behavior.
+Generated from the current recovery guidance catalog.
 
 ## Invalid, Expired, Or Revoked API Token
 
@@ -85,9 +85,7 @@ bb alias set ship 'pr create --repo OhBizzle/bb-cli-integration-primary --title 
 
 If the alias is no longer needed:
 
-```bash
-bb alias delete ship
-```
+`bb alias delete ship`
 
 ## Repository Without Bitbucket Issue Tracking
 
@@ -108,7 +106,7 @@ Use a repository with Bitbucket issue tracking enabled, or enable issue tracking
 
 ## Bounded Cross-Repository Status Output
 
-Typical note:
+Typical failure:
 
 ```text
 Notes

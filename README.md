@@ -67,6 +67,8 @@ Automation conventions:
 
 - [Human workflows](./docs/workflows.md)
 - [Automation guide](./docs/automation.md)
+- [Flag matrix](./docs/flag-matrix.md)
+- [JSON field index](./docs/json-fields.md)
 - [JSON shapes](./docs/json-shapes.md)
 - [Failure and recovery](./docs/recovery.md)
 - [CLI reference](./docs/cli-reference.md)

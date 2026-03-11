@@ -20,11 +20,12 @@ func newPRCmd() *cobra.Command {
 		Use:     "pr",
 		Aliases: []string{"pull-request", "pullrequest"},
 		Short:   "Work with pull requests",
-		Long:    "List, view, create, and check out Bitbucket pull requests.",
+		Long:    "List, inspect, create, check out, merge, and summarize Bitbucket pull requests.",
 	}
 
 	prCmd.AddCommand(
 		newPRListCmd(),
+		newPRStatusCmd(),
 		newPRViewCmd(),
 		newPRCreateCmd(),
 		newPRCheckoutCmd(),
@@ -32,6 +33,122 @@ func newPRCmd() *cobra.Command {
 	)
 
 	return prCmd
+}
+
+func newPRStatusCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+	var limit int
+
+	cmd := &cobra.Command{
+		Use:   "status",
+		Short: "Show pull request status for a repository",
+		Long:  "Show pull request status for one repository, including the current branch pull request when available, open pull requests created by you, and open pull requests requesting your review.",
+		Example: "  bb pr status\n" +
+			"  bb pr status --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr status --json current_branch,created,review_requested",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoSelector(host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			target, err := resolveRepoTarget(context.Background(), selector, client, true)
+			if err != nil {
+				return err
+			}
+
+			currentUser, err := client.CurrentUser(context.Background())
+			if err != nil {
+				return err
+			}
+
+			prs, err := client.ListPullRequests(context.Background(), target.Workspace, target.Repo, bitbucket.ListPullRequestsOptions{
+				State: "OPEN",
+				Limit: limit,
+			})
+			if err != nil {
+				return err
+			}
+
+			currentBranch := ""
+			if target.LocalRepo != nil {
+				currentBranch, _ = gitrepo.CurrentBranch(context.Background(), target.LocalRepo.RootDir)
+			}
+
+			payload := buildPRStatusPayload(target, currentUser, currentBranch, prs)
+
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				if _, err := fmt.Fprintf(w, "Repository: %s/%s\n", payload.Workspace, payload.Repo); err != nil {
+					return err
+				}
+
+				if payload.CurrentBranchName != "" {
+					if _, err := fmt.Fprintf(w, "Current Branch: %s\n", payload.CurrentBranchName); err != nil {
+						return err
+					}
+				} else if _, err := fmt.Fprintln(w, "Current Branch: unavailable"); err != nil {
+					return err
+				}
+
+				if _, err := fmt.Fprintln(w, ""); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintln(w, "Current Branch Pull Request"); err != nil {
+					return err
+				}
+				currentBranchPRs := make([]bitbucket.PullRequest, 0, 1)
+				if payload.CurrentBranch != nil {
+					currentBranchPRs = append(currentBranchPRs, *payload.CurrentBranch)
+				}
+				if err := writePRStatusSection(w, currentBranchPRs...); err != nil {
+					return err
+				}
+
+				if _, err := fmt.Fprintln(w, ""); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintln(w, "Created By You"); err != nil {
+					return err
+				}
+				if err := writePRStatusSection(w, payload.Created...); err != nil {
+					return err
+				}
+
+				if _, err := fmt.Fprintln(w, ""); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintln(w, "Review Requested"); err != nil {
+					return err
+				}
+				return writePRStatusSection(w, payload.ReviewRequested...)
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().IntVar(&limit, "limit", 50, "Maximum number of open pull requests to inspect for status")
+
+	return cmd
 }
 
 func newPRListCmd() *cobra.Command {
@@ -624,6 +741,93 @@ func resolveMergeStrategy(pr bitbucket.PullRequest, requested string) (string, e
 	}
 
 	return "", nil
+}
+
+type prStatusPayload struct {
+	Host              string                  `json:"host"`
+	Workspace         string                  `json:"workspace"`
+	Repo              string                  `json:"repo"`
+	CurrentUser       bitbucket.CurrentUser   `json:"current_user"`
+	CurrentBranchName string                  `json:"current_branch_name,omitempty"`
+	CurrentBranch     *bitbucket.PullRequest  `json:"current_branch,omitempty"`
+	Created           []bitbucket.PullRequest `json:"created"`
+	ReviewRequested   []bitbucket.PullRequest `json:"review_requested"`
+}
+
+func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.CurrentUser, currentBranch string, prs []bitbucket.PullRequest) prStatusPayload {
+	payload := prStatusPayload{
+		Host:              target.Host,
+		Workspace:         target.Workspace,
+		Repo:              target.Repo,
+		CurrentUser:       currentUser,
+		CurrentBranchName: currentBranch,
+		Created:           make([]bitbucket.PullRequest, 0),
+		ReviewRequested:   make([]bitbucket.PullRequest, 0),
+	}
+
+	currentBranchID := 0
+	for i := range prs {
+		pr := prs[i]
+		if payload.CurrentBranch == nil && currentBranch != "" && pr.Source.Branch.Name == currentBranch {
+			prCopy := pr
+			payload.CurrentBranch = &prCopy
+			currentBranchID = pr.ID
+			continue
+		}
+	}
+
+	for _, pr := range prs {
+		if currentBranchID != 0 && pr.ID == currentBranchID {
+			continue
+		}
+		if sameActor(currentUser, pr.Author) {
+			payload.Created = append(payload.Created, pr)
+			continue
+		}
+		if reviewRequestedFromUser(currentUser, pr) {
+			payload.ReviewRequested = append(payload.ReviewRequested, pr)
+		}
+	}
+
+	return payload
+}
+
+func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {
+	if len(prs) == 0 {
+		_, err := fmt.Fprintln(w, "  none")
+		return err
+	}
+
+	for _, pr := range prs {
+		line := fmt.Sprintf("  #%d  %s [%s] %s -> %s", pr.ID, pr.Title, pr.State, pr.Source.Branch.Name, pr.Destination.Branch.Name)
+		if _, err := fmt.Fprintln(w, line); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sameActor(user bitbucket.CurrentUser, actor bitbucket.PullRequestActor) bool {
+	switch {
+	case user.AccountID != "" && actor.AccountID != "":
+		return user.AccountID == actor.AccountID
+	case user.Username != "" && actor.Nickname != "":
+		return user.Username == actor.Nickname
+	case user.DisplayName != "" && actor.DisplayName != "":
+		return user.DisplayName == actor.DisplayName
+	default:
+		return false
+	}
+}
+
+func reviewRequestedFromUser(user bitbucket.CurrentUser, pr bitbucket.PullRequest) bool {
+	for _, reviewer := range pr.Reviewers {
+		if sameActor(user, reviewer) {
+			return true
+		}
+	}
+	return false
 }
 
 func uniqueNonEmptyStrings(values []string) []string {

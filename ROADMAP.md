@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb pr status`
-  Show relevant pull request status for the current repository or explicit target.
-
 - `bb pr diff`
   Show pull request diffs in a form that works well for humans and agents.
 

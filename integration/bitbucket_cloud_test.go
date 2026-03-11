@@ -119,6 +119,56 @@ func TestBitbucketCloudPRList(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRStatus(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	runGitAllowFailure(t, fixture.PrimaryRepoDir, "switch", fixtureFeatureBranch)
+
+	cmd := exec.Command(binary, "pr", "status", "--json", "*")
+	cmd.Dir = fixture.PrimaryRepoDir
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr status failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace         string                  `json:"workspace"`
+		Repo              string                  `json:"repo"`
+		CurrentBranchName string                  `json:"current_branch_name"`
+		CurrentBranch     *bitbucket.PullRequest  `json:"current_branch"`
+		Created           []bitbucket.PullRequest `json:"created"`
+		ReviewRequested   []bitbucket.PullRequest `json:"review_requested"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr status JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug {
+		t.Fatalf("unexpected pr status payload %+v", payload)
+	}
+	if payload.CurrentBranchName != fixtureFeatureBranch {
+		t.Fatalf("expected current branch %q, got %+v", fixtureFeatureBranch, payload)
+	}
+	if payload.CurrentBranch == nil || payload.CurrentBranch.ID != fixture.PrimaryPRID {
+		t.Fatalf("expected current branch PR #%d, got %+v", fixture.PrimaryPRID, payload.CurrentBranch)
+	}
+	if len(payload.Created) == 0 {
+		t.Fatalf("expected authored pull requests in status payload %+v", payload)
+	}
+}
+
 func TestBitbucketCloudRepoCreate(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

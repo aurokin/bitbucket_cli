@@ -105,3 +105,79 @@ func TestResolveMergeStrategyAllowsServerDefaultWhenUnavailable(t *testing.T) {
 		t.Fatalf("expected empty strategy to defer to server default, got %q", strategy)
 	}
 }
+
+func TestBuildPRStatusPayload(t *testing.T) {
+	t.Parallel()
+
+	target := resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "OhBizzle",
+		Repo:      "widgets",
+	}
+	user := bitbucket.CurrentUser{
+		AccountID:   "user-1",
+		DisplayName: "Hunter Sadler",
+	}
+
+	prs := []bitbucket.PullRequest{
+		{
+			ID:    1,
+			Title: "Current branch PR",
+			State: "OPEN",
+			Author: bitbucket.PullRequestActor{
+				AccountID: "user-1",
+			},
+			Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/current"}},
+			Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+		{
+			ID:    2,
+			Title: "Created by you",
+			State: "OPEN",
+			Author: bitbucket.PullRequestActor{
+				AccountID: "user-1",
+			},
+			Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/authored"}},
+			Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+		{
+			ID:    3,
+			Title: "Needs your review",
+			State: "OPEN",
+			Author: bitbucket.PullRequestActor{
+				AccountID: "other-user",
+			},
+			Reviewers: []bitbucket.PullRequestActor{
+				{AccountID: "user-1"},
+			},
+			Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/review"}},
+			Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+	}
+
+	payload := buildPRStatusPayload(target, user, "feature/current", prs)
+	if payload.CurrentBranch == nil || payload.CurrentBranch.ID != 1 {
+		t.Fatalf("expected current branch PR #1, got %+v", payload.CurrentBranch)
+	}
+	if len(payload.Created) != 1 || payload.Created[0].ID != 2 {
+		t.Fatalf("expected authored PR #2, got %+v", payload.Created)
+	}
+	if len(payload.ReviewRequested) != 1 || payload.ReviewRequested[0].ID != 3 {
+		t.Fatalf("expected review requested PR #3, got %+v", payload.ReviewRequested)
+	}
+}
+
+func TestReviewRequestedFromUser(t *testing.T) {
+	t.Parallel()
+
+	user := bitbucket.CurrentUser{AccountID: "user-1"}
+	pr := bitbucket.PullRequest{
+		Reviewers: []bitbucket.PullRequestActor{
+			{AccountID: "user-1"},
+		},
+	}
+
+	if !reviewRequestedFromUser(user, pr) {
+		t.Fatal("expected reviewRequestedFromUser to match reviewer")
+	}
+}

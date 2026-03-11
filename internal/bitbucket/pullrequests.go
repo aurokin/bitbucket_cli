@@ -35,25 +35,37 @@ type MergePullRequestOptions struct {
 }
 
 type PullRequest struct {
-	ID                int               `json:"id"`
-	Title             string            `json:"title"`
-	Description       string            `json:"description,omitempty"`
-	State             string            `json:"state"`
-	Author            PullRequestActor  `json:"author"`
-	Source            PullRequestRef    `json:"source"`
-	Destination       PullRequestRef    `json:"destination"`
-	CloseSourceBranch bool              `json:"close_source_branch,omitempty"`
-	Queued            bool              `json:"queued,omitempty"`
-	MergeCommit       PullRequestCommit `json:"merge_commit,omitempty"`
-	UpdatedOn         string            `json:"updated_on,omitempty"`
-	CreatedOn         string            `json:"created_on,omitempty"`
-	Links             PullRequestLinks  `json:"links,omitempty"`
+	ID                int                      `json:"id"`
+	Title             string                   `json:"title"`
+	Description       string                   `json:"description,omitempty"`
+	State             string                   `json:"state"`
+	Author            PullRequestActor         `json:"author"`
+	Reviewers         []PullRequestActor       `json:"reviewers,omitempty"`
+	Participants      []PullRequestParticipant `json:"participants,omitempty"`
+	Source            PullRequestRef           `json:"source"`
+	Destination       PullRequestRef           `json:"destination"`
+	CloseSourceBranch bool                     `json:"close_source_branch,omitempty"`
+	Queued            bool                     `json:"queued,omitempty"`
+	MergeCommit       PullRequestCommit        `json:"merge_commit,omitempty"`
+	Draft             bool                     `json:"draft,omitempty"`
+	CommentCount      int                      `json:"comment_count,omitempty"`
+	TaskCount         int                      `json:"task_count,omitempty"`
+	UpdatedOn         string                   `json:"updated_on,omitempty"`
+	CreatedOn         string                   `json:"created_on,omitempty"`
+	Links             PullRequestLinks         `json:"links,omitempty"`
 }
 
 type PullRequestActor struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Nickname    string `json:"nickname,omitempty"`
 	AccountID   string `json:"account_id,omitempty"`
+}
+
+type PullRequestParticipant struct {
+	User     PullRequestActor `json:"user"`
+	Role     string           `json:"role,omitempty"`
+	Approved bool             `json:"approved,omitempty"`
+	State    string           `json:"state,omitempty"`
 }
 
 type PullRequestRef struct {

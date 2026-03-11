@@ -6,19 +6,30 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/auro/bitbucket_cli/internal/bitbucket"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
+var crossRepoStatusMaxConcurrentRepoScans = 8
+
 type crossRepoStatusPayload struct {
-	User               string                 `json:"user,omitempty"`
-	Workspaces         []string               `json:"workspaces"`
-	Repositories       int                    `json:"repositories_scanned"`
-	AuthoredPRs        []crossRepoPullRequest `json:"authored_prs"`
-	ReviewRequestedPRs []crossRepoPullRequest `json:"review_requested_prs"`
-	YourIssues         []crossRepoIssue       `json:"your_issues"`
+	User                            string                 `json:"user,omitempty"`
+	Workspaces                      []string               `json:"workspaces"`
+	Repositories                    int                    `json:"repositories_scanned"`
+	RepoLimitPerWorkspace           int                    `json:"repo_limit_per_workspace,omitempty"`
+	ItemLimitPerSection             int                    `json:"item_limit_per_section,omitempty"`
+	AuthoredPRsTotal                int                    `json:"authored_prs_total"`
+	ReviewRequestedPRsTotal         int                    `json:"review_requested_prs_total"`
+	YourIssuesTotal                 int                    `json:"your_issues_total"`
+	RepositoriesWithoutIssueTracker int                    `json:"repositories_without_issue_tracker"`
+	WorkspacesAtRepoLimit           []string               `json:"workspaces_at_repo_limit,omitempty"`
+	Warnings                        []string               `json:"warnings,omitempty"`
+	AuthoredPRs                     []crossRepoPullRequest `json:"authored_prs"`
+	ReviewRequestedPRs              []crossRepoPullRequest `json:"review_requested_prs"`
+	YourIssues                      []crossRepoIssue       `json:"your_issues"`
 }
 
 type crossRepoPullRequest struct {
@@ -31,6 +42,21 @@ type crossRepoIssue struct {
 	Workspace string          `json:"workspace"`
 	Repo      string          `json:"repo"`
 	Issue     bitbucket.Issue `json:"issue"`
+}
+
+type crossRepoStatusClient interface {
+	ListRepositories(ctx context.Context, workspace string, options bitbucket.ListRepositoriesOptions) ([]bitbucket.Repository, error)
+	ListPullRequests(ctx context.Context, workspace, repoSlug string, options bitbucket.ListPullRequestsOptions) ([]bitbucket.PullRequest, error)
+	ListIssues(ctx context.Context, workspace, repoSlug string, options bitbucket.ListIssuesOptions) ([]bitbucket.Issue, error)
+}
+
+type crossRepoScanResult struct {
+	repository           int
+	issueTrackerDisabled bool
+	authoredPRs          []crossRepoPullRequest
+	reviewRequestedPRs   []crossRepoPullRequest
+	yourIssues           []crossRepoIssue
+	err                  error
 }
 
 func newStatusCmd() *cobra.Command {
@@ -53,7 +79,7 @@ func newStatusCmd() *cobra.Command {
 				return err
 			}
 
-			resolvedHost, client, err := resolveAuthenticatedClient(host)
+			_, client, err := resolveAuthenticatedClient(host)
 			if err != nil {
 				return err
 			}
@@ -68,7 +94,7 @@ func newStatusCmd() *cobra.Command {
 				return err
 			}
 
-			payload, err := buildCrossRepoStatus(context.Background(), client, currentUser, resolvedHost, workspaces, repoLimit, itemLimit)
+			payload, err := buildCrossRepoStatus(context.Background(), client, currentUser, workspaces, repoLimit, itemLimit)
 			if err != nil {
 				return err
 			}
@@ -101,7 +127,23 @@ func newStatusCmd() *cobra.Command {
 				if _, err := fmt.Fprintln(w, "\nYour Issues"); err != nil {
 					return err
 				}
-				return writeCrossRepoIssueTable(w, payload.YourIssues)
+				if err := writeCrossRepoIssueTable(w, payload.YourIssues); err != nil {
+					return err
+				}
+
+				if len(payload.Warnings) == 0 {
+					return nil
+				}
+
+				if _, err := fmt.Fprintln(w, "\nNotes"); err != nil {
+					return err
+				}
+				for _, warning := range payload.Warnings {
+					if _, err := fmt.Fprintf(w, "- %s\n", warning); err != nil {
+						return err
+					}
+				}
+				return nil
 			})
 		},
 	}
@@ -137,10 +179,12 @@ func resolveStatusWorkspaces(ctx context.Context, client *bitbucket.Client, sele
 	return slugs, nil
 }
 
-func buildCrossRepoStatus(ctx context.Context, client *bitbucket.Client, currentUser bitbucket.CurrentUser, host string, workspaces []string, repoLimit, itemLimit int) (crossRepoStatusPayload, error) {
+func buildCrossRepoStatus(ctx context.Context, client crossRepoStatusClient, currentUser bitbucket.CurrentUser, workspaces []string, repoLimit, itemLimit int) (crossRepoStatusPayload, error) {
 	payload := crossRepoStatusPayload{
-		User:       coalesce(currentUser.DisplayName, currentUser.Username, currentUser.AccountID),
-		Workspaces: append([]string(nil), workspaces...),
+		User:                  coalesce(currentUser.DisplayName, currentUser.Username, currentUser.AccountID),
+		Workspaces:            append([]string(nil), workspaces...),
+		RepoLimitPerWorkspace: repoLimit,
+		ItemLimitPerSection:   itemLimit,
 	}
 
 	for _, workspace := range workspaces {
@@ -151,69 +195,144 @@ func buildCrossRepoStatus(ctx context.Context, client *bitbucket.Client, current
 		if err != nil {
 			return crossRepoStatusPayload{}, err
 		}
+		if repoLimit > 0 && len(repos) == repoLimit {
+			payload.WorkspacesAtRepoLimit = append(payload.WorkspacesAtRepoLimit, workspace)
+		}
 
-		for _, repo := range repos {
-			payload.Repositories++
+		results, err := scanWorkspaceRepositories(ctx, client, currentUser, workspace, repos, itemLimit)
+		if err != nil {
+			return crossRepoStatusPayload{}, err
+		}
 
-			prs, err := client.ListPullRequests(ctx, workspace, repo.Slug, bitbucket.ListPullRequestsOptions{
-				State: "OPEN",
-				Limit: itemLimit,
-				Sort:  "-updated_on",
-			})
-			if err != nil {
-				return crossRepoStatusPayload{}, err
-			}
-
-			for _, pr := range prs {
-				if sameActor(currentUser, pr.Author) {
-					payload.AuthoredPRs = append(payload.AuthoredPRs, crossRepoPullRequest{
-						Workspace:   workspace,
-						Repo:        repo.Slug,
-						PullRequest: pr,
-					})
-				}
-				if reviewRequestedFromUser(currentUser, pr) {
-					payload.ReviewRequestedPRs = append(payload.ReviewRequestedPRs, crossRepoPullRequest{
-						Workspace:   workspace,
-						Repo:        repo.Slug,
-						PullRequest: pr,
-					})
-				}
-			}
-
-			issues, err := client.ListIssues(ctx, workspace, repo.Slug, bitbucket.ListIssuesOptions{
-				Limit: itemLimit,
-				Sort:  "-updated_on",
-			})
-			if err != nil {
-				if isNoIssueTrackerError(err) {
-					continue
-				}
-				return crossRepoStatusPayload{}, err
-			}
-
-			for _, issue := range issues {
-				if !issueNeedsAttention(issue) {
-					continue
-				}
-				if !issueInvolvesUser(currentUser, issue) {
-					continue
-				}
-				payload.YourIssues = append(payload.YourIssues, crossRepoIssue{
-					Workspace: workspace,
-					Repo:      repo.Slug,
-					Issue:     issue,
-				})
-			}
+		for _, result := range results {
+			payload.Repositories += result.repository
+			payload.RepositoriesWithoutIssueTracker += boolToInt(result.issueTrackerDisabled)
+			payload.AuthoredPRs = append(payload.AuthoredPRs, result.authoredPRs...)
+			payload.ReviewRequestedPRs = append(payload.ReviewRequestedPRs, result.reviewRequestedPRs...)
+			payload.YourIssues = append(payload.YourIssues, result.yourIssues...)
 		}
 	}
 
 	sortCrossRepoStatus(&payload)
+	payload.AuthoredPRsTotal = len(payload.AuthoredPRs)
+	payload.ReviewRequestedPRsTotal = len(payload.ReviewRequestedPRs)
+	payload.YourIssuesTotal = len(payload.YourIssues)
 	payload.AuthoredPRs = limitCrossRepoPRs(payload.AuthoredPRs, itemLimit)
 	payload.ReviewRequestedPRs = limitCrossRepoPRs(payload.ReviewRequestedPRs, itemLimit)
 	payload.YourIssues = limitCrossRepoIssues(payload.YourIssues, itemLimit)
+	payload.Warnings = buildCrossRepoStatusWarnings(payload)
 
 	return payload, nil
+}
+
+func scanWorkspaceRepositories(ctx context.Context, client crossRepoStatusClient, currentUser bitbucket.CurrentUser, workspace string, repos []bitbucket.Repository, itemLimit int) ([]crossRepoScanResult, error) {
+	if len(repos) == 0 {
+		return nil, nil
+	}
+
+	workerCount := crossRepoStatusMaxConcurrentRepoScans
+	if workerCount <= 0 {
+		workerCount = 1
+	}
+	if workerCount > len(repos) {
+		workerCount = len(repos)
+	}
+
+	jobs := make(chan bitbucket.Repository)
+	results := make(chan crossRepoScanResult, len(repos))
+
+	var wg sync.WaitGroup
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for repo := range jobs {
+				results <- scanRepositoryStatus(ctx, client, currentUser, workspace, repo.Slug, itemLimit)
+			}
+		}()
+	}
+
+	for _, repo := range repos {
+		select {
+		case <-ctx.Done():
+			close(jobs)
+			wg.Wait()
+			return nil, ctx.Err()
+		case jobs <- repo:
+		}
+	}
+	close(jobs)
+	wg.Wait()
+	close(results)
+
+	collected := make([]crossRepoScanResult, 0, len(repos))
+	for result := range results {
+		if result.err != nil {
+			return nil, result.err
+		}
+		collected = append(collected, result)
+	}
+	return collected, nil
+}
+
+func scanRepositoryStatus(ctx context.Context, client crossRepoStatusClient, currentUser bitbucket.CurrentUser, workspace, repoSlug string, itemLimit int) crossRepoScanResult {
+	result := crossRepoScanResult{repository: 1}
+
+	prs, err := client.ListPullRequests(ctx, workspace, repoSlug, bitbucket.ListPullRequestsOptions{
+		State: "OPEN",
+		Limit: itemLimit,
+		Sort:  "-updated_on",
+	})
+	if err != nil {
+		result.err = err
+		return result
+	}
+
+	for _, pr := range prs {
+		if sameActor(currentUser, pr.Author) {
+			result.authoredPRs = append(result.authoredPRs, crossRepoPullRequest{
+				Workspace:   workspace,
+				Repo:        repoSlug,
+				PullRequest: pr,
+			})
+		}
+		if reviewRequestedFromUser(currentUser, pr) {
+			result.reviewRequestedPRs = append(result.reviewRequestedPRs, crossRepoPullRequest{
+				Workspace:   workspace,
+				Repo:        repoSlug,
+				PullRequest: pr,
+			})
+		}
+	}
+
+	issues, err := client.ListIssues(ctx, workspace, repoSlug, bitbucket.ListIssuesOptions{
+		Limit: itemLimit,
+		Sort:  "-updated_on",
+	})
+	if err != nil {
+		if isNoIssueTrackerError(err) {
+			result.issueTrackerDisabled = true
+			return result
+		}
+		result.err = err
+		return result
+	}
+
+	for _, issue := range issues {
+		if !issueNeedsAttention(issue) {
+			continue
+		}
+		if !issueInvolvesUser(currentUser, issue) {
+			continue
+		}
+		result.yourIssues = append(result.yourIssues, crossRepoIssue{
+			Workspace: workspace,
+			Repo:      repoSlug,
+			Issue:     issue,
+		})
+	}
+
+	return result
 }
 
 func sortCrossRepoStatus(payload *crossRepoStatusPayload) {
@@ -240,6 +359,37 @@ func limitCrossRepoIssues(items []crossRepoIssue, limit int) []crossRepoIssue {
 		return items
 	}
 	return items[:limit]
+}
+
+func buildCrossRepoStatusWarnings(payload crossRepoStatusPayload) []string {
+	warnings := make([]string, 0, 4)
+	if len(payload.WorkspacesAtRepoLimit) > 0 {
+		warnings = append(warnings, fmt.Sprintf(
+			"Reached --repo-limit=%d in %s. Only the most recently updated repositories were scanned there; use --repo-limit or narrow with --workspace for a more complete view.",
+			payload.RepoLimitPerWorkspace,
+			strings.Join(payload.WorkspacesAtRepoLimit, ", "),
+		))
+	}
+	if payload.RepositoriesWithoutIssueTracker > 0 {
+		warnings = append(warnings, fmt.Sprintf(
+			"Skipped issue status for %d repositories with issue tracking disabled. Use `bb repo view --repo <workspace>/<repo>` to inspect repository settings.",
+			payload.RepositoriesWithoutIssueTracker,
+		))
+	}
+	if payload.AuthoredPRsTotal > len(payload.AuthoredPRs) || payload.ReviewRequestedPRsTotal > len(payload.ReviewRequestedPRs) || payload.YourIssuesTotal > len(payload.YourIssues) {
+		warnings = append(warnings, fmt.Sprintf(
+			"Showing up to %d items per section. Use `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>` for complete repository-level detail.",
+			payload.ItemLimitPerSection,
+		))
+	}
+	return warnings
+}
+
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func writeCrossRepoPRTable(w io.Writer, prs []crossRepoPullRequest) error {

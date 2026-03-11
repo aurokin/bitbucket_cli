@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
+	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +24,8 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(
 		newVersionCmd(),
 		newConfigCmd(),
+		newAliasCmd(),
+		newExtensionCmd(),
 		newRepoCmd(),
 		newAuthCmd(),
 		newPRCmd(),
@@ -31,23 +36,40 @@ func NewRootCmd() *cobra.Command {
 }
 
 func Execute() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
 	rootCmd := NewRootCmd()
-	rootCmd.SetArgs(normalizeCLIArgs(os.Args[1:]))
-	return userFacingError(rootCmd.Execute())
+	args := normalizeCLIArgsWithAliases(os.Args[1:], cfg.Aliases)
+	rootCmd.SetArgs(args)
+
+	err = rootCmd.Execute()
+	if err != nil && shouldRunExtension(err, args) {
+		return runExtensionCommand(args[0], args[1:])
+	}
+
+	return userFacingError(err)
 }
 
 func normalizeCLIArgs(args []string) []string {
+	return normalizeCLIArgsWithAliases(args, nil)
+}
+
+func normalizeCLIArgsWithAliases(args []string, aliases map[string]string) []string {
+	expanded := expandAliasArgs(args, aliases)
 	normalized := make([]string, 0, len(args))
 
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
+	for i := 0; i < len(expanded); i++ {
+		arg := expanded[i]
 		if arg != "--json" {
 			normalized = append(normalized, arg)
 			continue
 		}
 
-		if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-			normalized = append(normalized, "--json="+args[i+1])
+		if i+1 < len(expanded) && !strings.HasPrefix(expanded[i+1], "-") {
+			normalized = append(normalized, "--json="+expanded[i+1])
 			i++
 			continue
 		}
@@ -56,4 +78,50 @@ func normalizeCLIArgs(args []string) []string {
 	}
 
 	return normalized
+}
+
+func expandAliasArgs(args []string, aliases map[string]string) []string {
+	if len(args) == 0 || len(aliases) == 0 {
+		return args
+	}
+
+	expanded := append([]string(nil), args...)
+	seen := map[string]struct{}{}
+
+	for depth := 0; depth < 8 && len(expanded) > 0; depth++ {
+		replacement, ok := aliases[expanded[0]]
+		if !ok || strings.TrimSpace(replacement) == "" {
+			return expanded
+		}
+		if _, ok := seen[expanded[0]]; ok {
+			return expanded
+		}
+		seen[expanded[0]] = struct{}{}
+
+		fields := strings.Fields(replacement)
+		if len(fields) == 0 {
+			return expanded
+		}
+		expanded = append(fields, expanded[1:]...)
+	}
+
+	return expanded
+}
+
+func shouldRunExtension(err error, args []string) bool {
+	return err != nil && len(args) > 0 && strings.HasPrefix(err.Error(), fmt.Sprintf("unknown command %q for \"bb\"", args[0]))
+}
+
+var (
+	execLookPath        = exec.LookPath
+	executeExternalFunc = executeExternalCommand
+)
+
+func runExtensionCommand(name string, args []string) error {
+	executable, err := execLookPath("bb-" + name)
+	if err != nil {
+		return userFacingError(fmt.Errorf("unknown command %q for \"bb\"", name))
+	}
+
+	return executeExternalFunc(executable, args)
 }

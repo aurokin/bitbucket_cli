@@ -4,9 +4,6 @@
 
 ## Later Phase
 
-- Aliases and extensibility
-  Add user-defined command aliases plus an extension model so humans and agents can adapt workflows without changing core commands.
-
 - Search
   Add search commands for repositories, pull requests, issues, and other useful Bitbucket resources.
 

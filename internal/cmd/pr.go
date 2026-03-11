@@ -26,6 +26,7 @@ func newPRCmd() *cobra.Command {
 	prCmd.AddCommand(
 		newPRListCmd(),
 		newPRStatusCmd(),
+		newPRDiffCmd(),
 		newPRViewCmd(),
 		newPRCreateCmd(),
 		newPRCheckoutCmd(),
@@ -33,6 +34,89 @@ func newPRCmd() *cobra.Command {
 	)
 
 	return prCmd
+}
+
+func newPRDiffCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+	var stat bool
+
+	cmd := &cobra.Command{
+		Use:   "diff <id-or-url>",
+		Short: "View a pull request diff",
+		Long:  "Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats.",
+		Example: "  bb pr diff 1\n" +
+			"  bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --stat\n" +
+			"  bb pr diff https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json patch,stats",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoSelector(host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+
+			patch, err := client.GetPullRequestPatch(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
+			if err != nil {
+				return err
+			}
+
+			stats, err := client.ListPullRequestDiffStats(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
+			if err != nil {
+				return err
+			}
+
+			payload := prDiffPayload{
+				Host:      prTarget.RepoTarget.Host,
+				Workspace: prTarget.RepoTarget.Workspace,
+				Repo:      prTarget.RepoTarget.Repo,
+				ID:        pr.ID,
+				Title:     pr.Title,
+				Patch:     patch,
+				Stats:     stats,
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				if stat {
+					return writePRDiffStatTable(w, stats)
+				}
+				_, err := io.WriteString(w, patch)
+				return err
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().BoolVar(&stat, "stat", false, "Show a concise per-file diff summary instead of the full patch")
+
+	return cmd
 }
 
 func newPRStatusCmd() *cobra.Command {
@@ -754,6 +838,16 @@ type prStatusPayload struct {
 	ReviewRequested   []bitbucket.PullRequest `json:"review_requested"`
 }
 
+type prDiffPayload struct {
+	Host      string                          `json:"host"`
+	Workspace string                          `json:"workspace"`
+	Repo      string                          `json:"repo"`
+	ID        int                             `json:"id"`
+	Title     string                          `json:"title"`
+	Patch     string                          `json:"patch"`
+	Stats     []bitbucket.PullRequestDiffStat `json:"stats"`
+}
+
 func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.CurrentUser, currentBranch string, prs []bitbucket.PullRequest) prStatusPayload {
 	payload := prStatusPayload{
 		Host:              target.Host,
@@ -806,6 +900,54 @@ func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {
 	}
 
 	return nil
+}
+
+func writePRDiffStatTable(w io.Writer, stats []bitbucket.PullRequestDiffStat) error {
+	if len(stats) == 0 {
+		_, err := fmt.Fprintln(w, "No changed files.")
+		return err
+	}
+
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	if _, err := fmt.Fprintln(tw, "STATUS\tFILE\t+ADDED\t-REMOVED"); err != nil {
+		return err
+	}
+
+	totalAdded := 0
+	totalRemoved := 0
+	for _, stat := range stats {
+		totalAdded += stat.LinesAdded
+		totalRemoved += stat.LinesRemoved
+		if _, err := fmt.Fprintf(tw, "%s\t%s\t%d\t%d\n", diffStatus(stat), diffPath(stat), stat.LinesAdded, stat.LinesRemoved); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(tw, "TOTAL\t%d files\t%d\t%d\n", len(stats), totalAdded, totalRemoved); err != nil {
+		return err
+	}
+
+	return tw.Flush()
+}
+
+func diffPath(stat bitbucket.PullRequestDiffStat) string {
+	switch {
+	case stat.New != nil && stat.Old != nil && stat.New.Path != "" && stat.Old.Path != "" && stat.New.Path != stat.Old.Path:
+		return stat.Old.Path + " -> " + stat.New.Path
+	case stat.New != nil && stat.New.Path != "":
+		return stat.New.Path
+	case stat.Old != nil && stat.Old.Path != "":
+		return stat.Old.Path
+	default:
+		return "(unknown)"
+	}
+}
+
+func diffStatus(stat bitbucket.PullRequestDiffStat) string {
+	status := strings.TrimSpace(stat.Status)
+	if status == "" {
+		return "changed"
+	}
+	return status
 }
 
 func sameActor(user bitbucket.CurrentUser, actor bitbucket.PullRequestActor) bool {

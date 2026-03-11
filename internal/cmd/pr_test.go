@@ -181,3 +181,22 @@ func TestReviewRequestedFromUser(t *testing.T) {
 		t.Fatal("expected reviewRequestedFromUser to match reviewer")
 	}
 }
+
+func TestDiffPath(t *testing.T) {
+	t.Parallel()
+
+	renamed := bitbucket.PullRequestDiffStat{
+		Old: &bitbucket.PullRequestDiffRef{Path: "old.txt"},
+		New: &bitbucket.PullRequestDiffRef{Path: "new.txt"},
+	}
+	if got := diffPath(renamed); got != "old.txt -> new.txt" {
+		t.Fatalf("expected rename path, got %q", got)
+	}
+
+	added := bitbucket.PullRequestDiffStat{
+		New: &bitbucket.PullRequestDiffRef{Path: "file.txt"},
+	}
+	if got := diffPath(added); got != "file.txt" {
+		t.Fatalf("expected new path, got %q", got)
+	}
+}

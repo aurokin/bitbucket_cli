@@ -356,3 +356,78 @@ func TestMergePullRequestRequiresTaskLocation(t *testing.T) {
 		t.Fatalf("expected missing task location error, got %v", err)
 	}
 }
+
+func TestGetPullRequestPatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/patch" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if got := r.Header.Get("Accept"); got != "text/plain" {
+			t.Fatalf("unexpected Accept header %q", got)
+		}
+		_, _ = w.Write([]byte("diff --git a/file.txt b/file.txt\n"))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	patch, err := client.GetPullRequestPatch(context.Background(), "acme", "widgets", 7)
+	if err != nil {
+		t.Fatalf("GetPullRequestPatch returned error: %v", err)
+	}
+	if !strings.Contains(patch, "diff --git") {
+		t.Fatalf("unexpected patch %q", patch)
+	}
+}
+
+func TestListPullRequestDiffStats(t *testing.T) {
+	var requests int
+	var server *httptest.Server
+
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+
+		if strings.Contains(r.URL.RawQuery, "page=2") {
+			_, _ = w.Write([]byte(`{"values":[{"status":"removed","old":{"path":"old.txt"},"lines_removed":4}]}`))
+			return
+		}
+
+		_, _ = w.Write([]byte(`{"values":[{"status":"modified","new":{"path":"file.txt"},"lines_added":3,"lines_removed":1}],"next":"` + server.URL + `/2.0/repositories/acme/widgets/pullrequests/7/diffstat?page=2"}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	stats, err := client.ListPullRequestDiffStats(context.Background(), "acme", "widgets", 7)
+	if err != nil {
+		t.Fatalf("ListPullRequestDiffStats returned error: %v", err)
+	}
+	if len(stats) != 2 {
+		t.Fatalf("expected 2 diffstats, got %d", len(stats))
+	}
+	if requests != 2 {
+		t.Fatalf("expected 2 requests, got %d", requests)
+	}
+	if stats[0].New == nil || stats[0].New.Path != "file.txt" {
+		t.Fatalf("unexpected first diffstat %+v", stats[0])
+	}
+}

@@ -169,6 +169,50 @@ func TestBitbucketCloudPRStatus(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRDiff(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	cmd := exec.Command(binary, "pr", "diff", prURL, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr diff failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string                          `json:"workspace"`
+		Repo      string                          `json:"repo"`
+		ID        int                             `json:"id"`
+		Patch     string                          `json:"patch"`
+		Stats     []bitbucket.PullRequestDiffStat `json:"stats"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr diff JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.ID != fixture.PrimaryPRID {
+		t.Fatalf("unexpected pr diff payload %+v", payload)
+	}
+	if !strings.Contains(payload.Patch, "fixture.txt") {
+		t.Fatalf("expected patch to contain fixture file, got %q", payload.Patch)
+	}
+	if len(payload.Stats) == 0 {
+		t.Fatalf("expected diff stats in payload %+v", payload)
+	}
+}
+
 func TestBitbucketCloudRepoCreate(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

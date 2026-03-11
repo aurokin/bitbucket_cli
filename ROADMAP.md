@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb pr diff`
-  Show pull request diffs in a form that works well for humans and agents.
-
 - `bb pr comment`
   Add pull request comments from flags, stdin, or editor-driven flows.
 

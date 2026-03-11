@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -100,6 +101,25 @@ type Link struct {
 type pullRequestListResponse struct {
 	Values []PullRequest `json:"values"`
 	Next   string        `json:"next,omitempty"`
+}
+
+type PullRequestDiffStat struct {
+	Status       string              `json:"status,omitempty"`
+	Old          *PullRequestDiffRef `json:"old,omitempty"`
+	New          *PullRequestDiffRef `json:"new,omitempty"`
+	LinesAdded   int                 `json:"lines_added,omitempty"`
+	LinesRemoved int                 `json:"lines_removed,omitempty"`
+}
+
+type PullRequestDiffRef struct {
+	Path        string `json:"path,omitempty"`
+	EscapedPath string `json:"escaped_path,omitempty"`
+	Type        string `json:"type,omitempty"`
+}
+
+type pullRequestDiffStatResponse struct {
+	Values []PullRequestDiffStat `json:"values"`
+	Next   string                `json:"next,omitempty"`
 }
 
 type mergeTaskStatusResponse struct {
@@ -316,6 +336,76 @@ func (c *Client) MergePullRequest(ctx context.Context, workspace, repoSlug strin
 	}
 
 	return pr, nil
+}
+
+func (c *Client) GetPullRequestPatch(ctx context.Context, workspace, repoSlug string, id int) (string, error) {
+	if workspace == "" || repoSlug == "" {
+		return "", fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return "", fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/patch", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodGet, path, nil, map[string]string{
+		"Accept": "text/plain",
+	})
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return "", err
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read pull request patch: %w", err)
+	}
+
+	return string(body), nil
+}
+
+func (c *Client) ListPullRequestDiffStats(ctx context.Context, workspace, repoSlug string, id int) ([]PullRequestDiffStat, error) {
+	if workspace == "" || repoSlug == "" {
+		return nil, fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return nil, fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diffstat?pagelen=100", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	nextPath := path
+	var all []PullRequestDiffStat
+
+	for nextPath != "" {
+		resp, err := c.Do(ctx, http.MethodGet, nextPath, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var page pullRequestDiffStatResponse
+		func() {
+			defer resp.Body.Close()
+			if err != nil {
+				return
+			}
+			err = requireSuccess(resp)
+			if err != nil {
+				return
+			}
+			err = json.NewDecoder(resp.Body).Decode(&page)
+		}()
+		if err != nil {
+			return nil, fmt.Errorf("decode pull request diffstat: %w", err)
+		}
+
+		all = append(all, page.Values...)
+		nextPath = page.Next
+	}
+
+	return all, nil
 }
 
 func (c *Client) waitForMergeTask(ctx context.Context, taskURL string, interval, timeout time.Duration) (PullRequest, error) {

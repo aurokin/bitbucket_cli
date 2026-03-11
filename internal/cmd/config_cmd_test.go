@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/auro/bitbucket_cli/internal/config"
@@ -51,5 +52,20 @@ func TestSetAndUnsetConfigValue(t *testing.T) {
 	}
 	if !cfg.PromptEnabled() {
 		t.Fatal("expected prompt default after unset")
+	}
+}
+
+func TestUnsupportedConfigKeyError(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{}
+	if _, err := configValueForKey(cfg, "browser"); err == nil || !strings.Contains(err.Error(), "planned but not supported yet") {
+		t.Fatalf("expected planned-but-unsupported error, got %v", err)
+	}
+	if err := setConfigValue(&cfg, "pager", "less"); err == nil || !strings.Contains(err.Error(), "planned but not supported yet") {
+		t.Fatalf("expected planned-but-unsupported error, got %v", err)
+	}
+	if err := unsetConfigValue(&cfg, "editor"); err == nil || !strings.Contains(err.Error(), "planned but not supported yet") {
+		t.Fatalf("expected planned-but-unsupported error, got %v", err)
 	}
 }

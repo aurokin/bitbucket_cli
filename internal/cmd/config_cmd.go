@@ -20,7 +20,7 @@ func newConfigCmd() *cobra.Command {
 	configCmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage bb behavior defaults",
-		Long:  "Manage persistent bb settings such as prompt behavior, browser, editor, pager, and default output format.",
+		Long:  "Manage persistent bb settings that affect runtime behavior today, such as prompt behavior and the default output format.",
 	}
 
 	configCmd.AddCommand(
@@ -121,7 +121,7 @@ func newConfigSetCmd() *cobra.Command {
 		Short: "Set a persistent bb setting",
 		Example: "  bb config set prompt false\n" +
 			"  bb config set output.format json\n" +
-			"  bb config set editor 'code --wait'",
+			"  bb config get output.format",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()
@@ -195,8 +195,8 @@ func newConfigPathCmd() *cobra.Command {
 }
 
 func effectiveConfigValues(cfg config.Config) []configValue {
-	values := make([]configValue, 0, 5)
-	for _, key := range []string{"prompt", "browser", "editor", "pager", "output.format"} {
+	values := make([]configValue, 0, 2)
+	for _, key := range []string{"prompt", "output.format"} {
 		value, err := configValueForKey(cfg, key)
 		if err == nil {
 			values = append(values, value)
@@ -213,12 +213,6 @@ func configValueForKey(cfg config.Config, key string) (configValue, error) {
 			source = "config"
 		}
 		return configValue{Key: "prompt", Value: cfg.PromptEnabled(), Source: source}, nil
-	case "browser":
-		return configStringValue("browser", cfg.Settings.Browser), nil
-	case "editor":
-		return configStringValue("editor", cfg.Settings.Editor), nil
-	case "pager":
-		return configStringValue("pager", cfg.Settings.Pager), nil
 	case "output.format":
 		source := "default"
 		if cfg.Settings.OutputFormat != "" {
@@ -226,16 +220,8 @@ func configValueForKey(cfg config.Config, key string) (configValue, error) {
 		}
 		return configValue{Key: "output.format", Value: cfg.EffectiveOutputFormat(), Source: source}, nil
 	default:
-		return configValue{}, fmt.Errorf("unknown config key %q; supported keys: prompt, browser, editor, pager, output.format", key)
+		return configValue{}, unsupportedConfigKeyError(key)
 	}
-}
-
-func configStringValue(key, value string) configValue {
-	source := "default"
-	if value != "" {
-		source = "config"
-	}
-	return configValue{Key: key, Value: value, Source: source}
 }
 
 func setConfigValue(cfg *config.Config, key, rawValue string) error {
@@ -246,12 +232,6 @@ func setConfigValue(cfg *config.Config, key, rawValue string) error {
 			return fmt.Errorf("prompt must be true or false")
 		}
 		cfg.Settings.Prompt = &value
-	case "browser":
-		cfg.Settings.Browser = rawValue
-	case "editor":
-		cfg.Settings.Editor = rawValue
-	case "pager":
-		cfg.Settings.Pager = rawValue
 	case "output.format":
 		switch rawValue {
 		case config.OutputFormatTable:
@@ -262,7 +242,7 @@ func setConfigValue(cfg *config.Config, key, rawValue string) error {
 			return fmt.Errorf("output.format must be %q or %q", config.OutputFormatTable, config.OutputFormatJSON)
 		}
 	default:
-		return fmt.Errorf("unknown config key %q; supported keys: prompt, browser, editor, pager, output.format", key)
+		return unsupportedConfigKeyError(key)
 	}
 
 	cfg.Settings = config.NormalizeSettings(cfg.Settings)
@@ -273,20 +253,23 @@ func unsetConfigValue(cfg *config.Config, key string) error {
 	switch normalizeConfigKey(key) {
 	case "prompt":
 		cfg.Settings.Prompt = nil
-	case "browser":
-		cfg.Settings.Browser = ""
-	case "editor":
-		cfg.Settings.Editor = ""
-	case "pager":
-		cfg.Settings.Pager = ""
 	case "output.format":
 		cfg.Settings.OutputFormat = ""
 	default:
-		return fmt.Errorf("unknown config key %q; supported keys: prompt, browser, editor, pager, output.format", key)
+		return unsupportedConfigKeyError(key)
 	}
 
 	cfg.Settings = config.NormalizeSettings(cfg.Settings)
 	return nil
+}
+
+func unsupportedConfigKeyError(key string) error {
+	switch normalizeConfigKey(key) {
+	case "browser", "editor", "pager":
+		return fmt.Errorf("config key %q is planned but not supported yet. Supported keys today: prompt, output.format", key)
+	default:
+		return fmt.Errorf("unknown config key %q; supported keys: prompt, output.format", key)
+	}
 }
 
 func normalizeConfigKey(key string) string {

@@ -24,6 +24,8 @@ func userFacingError(err error) error {
 	switch {
 	case message == "multiple workspaces available; specify --workspace":
 		return fmt.Errorf("multiple workspaces are available; pass --repo <workspace>/<repo> or add --workspace to disambiguate")
+	case strings.HasPrefix(message, "invalid alias "):
+		return fmt.Errorf("%s. Fix it with `bb alias set <name> ...` or remove it with `bb alias delete <name>`", message)
 	case strings.HasPrefix(message, "repository target ") && strings.HasSuffix(message, " requires --workspace"):
 		return fmt.Errorf("%s; pass --repo <workspace>/<repo> or add --workspace", message)
 	case strings.HasPrefix(message, "could not determine the repository from the current directory;"):

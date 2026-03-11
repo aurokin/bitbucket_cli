@@ -81,6 +81,10 @@ func TestUserFacingErrorRepoResolutionHints(t *testing.T) {
 			input: "--workspace requires --repo",
 			want:  "--workspace only disambiguates a repository target",
 		},
+		{
+			input: `invalid alias "ship": unterminated double quote`,
+			want:  "bb alias set <name> ...",
+		},
 	}
 
 	for _, tc := range cases {

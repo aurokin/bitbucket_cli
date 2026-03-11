@@ -52,3 +52,32 @@ func TestWriteIssueTable(t *testing.T) {
 		t.Fatalf("expected truncated output, got %q", got)
 	}
 }
+
+func TestWriteIssueMutationSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	issue := bitbucket.Issue{
+		ID:    12,
+		Title: "Fixture issue",
+		State: "new",
+		Links: bitbucket.IssueLinks{
+			HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/issues/12"},
+		},
+	}
+
+	if err := writeIssueMutationSummary(&buf, "Created", "acme", "widgets", issue, true); err != nil {
+		t.Fatalf("writeIssueMutationSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "Created issue acme/widgets#12") {
+		t.Fatalf("expected repo-scoped issue summary, got %q", got)
+	}
+	if !strings.Contains(got, "URL: https://bitbucket.org/acme/widgets/issues/12") {
+		t.Fatalf("expected issue URL in summary, got %q", got)
+	}
+	if !strings.Contains(got, "Next: bb issue view 12 --repo acme/widgets") {
+		t.Fatalf("expected next-step guidance, got %q", got)
+	}
+}

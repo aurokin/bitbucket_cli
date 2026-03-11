@@ -45,7 +45,10 @@ func Execute() error {
 	}
 
 	rootCmd := NewRootCmd()
-	args := normalizeCLIArgsWithAliases(os.Args[1:], cfg.Aliases)
+	args, err := normalizeCLIArgsWithAliases(os.Args[1:], cfg.Aliases)
+	if err != nil {
+		return userFacingError(err)
+	}
 	rootCmd.SetArgs(args)
 
 	err = rootCmd.Execute()
@@ -57,11 +60,15 @@ func Execute() error {
 }
 
 func normalizeCLIArgs(args []string) []string {
-	return normalizeCLIArgsWithAliases(args, nil)
+	normalized, _ := normalizeCLIArgsWithAliases(args, nil)
+	return normalized
 }
 
-func normalizeCLIArgsWithAliases(args []string, aliases map[string]string) []string {
-	expanded := expandAliasArgs(args, aliases)
+func normalizeCLIArgsWithAliases(args []string, aliases map[string]string) ([]string, error) {
+	expanded, err := expandAliasArgs(args, aliases)
+	if err != nil {
+		return nil, err
+	}
 	normalized := make([]string, 0, len(args))
 
 	for i := 0; i < len(expanded); i++ {
@@ -80,12 +87,12 @@ func normalizeCLIArgsWithAliases(args []string, aliases map[string]string) []str
 		normalized = append(normalized, "--json=*")
 	}
 
-	return normalized
+	return normalized, nil
 }
 
-func expandAliasArgs(args []string, aliases map[string]string) []string {
+func expandAliasArgs(args []string, aliases map[string]string) ([]string, error) {
 	if len(args) == 0 || len(aliases) == 0 {
-		return args
+		return args, nil
 	}
 
 	expanded := append([]string(nil), args...)
@@ -94,21 +101,24 @@ func expandAliasArgs(args []string, aliases map[string]string) []string {
 	for depth := 0; depth < 8 && len(expanded) > 0; depth++ {
 		replacement, ok := aliases[expanded[0]]
 		if !ok || strings.TrimSpace(replacement) == "" {
-			return expanded
+			return expanded, nil
 		}
 		if _, ok := seen[expanded[0]]; ok {
-			return expanded
+			return expanded, nil
 		}
 		seen[expanded[0]] = struct{}{}
 
-		fields := strings.Fields(replacement)
+		fields, err := splitCommandLine(replacement)
+		if err != nil {
+			return nil, fmt.Errorf("invalid alias %q: %w", expanded[0], err)
+		}
 		if len(fields) == 0 {
-			return expanded
+			return expanded, nil
 		}
 		expanded = append(fields, expanded[1:]...)
 	}
 
-	return expanded
+	return expanded, nil
 }
 
 func shouldRunExtension(err error, args []string) bool {

@@ -225,8 +225,7 @@ func newIssueCreateCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issue, func(w io.Writer) error {
-				_, err := fmt.Fprintf(w, "Created issue #%d: %s\n", issue.ID, issue.Title)
-				return err
+				return writeIssueMutationSummary(w, "Created", target.Workspace, target.Repo, issue, true)
 			})
 		},
 	}
@@ -285,8 +284,7 @@ func newIssueEditCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issue, func(w io.Writer) error {
-				_, err := fmt.Fprintf(w, "Updated issue #%d: %s\n", issue.ID, issue.Title)
-				return err
+				return writeIssueMutationSummary(w, "Updated", target.Workspace, target.Repo, issue, false)
 			})
 		},
 	}
@@ -356,8 +354,7 @@ func newIssueStateTransitionCmd(use, defaultState, short, long string) *cobra.Co
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issue, func(w io.Writer) error {
-				_, err := fmt.Fprintf(w, "Issue #%d is now %s\n", issue.ID, issue.State)
-				return err
+				return writeIssueMutationSummary(w, "Updated", target.Workspace, target.Repo, issue, false)
 			})
 		},
 	}
@@ -406,6 +403,28 @@ func resolveIssueTargetAndID(host, workspace, repo, rawID string) (resolvedRepoT
 	}
 
 	return target, client, issueID, nil
+}
+
+func writeIssueMutationSummary(w io.Writer, action, workspace, repo string, issue bitbucket.Issue, includeNext bool) error {
+	if _, err := fmt.Fprintf(w, "%s issue %s/%s#%d: %s\n", action, workspace, repo, issue.ID, issue.Title); err != nil {
+		return err
+	}
+	if issue.State != "" {
+		if _, err := fmt.Fprintf(w, "State: %s\n", issue.State); err != nil {
+			return err
+		}
+	}
+	if issue.Links.HTML.Href != "" {
+		if _, err := fmt.Fprintf(w, "URL: %s\n", issue.Links.HTML.Href); err != nil {
+			return err
+		}
+	}
+	if includeNext {
+		if _, err := fmt.Fprintf(w, "Next: bb issue view %d --repo %s/%s\n", issue.ID, workspace, repo); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writeIssueTable(w io.Writer, issues []bitbucket.Issue) error {

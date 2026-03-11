@@ -54,7 +54,7 @@
 - Issue listing, viewing, creation, editing, and state transitions
 - Cross-repository status summaries
 - Search for repositories, pull requests, and issues
-- Config defaults, aliases, and extension discovery
+- Config defaults for prompt behavior and default output format, plus aliases and extension discovery
 - Structured automation paths with `--json`
 - Flexible repository targeting with local git inference, `workspace/repo`, and Bitbucket/GitHub-style URLs
 
@@ -85,3 +85,9 @@ References:
 
 - https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
 - https://jira.atlassian.com/browse/BCLOUD-23807
+
+## Notes On Current Behavior
+
+- `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
+- `bb config` only exposes keys that affect runtime today: `prompt` and `output.format`. Browser, editor, and pager configuration are not wired up yet and are not exposed as working settings.
+- Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.

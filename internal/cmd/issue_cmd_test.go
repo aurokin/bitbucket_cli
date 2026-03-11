@@ -81,3 +81,14 @@ func TestWriteIssueMutationSummary(t *testing.T) {
 		t.Fatalf("expected next-step guidance, got %q", got)
 	}
 }
+
+func TestIssueNextSteps(t *testing.T) {
+	t.Parallel()
+
+	if got := issueListEmptyNextStep("acme", "widgets"); got != "bb issue create --repo acme/widgets --title '<title>'" {
+		t.Fatalf("unexpected issue list next step %q", got)
+	}
+	if got := issueViewNextStep("acme", "widgets", 12); got != "bb issue edit 12 --repo acme/widgets" {
+		t.Fatalf("unexpected issue view next step %q", got)
+	}
+}

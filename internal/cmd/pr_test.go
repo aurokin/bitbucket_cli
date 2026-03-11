@@ -285,3 +285,11 @@ func TestWritePRDiffStatTableCompactsPaths(t *testing.T) {
 		t.Fatalf("expected total row, got %q", got)
 	}
 }
+
+func TestPRViewNextStep(t *testing.T) {
+	t.Parallel()
+
+	if got := prViewNextStep("acme", "widgets", 7); got != "bb pr diff 7 --repo acme/widgets" {
+		t.Fatalf("unexpected PR view next step %q", got)
+	}
+}

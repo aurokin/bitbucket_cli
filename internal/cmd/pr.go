@@ -863,6 +863,9 @@ func newPRViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
 					return err
@@ -897,7 +900,10 @@ func newPRViewCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, prViewNextStep(prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, pr.ID))
 			})
 		},
 	}
@@ -931,6 +937,10 @@ func resolveSourceBranch(source string) (string, error) {
 	}
 
 	return branch, nil
+}
+
+func prViewNextStep(workspace, repo string, id int) string {
+	return fmt.Sprintf("bb pr diff %d --repo %s/%s", id, workspace, repo)
 }
 
 func resolveSourceBranchInput(cmd *cobra.Command, source string, interactive bool, explicitRepoSelector bool, workspace, repo string) (string, error) {

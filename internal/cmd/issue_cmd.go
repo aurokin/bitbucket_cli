@@ -66,8 +66,10 @@ func newIssueListCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, issues, func(w io.Writer) error {
 				if len(issues) == 0 {
-					_, err := fmt.Fprintf(w, "No issues found for %s/%s.\n", target.Workspace, target.Repo)
-					return err
+					if _, err := fmt.Fprintf(w, "No issues found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
+						return err
+					}
+					return writeNextStep(w, issueListEmptyNextStep(target.Workspace, target.Repo))
 				}
 				return writeIssueTable(w, issues)
 			})
@@ -115,6 +117,9 @@ func newIssueViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issue, func(w io.Writer) error {
+				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
 				tw := output.NewTableWriter(w)
 				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", issue.ID); err != nil {
 					return err
@@ -162,7 +167,10 @@ func newIssueViewCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, issueViewNextStep(target.Workspace, target.Repo, issue.ID))
 			})
 		},
 	}
@@ -425,6 +433,14 @@ func writeIssueMutationSummary(w io.Writer, action, workspace, repo string, issu
 		}
 	}
 	return nil
+}
+
+func issueListEmptyNextStep(workspace, repo string) string {
+	return fmt.Sprintf("bb issue create --repo %s/%s --title '<title>'", workspace, repo)
+}
+
+func issueViewNextStep(workspace, repo string, id int) string {
+	return fmt.Sprintf("bb issue edit %d --repo %s/%s", id, workspace, repo)
 }
 
 func writeIssueTable(w io.Writer, issues []bitbucket.Issue) error {

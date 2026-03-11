@@ -66,8 +66,10 @@ func newSearchReposCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, repos, func(w io.Writer) error {
 				if len(repos) == 0 {
-					_, err := fmt.Fprintf(w, "No repositories found in %s for %q.\n", resolvedWorkspace, args[0])
-					return err
+					if _, err := fmt.Fprintf(w, "No repositories found in %s for %q.\n", resolvedWorkspace, args[0]); err != nil {
+						return err
+					}
+					return writeNextStep(w, searchReposNextStep(resolvedWorkspace, repos))
 				}
 
 				tw := output.NewTableWriter(w)
@@ -87,7 +89,10 @@ func newSearchReposCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, searchReposNextStep(resolvedWorkspace, repos))
 			})
 		},
 	}
@@ -149,10 +154,15 @@ func newSearchPRsCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, prs, func(w io.Writer) error {
 				if len(prs) == 0 {
-					_, err := fmt.Fprintf(w, "No pull requests found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0])
+					if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0]); err != nil {
+						return err
+					}
+					return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
+				}
+				if err := writePRListTable(w, prs); err != nil {
 					return err
 				}
-				return writePRListTable(w, prs)
+				return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
 			})
 		},
 	}
@@ -214,8 +224,10 @@ func newSearchIssuesCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, issues, func(w io.Writer) error {
 				if len(issues) == 0 {
-					_, err := fmt.Fprintf(w, "No issues found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0])
-					return err
+					if _, err := fmt.Fprintf(w, "No issues found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0]); err != nil {
+						return err
+					}
+					return writeNextStep(w, searchIssuesNextStep(target.Workspace, target.Repo, issues))
 				}
 
 				tw := output.NewTableWriter(w)
@@ -235,7 +247,10 @@ func newSearchIssuesCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, searchIssuesNextStep(target.Workspace, target.Repo, issues))
 			})
 		},
 	}
@@ -269,4 +284,34 @@ func buildIssueSearchQuery(query string) string {
 func quoteBitbucketQueryString(value string) string {
 	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 	return replacer.Replace(strings.TrimSpace(value))
+}
+
+func searchReposNextStep(workspace string, repos []bitbucket.Repository) string {
+	if len(repos) == 1 {
+		return fmt.Sprintf("bb repo view --repo %s/%s", workspace, repos[0].Slug)
+	}
+	if len(repos) > 1 {
+		return fmt.Sprintf("bb repo view --repo %s/<repo>", workspace)
+	}
+	return fmt.Sprintf("bb repo create %s/<repo>", workspace)
+}
+
+func searchPRsNextStep(workspace, repo string, prs []bitbucket.PullRequest) string {
+	if len(prs) == 1 {
+		return fmt.Sprintf("bb pr view %d --repo %s/%s", prs[0].ID, workspace, repo)
+	}
+	if len(prs) > 1 {
+		return fmt.Sprintf("bb pr view <id> --repo %s/%s", workspace, repo)
+	}
+	return fmt.Sprintf("bb pr list --repo %s/%s", workspace, repo)
+}
+
+func searchIssuesNextStep(workspace, repo string, issues []bitbucket.Issue) string {
+	if len(issues) == 1 {
+		return fmt.Sprintf("bb issue view %d --repo %s/%s", issues[0].ID, workspace, repo)
+	}
+	if len(issues) > 1 {
+		return fmt.Sprintf("bb issue view <id> --repo %s/%s", workspace, repo)
+	}
+	return fmt.Sprintf("bb issue list --repo %s/%s", workspace, repo)
 }

@@ -166,7 +166,10 @@ func newRepoViewCmd() *cobra.Command {
 						return err
 					}
 				}
-				return tw.Flush()
+				if err := tw.Flush(); err != nil {
+					return err
+				}
+				return writeNextStep(w, repoViewNextStep(payload))
 			})
 		},
 	}
@@ -207,6 +210,13 @@ func cloneURLForName(targets []bitbucket.NamedCloneTarget, name string) string {
 		}
 	}
 	return ""
+}
+
+func repoViewNextStep(payload repoViewPayload) string {
+	if payload.RootDir != "" {
+		return fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.RepoSlug)
+	}
+	return fmt.Sprintf("bb repo clone %s/%s", payload.Workspace, payload.RepoSlug)
 }
 
 func newRepoCreateCmd() *cobra.Command {

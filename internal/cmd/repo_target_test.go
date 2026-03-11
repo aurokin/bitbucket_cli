@@ -68,3 +68,14 @@ func TestResolveRepoCloneInput(t *testing.T) {
 		})
 	}
 }
+
+func TestRepoViewNextStep(t *testing.T) {
+	t.Parallel()
+
+	if got := repoViewNextStep(repoViewPayload{Workspace: "acme", RepoSlug: "widgets"}); got != "bb repo clone acme/widgets" {
+		t.Fatalf("unexpected non-local repo next step %q", got)
+	}
+	if got := repoViewNextStep(repoViewPayload{Workspace: "acme", RepoSlug: "widgets", RootDir: "/tmp/widgets"}); got != "bb pr list --repo acme/widgets" {
+		t.Fatalf("unexpected local repo next step %q", got)
+	}
+}

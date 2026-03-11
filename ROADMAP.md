@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb pr reopen`
-  Reopen closed pull requests.
-
 ## Follow-Up UX Work
 
 - Unified repo selector

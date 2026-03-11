@@ -95,78 +95,49 @@ func newRepoViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
+				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
+				if err := writeLabelValue(w, "Name", payload.Name); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Name:\t%s\n", payload.Name); err != nil {
+				if err := writeLabelValue(w, "Host", payload.Host); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Host:\t%s\n", payload.Host); err != nil {
+				if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(payload.Private)); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Private:\t%t\n", payload.Private); err != nil {
+				if err := writeLabelValue(w, "Project", payload.ProjectKey); err != nil {
 					return err
 				}
-				if payload.ProjectKey != "" {
-					if _, err := fmt.Fprintf(tw, "Project:\t%s\n", payload.ProjectKey); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Project Name", payload.ProjectName); err != nil {
+					return err
 				}
-				if payload.MainBranch != "" {
-					if _, err := fmt.Fprintf(tw, "Main Branch:\t%s\n", payload.MainBranch); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Main Branch", payload.MainBranch); err != nil {
+					return err
 				}
-				if payload.HTMLURL != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.HTMLURL); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "URL", payload.HTMLURL); err != nil {
+					return err
 				}
-				if payload.HTTPSClone != "" {
-					if _, err := fmt.Fprintf(tw, "HTTPS Clone:\t%s\n", payload.HTTPSClone); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "HTTPS Clone", payload.HTTPSClone); err != nil {
+					return err
 				}
-				if payload.SSHClone != "" {
-					if _, err := fmt.Fprintf(tw, "SSH Clone:\t%s\n", payload.SSHClone); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "SSH Clone", payload.SSHClone); err != nil {
+					return err
 				}
-				if payload.RemoteName != "" {
-					if _, err := fmt.Fprintf(tw, "Remote:\t%s\n", payload.RemoteName); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Remote", payload.RemoteName); err != nil {
+					return err
 				}
-				if payload.LocalCloneURL != "" {
-					if _, err := fmt.Fprintf(tw, "Local Clone URL:\t%s\n", payload.LocalCloneURL); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Local Clone URL", payload.LocalCloneURL); err != nil {
+					return err
 				}
-				if payload.RootDir != "" {
-					if _, err := fmt.Fprintf(tw, "Root:\t%s\n", payload.RootDir); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Local Root", payload.RootDir); err != nil {
+					return err
 				}
-				if payload.Description != "" {
-					if _, err := fmt.Fprintf(tw, "Description:\t%s\n", payload.Description); err != nil {
-						return err
-					}
+				if err := writeLabelValue(w, "Description", payload.Description); err != nil {
+					return err
 				}
-				if payload.FullName != "" {
-					if _, err := fmt.Fprintf(tw, "Full Name:\t%s\n", payload.FullName); err != nil {
-						return err
-					}
-				}
-				if payload.ProjectName != "" {
-					if _, err := fmt.Fprintf(tw, "Project Name:\t%s\n", payload.ProjectName); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writeLabelValue(w, "Full Name", payload.FullName); err != nil {
 					return err
 				}
 				return writeNextStep(w, repoViewNextStep(payload))
@@ -217,6 +188,13 @@ func repoViewNextStep(payload repoViewPayload) string {
 		return fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.RepoSlug)
 	}
 	return fmt.Sprintf("bb repo clone %s/%s", payload.Workspace, payload.RepoSlug)
+}
+
+func repoVisibilityLabel(private bool) string {
+	if private {
+		return "private"
+	}
+	return "public"
 }
 
 func newRepoCreateCmd() *cobra.Command {
@@ -275,30 +253,19 @@ func newRepoCreateCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, createdRepo, func(w io.Writer) error {
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", target.Workspace); err != nil {
+				if err := writeTargetHeader(w, "Repository", target.Workspace, createdRepo.Slug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", createdRepo.Slug); err != nil {
+				if err := writeLabelValue(w, "Name", createdRepo.Name); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Name:\t%s\n", createdRepo.Name); err != nil {
+				if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(createdRepo.IsPrivate)); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Private:\t%t\n", createdRepo.IsPrivate); err != nil {
+				if err := writeLabelValue(w, "Project", createdRepo.Project.Key); err != nil {
 					return err
 				}
-				if createdRepo.Project.Key != "" {
-					if _, err := fmt.Fprintf(tw, "Project:\t%s\n", createdRepo.Project.Key); err != nil {
-						return err
-					}
-				}
-				if createdRepo.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", createdRepo.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writeLabelValue(w, "URL", createdRepo.Links.HTML.Href); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb repo clone %s/%s", target.Workspace, createdRepo.Slug))
@@ -405,22 +372,13 @@ func newRepoCloneCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
+				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
+				if err := writeLabelValue(w, "Directory", payload.Directory); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Directory:\t%s\n", payload.Directory); err != nil {
-					return err
-				}
-				if payload.CloneURL != "" {
-					if _, err := fmt.Fprintf(tw, "Clone URL:\t%s\n", payload.CloneURL); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writeLabelValue(w, "Clone URL", payload.CloneURL); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb repo view --repo %s/%s", payload.Workspace, payload.RepoSlug))
@@ -507,22 +465,13 @@ func newRepoDeleteCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "Workspace:\t%s\n", payload.Workspace); err != nil {
+				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
 					return err
 				}
-				if _, err := fmt.Fprintf(tw, "Repository:\t%s\n", payload.RepoSlug); err != nil {
+				if err := writeLabelValue(w, "Name", payload.Name); err != nil {
 					return err
 				}
-				if payload.Name != "" {
-					if _, err := fmt.Fprintf(tw, "Name:\t%s\n", payload.Name); err != nil {
-						return err
-					}
-				}
-				if _, err := fmt.Fprintf(tw, "Deleted:\t%t\n", payload.Deleted); err != nil {
-					return err
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writeLabelValue(w, "Status", repoDeletionStatus(payload.Deleted)); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb repo create %s/%s", payload.Workspace, payload.RepoSlug))
@@ -604,4 +553,11 @@ func resolveRepoCloneInput(args []string, repoFlag string) (string, string, erro
 	default:
 		return args[0], args[1], nil
 	}
+}
+
+func repoDeletionStatus(deleted bool) string {
+	if deleted {
+		return "deleted"
+	}
+	return "present"
 }

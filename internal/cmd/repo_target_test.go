@@ -79,3 +79,25 @@ func TestRepoViewNextStep(t *testing.T) {
 		t.Fatalf("unexpected local repo next step %q", got)
 	}
 }
+
+func TestRepoDeletionStatus(t *testing.T) {
+	t.Parallel()
+
+	if got := repoDeletionStatus(true); got != "deleted" {
+		t.Fatalf("unexpected deleted status %q", got)
+	}
+	if got := repoDeletionStatus(false); got != "present" {
+		t.Fatalf("unexpected present status %q", got)
+	}
+}
+
+func TestRepoVisibilityLabel(t *testing.T) {
+	t.Parallel()
+
+	if got := repoVisibilityLabel(true); got != "private" {
+		t.Fatalf("unexpected private visibility label %q", got)
+	}
+	if got := repoVisibilityLabel(false); got != "public" {
+		t.Fatalf("unexpected public visibility label %q", got)
+	}
+}

@@ -637,6 +637,75 @@ func TestBitbucketCloudRepoDelete(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	issueRepo := ensureIssueRepository(t, client, workspace)
+	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
+	binary := buildBinary(t)
+
+	repoViewCmd := exec.Command(binary, "repo", "view")
+	repoViewCmd.Dir = fixture.PrimaryRepoDir
+	repoViewCmd.Env = os.Environ()
+	repoViewOutput, err := repoViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb repo view human output failed: %v\n%s", err, repoViewOutput)
+	}
+	if !strings.Contains(string(repoViewOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in repo view output:\n%s", repoViewOutput)
+	}
+	if !strings.Contains(string(repoViewOutput), "Next: bb pr list --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo view next step:\n%s", repoViewOutput)
+	}
+
+	prViewCmd := exec.Command(binary, "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
+	prViewCmd.Env = os.Environ()
+	prViewOutput, err := prViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr view human output failed: %v\n%s", err, prViewOutput)
+	}
+	if !strings.Contains(string(prViewOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in pr view output:\n%s", prViewOutput)
+	}
+	if !strings.Contains(string(prViewOutput), "Next: bb pr diff "+fmt.Sprintf("%d", fixture.PrimaryPRID)+" --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected pr view next step:\n%s", prViewOutput)
+	}
+
+	issueViewCmd := exec.Command(binary, "issue", "view", fmt.Sprintf("%d", issueID), "--repo", workspace+"/"+issueRepo.Slug)
+	issueViewCmd.Env = os.Environ()
+	issueViewOutput, err := issueViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb issue view human output failed: %v\n%s", err, issueViewOutput)
+	}
+	if !strings.Contains(string(issueViewOutput), "Repository: "+workspace+"/"+issueRepo.Slug) {
+		t.Fatalf("expected repo header in issue view output:\n%s", issueViewOutput)
+	}
+	if !strings.Contains(string(issueViewOutput), "Next: bb issue edit "+fmt.Sprintf("%d", issueID)+" --repo "+workspace+"/"+issueRepo.Slug) {
+		t.Fatalf("expected issue view next step:\n%s", issueViewOutput)
+	}
+
+	searchPRsCmd := exec.Command(binary, "search", "prs", "fixture", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
+	searchPRsCmd.Env = os.Environ()
+	searchPRsOutput, err := searchPRsCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb search prs human output failed: %v\n%s", err, searchPRsOutput)
+	}
+	if !strings.Contains(string(searchPRsOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in search prs output:\n%s", searchPRsOutput)
+	}
+	if !strings.Contains(string(searchPRsOutput), "Query: fixture") {
+		t.Fatalf("expected query line in search prs output:\n%s", searchPRsOutput)
+	}
+}
+
 func TestBitbucketCloudPRView(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")

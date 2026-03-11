@@ -4,9 +4,6 @@
 
 ## Later Phase
 
-- Cross-repo status
-  Add a `status` view for relevant pull requests, review requests, mentions, and other work across repositories.
-
 - Pipelines support
   Add Bitbucket Pipelines equivalents for listing runs, viewing results, and rerunning workflows.
 

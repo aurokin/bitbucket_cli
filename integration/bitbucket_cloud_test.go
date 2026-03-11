@@ -383,6 +383,82 @@ func TestBitbucketCloudIssueFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudStatus(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	issueRepo := ensureIssueRepository(t, client, workspace)
+	ensureOpenIssue(t, client, workspace, issueRepo.Slug)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "status", "--workspace", workspace, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb status failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspaces   []string `json:"workspaces"`
+		Repositories int      `json:"repositories_scanned"`
+		AuthoredPRs  []struct {
+			Workspace   string                `json:"workspace"`
+			Repo        string                `json:"repo"`
+			PullRequest bitbucket.PullRequest `json:"pull_request"`
+		} `json:"authored_prs"`
+		ReviewRequestedPRs []struct {
+			Workspace   string                `json:"workspace"`
+			Repo        string                `json:"repo"`
+			PullRequest bitbucket.PullRequest `json:"pull_request"`
+		} `json:"review_requested_prs"`
+		YourIssues []struct {
+			Workspace string          `json:"workspace"`
+			Repo      string          `json:"repo"`
+			Issue     bitbucket.Issue `json:"issue"`
+		} `json:"your_issues"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse status JSON: %v\n%s", err, output)
+	}
+
+	if len(payload.Workspaces) != 1 || payload.Workspaces[0] != workspace {
+		t.Fatalf("unexpected status workspaces %+v", payload.Workspaces)
+	}
+	if payload.Repositories == 0 {
+		t.Fatalf("expected scanned repositories in status payload %+v", payload)
+	}
+
+	var foundPR bool
+	for _, pr := range payload.AuthoredPRs {
+		if pr.Workspace == workspace && pr.Repo == fixture.PrimaryRepo.Slug {
+			foundPR = true
+			break
+		}
+	}
+	if !foundPR {
+		t.Fatalf("expected authored fixture pull requests in status payload %+v", payload.AuthoredPRs)
+	}
+
+	var foundIssue bool
+	for _, issue := range payload.YourIssues {
+		if issue.Workspace == workspace && issue.Repo == issueRepo.Slug {
+			foundIssue = true
+			break
+		}
+	}
+	if !foundIssue {
+		t.Fatalf("expected issue fixture in status payload %+v", payload.YourIssues)
+	}
+}
+
 func TestBitbucketCloudRepoCreate(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
@@ -844,6 +920,37 @@ func ensureIssueRepository(t *testing.T, client *bitbucket.Client, workspace str
 	}
 	mustRequestJSON(t, client, http.MethodPut, fmt.Sprintf("/repositories/%s/%s", workspace, fixtureIssuesRepoSlug), body, &repo)
 	return repo
+}
+
+func ensureOpenIssue(t *testing.T, client *bitbucket.Client, workspace, repoSlug string) int {
+	t.Helper()
+
+	issues, err := client.ListIssues(context.Background(), workspace, repoSlug, bitbucket.ListIssuesOptions{
+		Limit: 50,
+	})
+	if err != nil {
+		t.Fatalf("list issue fixtures: %v", err)
+	}
+
+	for _, issue := range issues {
+		if issue.Title == "bb cli integration fixture issue" {
+			if issue.State != "new" {
+				if err := client.ChangeIssueState(context.Background(), workspace, repoSlug, issue.ID, bitbucket.IssueChangeOptions{State: "new"}); err != nil {
+					t.Fatalf("reopen issue fixture: %v", err)
+				}
+			}
+			return issue.ID
+		}
+	}
+
+	issue, err := client.CreateIssue(context.Background(), workspace, repoSlug, bitbucket.CreateIssueOptions{
+		Title: "bb cli integration fixture issue",
+		Body:  "Created by integration status fixture setup.",
+	})
+	if err != nil {
+		t.Fatalf("create issue fixture: %v", err)
+	}
+	return issue.ID
 }
 
 func repositoryExists(t *testing.T, client *bitbucket.Client, workspace, slug string) bool {

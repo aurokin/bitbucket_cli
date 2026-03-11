@@ -4,6 +4,22 @@
 
 ## Current Commands
 
+- `bb version`
+- `bb config list`
+- `bb config get`
+- `bb config set`
+- `bb config unset`
+- `bb config path`
+- `bb alias list`
+- `bb alias get`
+- `bb alias set`
+- `bb alias delete`
+- `bb extension list`
+- `bb extension exec`
+- `bb search repos`
+- `bb search prs`
+- `bb search issues`
+- `bb status`
 - `bb auth login`
 - `bb auth logout`
 - `bb auth status`
@@ -21,6 +37,12 @@
 - `bb pr checkout`
 - `bb pr merge`
 - `bb pr close`
+- `bb issue list`
+- `bb issue view`
+- `bb issue create`
+- `bb issue edit`
+- `bb issue close`
+- `bb issue reopen`
 
 ## Compared With `gh`
 
@@ -29,6 +51,10 @@
 - Authenticated API access through `gh api` / `bb api`
 - Repository inspection, creation, cloning, and deletion
 - Pull request listing, status, viewing, diffing, commenting, creation, checkout, merge, and close flows
+- Issue listing, viewing, creation, editing, and state transitions
+- Cross-repository status summaries
+- Search for repositories, pull requests, and issues
+- Config defaults, aliases, and extension discovery
 - Structured automation paths with `--json`
 - Flexible repository targeting with local git inference, `workspace/repo`, and Bitbucket/GitHub-style URLs
 
@@ -43,8 +69,6 @@
 - Browser login and broader auth account management
 - `browse`
 - Issues, releases, and CI/workflow commands
-- Search and cross-repository work dashboards
-- Config, aliases, and extensions
 - Richer repository administration such as list, edit, rename, fork, archive, and sync
 - Additional pull request flows such as review, checks, edit, ready, update-branch, and revert
 - Pull request reopen on platforms that actually support it

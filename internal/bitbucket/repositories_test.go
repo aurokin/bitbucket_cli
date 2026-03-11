@@ -94,6 +94,47 @@ func TestCreateRepository(t *testing.T) {
 	}
 }
 
+func TestListRepositories(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/OhBizzle" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("q"); got == "" {
+			t.Fatal("expected q filter")
+		}
+		if got := r.URL.Query().Get("sort"); got != "-updated_on" {
+			t.Fatalf("unexpected sort %q", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"slug":"widgets","name":"Widgets","updated_on":"2026-03-11T00:00:00Z","project":{"key":"BBCLI"}}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	repos, err := client.ListRepositories(context.Background(), "OhBizzle", ListRepositoriesOptions{
+		Query: `name ~ "widgets"`,
+		Sort:  "-updated_on",
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListRepositories returned error: %v", err)
+	}
+	if len(repos) != 1 || repos[0].Slug != "widgets" {
+		t.Fatalf("unexpected repositories %+v", repos)
+	}
+}
+
 func TestDeleteRepository(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {

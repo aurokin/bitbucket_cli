@@ -15,6 +15,8 @@ import (
 type ListPullRequestsOptions struct {
 	State string
 	Limit int
+	Query string
+	Sort  string
 }
 
 type CreatePullRequestOptions struct {
@@ -555,6 +557,12 @@ func listPullRequestsPath(workspace, repoSlug string, options ListPullRequestsOp
 	values.Set("pagelen", strconv.Itoa(options.Limit))
 	if options.State != "" && options.State != "ALL" {
 		values.Set("state", options.State)
+	}
+	if options.Query != "" {
+		values.Set("q", options.Query)
+	}
+	if options.Sort != "" {
+		values.Set("sort", options.Sort)
 	}
 
 	return fmt.Sprintf("/repositories/%s/%s/pullrequests?%s", url.PathEscape(workspace), url.PathEscape(repoSlug), values.Encode()), nil

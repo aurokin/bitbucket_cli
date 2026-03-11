@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 type Repository struct {
@@ -14,6 +15,7 @@ type Repository struct {
 	FullName    string            `json:"full_name,omitempty"`
 	Description string            `json:"description,omitempty"`
 	IsPrivate   bool              `json:"is_private"`
+	UpdatedOn   string            `json:"updated_on,omitempty"`
 	Project     RepositoryProject `json:"project,omitempty"`
 	MainBranch  RepositoryBranch  `json:"mainbranch,omitempty"`
 	Links       RepositoryLinks   `json:"links,omitempty"`
@@ -55,6 +57,17 @@ type workspaceListResponse struct {
 	Values []Workspace `json:"values"`
 }
 
+type ListRepositoriesOptions struct {
+	Query string
+	Sort  string
+	Limit int
+}
+
+type repositoryListResponse struct {
+	Values []Repository `json:"values"`
+	Next   string       `json:"next,omitempty"`
+}
+
 func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 	resp, err := c.Do(ctx, http.MethodGet, "/workspaces?role=member", nil, nil)
 	if err != nil {
@@ -93,6 +106,56 @@ func (c *Client) GetRepository(ctx context.Context, workspace, repoSlug string) 
 	}
 
 	return repo, nil
+}
+
+func (c *Client) ListRepositories(ctx context.Context, workspace string, options ListRepositoriesOptions) ([]Repository, error) {
+	if workspace == "" {
+		return nil, fmt.Errorf("workspace is required")
+	}
+	if options.Limit <= 0 {
+		options.Limit = 20
+	}
+
+	values := url.Values{}
+	values.Set("pagelen", strconv.Itoa(options.Limit))
+	if options.Query != "" {
+		values.Set("q", options.Query)
+	}
+	if options.Sort != "" {
+		values.Set("sort", options.Sort)
+	}
+
+	nextPath := fmt.Sprintf("/repositories/%s?%s", url.PathEscape(workspace), values.Encode())
+	var all []Repository
+
+	for nextPath != "" && len(all) < options.Limit {
+		resp, err := c.Do(ctx, http.MethodGet, nextPath, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var page repositoryListResponse
+		func() {
+			defer resp.Body.Close()
+			err = requireSuccess(resp)
+			if err != nil {
+				return
+			}
+			err = json.NewDecoder(resp.Body).Decode(&page)
+		}()
+		if err != nil {
+			return nil, fmt.Errorf("decode repository list: %w", err)
+		}
+
+		all = append(all, page.Values...)
+		nextPath = page.Next
+	}
+
+	if len(all) > options.Limit {
+		all = all[:options.Limit]
+	}
+
+	return all, nil
 }
 
 func (c *Client) CreateRepository(ctx context.Context, workspace, repoSlug string, options CreateRepositoryOptions) (Repository, error) {

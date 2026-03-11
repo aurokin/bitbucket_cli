@@ -4,9 +4,6 @@
 
 ## Later Phase
 
-- Search
-  Add search commands for repositories, pull requests, issues, and other useful Bitbucket resources.
-
 - Issues support
   Add issue listing, viewing, creation, and state transitions.
 

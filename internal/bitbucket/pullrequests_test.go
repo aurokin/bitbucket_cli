@@ -474,3 +474,37 @@ func TestCreatePullRequestComment(t *testing.T) {
 		t.Fatalf("unexpected pull request comment %+v", comment)
 	}
 }
+
+func TestDeclinePullRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/decline" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":7,"title":"Example PR","state":"DECLINED","author":{"display_name":"Auro"},"source":{"branch":{"name":"feature"},"commit":{},"repository":{}},"destination":{"branch":{"name":"main"},"commit":{},"repository":{}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	pr, err := client.DeclinePullRequest(context.Background(), "acme", "widgets", 7)
+	if err != nil {
+		t.Fatalf("DeclinePullRequest returned error: %v", err)
+	}
+	if pr.ID != 7 || pr.State != "DECLINED" {
+		t.Fatalf("unexpected declined pull request %+v", pr)
+	}
+}

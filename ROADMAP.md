@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- `bb pr close`
-  Close pull requests explicitly without merging them.
-
 - `bb pr reopen`
   Reopen closed pull requests.
 

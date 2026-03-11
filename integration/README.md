@@ -10,7 +10,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Create them if they do not exist
 - Seed arbitrary git content into the primary and secondary repositories
 - Ensure there is an open pull request in the primary repository
-- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr view`, `bb pr create`, `bb pr checkout`, and `bb pr merge` commands against the seeded repositories
+- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, and `bb pr merge` commands against the seeded repositories
 
 ## Fixture Names
 
@@ -33,6 +33,7 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRStatus -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRDiff -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRComment -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRClose -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPRView -v
 ```
 

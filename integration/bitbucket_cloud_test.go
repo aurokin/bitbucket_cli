@@ -32,6 +32,8 @@ const (
 	fixturePRTitle           = "bb cli integration fixture pull request"
 	fixtureCreatePRBranch    = "bb-cli-create-command-branch"
 	fixtureCreatePRTitle     = "bb cli create command pull request"
+	fixtureClosePRBranch     = "bb-cli-close-command-branch"
+	fixtureClosePRTitle      = "bb cli close command pull request"
 	fixtureMergePRBranch     = "bb-cli-merge-command-branch"
 	fixtureMergePRTitle      = "bb cli merge command pull request"
 )
@@ -248,6 +250,44 @@ func TestBitbucketCloudPRComment(t *testing.T) {
 
 	if payload.ID == 0 || payload.Content.Raw != commentBody {
 		t.Fatalf("unexpected pr comment payload %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPRClose(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	prID := ensureClosePullRequest(t, client, fixture.PrimaryRepoDir, workspace, fixture.PrimaryRepo.Slug)
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", workspace, fixture.PrimaryRepo.Slug, prID)
+	cmd := exec.Command(binary, "pr", "close", prURL, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pr close failed: %v\n%s", err, output)
+	}
+
+	var payload bitbucket.PullRequest
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr close JSON: %v\n%s", err, output)
+	}
+
+	if payload.ID != prID || payload.State != "DECLINED" {
+		t.Fatalf("unexpected pr close payload %+v", payload)
+	}
+
+	updated := getPullRequest(t, client, workspace, fixture.PrimaryRepo.Slug, prID)
+	if updated.State != "DECLINED" {
+		t.Fatalf("expected pull request %d to be declined, got %+v", prID, updated)
 	}
 }
 
@@ -846,6 +886,48 @@ func ensureMergePullRequest(t *testing.T, client *bitbucket.Client, repoDir, wor
 	})
 	if err != nil {
 		t.Fatalf("create merge fixture pull request: %v", err)
+	}
+
+	return created.ID
+}
+
+func ensureClosePullRequest(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string) int {
+	t.Helper()
+
+	prs, err := client.ListPullRequests(context.Background(), workspace, repoSlug, bitbucket.ListPullRequestsOptions{
+		State: "OPEN",
+		Limit: 50,
+	})
+	if err != nil {
+		t.Fatalf("list close fixture pull requests: %v", err)
+	}
+
+	for _, pr := range prs {
+		if pr.Title == fixtureClosePRTitle || pr.Source.Branch.Name == fixtureClosePRBranch {
+			return pr.ID
+		}
+	}
+
+	configureGitIdentity(t, repoDir)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+	runGit(t, repoDir, "pull", "--ff-only", "origin", "main")
+	runGit(t, repoDir, "switch", "-C", fixtureClosePRBranch, "main")
+
+	content := fmt.Sprintf("close fixture updated %s\n", time.Now().UTC().Format(time.RFC3339))
+	writeFile(t, filepath.Join(repoDir, "close-fixture.txt"), content)
+	runGit(t, repoDir, "add", "close-fixture.txt")
+	runGit(t, repoDir, "commit", "-m", "Update close integration fixture")
+	runGit(t, repoDir, "push", "-u", "-f", "origin", fixtureClosePRBranch)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+
+	created, err := client.CreatePullRequest(context.Background(), workspace, repoSlug, bitbucket.CreatePullRequestOptions{
+		Title:             fixtureClosePRTitle,
+		Description:       "Fixture pull request created by manual close integration test.",
+		SourceBranch:      fixtureClosePRBranch,
+		DestinationBranch: "main",
+	})
+	if err != nil {
+		t.Fatalf("create close fixture pull request: %v", err)
 	}
 
 	return created.ID

@@ -464,6 +464,33 @@ func (c *Client) CreatePullRequestComment(ctx context.Context, workspace, repoSl
 	return comment, nil
 }
 
+func (c *Client) DeclinePullRequest(ctx context.Context, workspace, repoSlug string, id int) (PullRequest, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequest{}, fmt.Errorf("workspace and repository are required")
+	}
+	if id <= 0 {
+		return PullRequest{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/decline", url.PathEscape(workspace), url.PathEscape(repoSlug), id)
+	resp, err := c.Do(ctx, http.MethodPost, path, nil, nil)
+	if err != nil {
+		return PullRequest{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequest{}, err
+	}
+
+	var pr PullRequest
+	if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
+		return PullRequest{}, fmt.Errorf("decode declined pull request: %w", err)
+	}
+
+	return pr, nil
+}
+
 func (c *Client) waitForMergeTask(ctx context.Context, taskURL string, interval, timeout time.Duration) (PullRequest, error) {
 	if interval <= 0 {
 		interval = defaultMergePollInterval

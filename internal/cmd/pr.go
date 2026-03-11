@@ -28,6 +28,7 @@ func newPRCmd() *cobra.Command {
 		newPRStatusCmd(),
 		newPRDiffCmd(),
 		newPRCommentCmd(),
+		newPRCloseCmd(),
 		newPRViewCmd(),
 		newPRCreateCmd(),
 		newPRCheckoutCmd(),
@@ -35,6 +36,92 @@ func newPRCmd() *cobra.Command {
 	)
 
 	return prCmd
+}
+
+func newPRCloseCmd() *cobra.Command {
+	var flags formatFlags
+	var host string
+	var workspace string
+	var repo string
+
+	cmd := &cobra.Command{
+		Use:   "close <id-or-url>",
+		Short: "Close a pull request without merging it",
+		Long:  "Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request.",
+		Example: "  bb pr close 1\n" +
+			"  bb pr close 1 --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr close https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+
+			selector, err := parseRepoSelector(host, workspace, repo)
+			if err != nil {
+				return err
+			}
+
+			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+			if err != nil {
+				return err
+			}
+
+			selector.Host = resolvedHost
+			prTarget, err := resolvePullRequestTarget(context.Background(), selector, client, args[0], true)
+			if err != nil {
+				return err
+			}
+
+			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
+			if err != nil {
+				return err
+			}
+			if pr.State != "OPEN" {
+				return fmt.Errorf("pull request #%d is %s; only OPEN pull requests can be closed", pr.ID, pr.State)
+			}
+
+			closedPR, err := client.DeclinePullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
+			if err != nil {
+				return err
+			}
+
+			return output.Render(cmd.OutOrStdout(), opts, closedPR, func(w io.Writer) error {
+				tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", closedPR.ID); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", closedPR.Title); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "State:\t%s\n", closedPR.State); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", closedPR.Source.Branch.Name); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", closedPR.Destination.Branch.Name); err != nil {
+					return err
+				}
+				if closedPR.Links.HTML.Href != "" {
+					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", closedPR.Links.HTML.Href); err != nil {
+						return err
+					}
+				}
+				return tw.Flush()
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
+	cmd.Flags().Lookup("json").NoOptDefVal = "*"
+	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Bitbucket workspace slug used to disambiguate a bare --repo value")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+
+	return cmd
 }
 
 func newPRCommentCmd() *cobra.Command {

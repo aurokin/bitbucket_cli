@@ -75,3 +75,70 @@ func TestResolveTokenValueGuidesNonInteractiveUser(t *testing.T) {
 		t.Fatalf("expected guidance error, got %v", err)
 	}
 }
+
+func TestWriteAuthStatusSummaryWithNoHosts(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	if err := writeAuthStatusSummary(&buf, authStatusPayload{}); err != nil {
+		t.Fatalf("writeAuthStatusSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"No authenticated hosts.",
+		"Create Token: " + atlassianAPITokenManageURL,
+		"Next: bb auth login",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
+	t.Parallel()
+
+	authenticated := true
+	rejected := false
+
+	var buf bytes.Buffer
+	payload := authStatusPayload{
+		DefaultHost: "bitbucket.org",
+		Hosts: []authStatusHostRow{
+			{
+				Host:          "bitbucket.org",
+				Default:       true,
+				Username:      "user@example.com",
+				AuthType:      "api-token",
+				Authenticated: &authenticated,
+				DisplayName:   "Hunter Sadler",
+				UpdatedAt:     "2026-03-11T00:00:00Z",
+			},
+			{
+				Host:                "example.com",
+				Username:            "user@example.com",
+				AuthType:            "api-token",
+				Authenticated:       &rejected,
+				AuthenticationError: "401 Unauthorized",
+				UpdatedAt:           "2026-03-11T00:00:00Z",
+			},
+		},
+	}
+
+	if err := writeAuthStatusSummary(&buf, payload); err != nil {
+		t.Fatalf("writeAuthStatusSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"bitbucket.org",
+		"example.com",
+		"Hunter Sadler",
+		"example.com auth error: 401 Unauthorized",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}

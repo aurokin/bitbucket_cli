@@ -40,3 +40,15 @@ func TestWriteLabelValue(t *testing.T) {
 		t.Fatalf("unexpected label/value output %q", got)
 	}
 }
+
+func TestWriteWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	if err := writeWarnings(&buf, []string{"first warning", "", "second warning"}); err != nil {
+		t.Fatalf("writeWarnings returned error: %v", err)
+	}
+	if got := buf.String(); got != "Warning: first warning\nWarning: second warning\n" {
+		t.Fatalf("unexpected warning output %q", got)
+	}
+}

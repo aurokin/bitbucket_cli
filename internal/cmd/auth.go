@@ -142,72 +142,7 @@ func newAuthStatusCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if len(payload.Hosts) == 0 {
-					if _, err := io.WriteString(w, "No authenticated hosts.\n"); err != nil {
-						return err
-					}
-					if err := writeLabelValue(w, "Create Token", atlassianAPITokenManageURL); err != nil {
-						return err
-					}
-					return writeNextStep(w, "bb auth login")
-				}
-
-				accountWidth := authStatusAccountWidth(output.TerminalWidth(w))
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintln(tw, "host\tdefault\tuser\tauth\tok\taccount\tupdated"); err != nil {
-					return err
-				}
-				for _, host := range payload.Hosts {
-					defaultLabel := ""
-					if host.Default {
-						defaultLabel = "yes"
-					}
-
-					authLabel := ""
-					if host.Authenticated != nil {
-						if *host.Authenticated {
-							authLabel = "yes"
-						} else {
-							authLabel = "no"
-						}
-					}
-
-					accountLabel := host.DisplayName
-					if accountLabel == "" && host.AccountID != "" {
-						accountLabel = host.AccountID
-					}
-					if host.AuthenticationError != "" {
-						accountLabel = host.AuthenticationError
-					}
-
-					if _, err := fmt.Fprintf(
-						tw,
-						"%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-						output.Truncate(host.Host, 20),
-						defaultLabel,
-						output.Truncate(host.Username, 24),
-						output.Truncate(host.AuthType, 12),
-						authLabel,
-						output.Truncate(accountLabel, accountWidth),
-						host.UpdatedAt,
-					); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
-					return err
-				}
-
-				for _, host := range payload.Hosts {
-					if host.AuthenticationError == "" {
-						continue
-					}
-					if _, err := fmt.Fprintf(w, "\n%s auth error: %s\n", host.Host, host.AuthenticationError); err != nil {
-						return err
-					}
-				}
-
-				return nil
+				return writeAuthStatusSummary(w, payload)
 			})
 		},
 	}
@@ -228,6 +163,75 @@ func authStatusAccountWidth(termWidth int) int {
 	default:
 		return 22
 	}
+}
+
+func writeAuthStatusSummary(w io.Writer, payload authStatusPayload) error {
+	if len(payload.Hosts) == 0 {
+		if _, err := io.WriteString(w, "No authenticated hosts.\n"); err != nil {
+			return err
+		}
+		if err := writeLabelValue(w, "Create Token", atlassianAPITokenManageURL); err != nil {
+			return err
+		}
+		return writeNextStep(w, "bb auth login")
+	}
+
+	accountWidth := authStatusAccountWidth(output.TerminalWidth(w))
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintln(tw, "host\tdefault\tuser\tauth\tok\taccount\tupdated"); err != nil {
+		return err
+	}
+	for _, host := range payload.Hosts {
+		defaultLabel := ""
+		if host.Default {
+			defaultLabel = "yes"
+		}
+
+		authLabel := ""
+		if host.Authenticated != nil {
+			if *host.Authenticated {
+				authLabel = "yes"
+			} else {
+				authLabel = "no"
+			}
+		}
+
+		accountLabel := host.DisplayName
+		if accountLabel == "" && host.AccountID != "" {
+			accountLabel = host.AccountID
+		}
+		if host.AuthenticationError != "" {
+			accountLabel = host.AuthenticationError
+		}
+
+		if _, err := fmt.Fprintf(
+			tw,
+			"%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			output.Truncate(host.Host, 20),
+			defaultLabel,
+			output.Truncate(host.Username, 24),
+			output.Truncate(host.AuthType, 12),
+			authLabel,
+			output.Truncate(accountLabel, accountWidth),
+			host.UpdatedAt,
+		); err != nil {
+			return err
+		}
+	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+
+	for _, host := range payload.Hosts {
+		if host.AuthenticationError == "" {
+			continue
+		}
+		if _, err := fmt.Fprintf(w, "\n%s auth error: %s\n", host.Host, host.AuthenticationError); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func newAuthLogoutCmd() *cobra.Command {

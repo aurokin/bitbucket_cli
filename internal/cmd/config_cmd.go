@@ -263,6 +263,13 @@ func setConfigValue(cfg *config.Config, key, rawValue string) error {
 		if value == "" {
 			return fmt.Errorf("browser cannot be empty")
 		}
+		parts, err := splitCommandLine(value)
+		if err != nil {
+			return fmt.Errorf("browser command is invalid: %w", err)
+		}
+		if len(parts) == 0 {
+			return fmt.Errorf("browser command cannot be empty")
+		}
 		cfg.Settings.Browser = value
 	default:
 		return unsupportedConfigKeyError(key)

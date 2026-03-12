@@ -138,6 +138,62 @@ func TestBuildBrowsePayloadCommit(t *testing.T) {
 	}
 }
 
+func TestBuildBrowsePayloadTreatsExistingCommitLikeFilenameAsPath(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(rootDir, "deadbeef"), []byte("fixture"), 0o644); err != nil {
+		t.Fatalf("write commit-like file: %v", err)
+	}
+
+	previousCWD := getWorkingDirectory
+	previousBranch := currentBrowseBranch
+	t.Cleanup(func() {
+		getWorkingDirectory = previousCWD
+		currentBrowseBranch = previousBranch
+	})
+
+	getWorkingDirectory = func() (string, error) {
+		return rootDir, nil
+	}
+	currentBrowseBranch = func(context.Context, string) (string, error) {
+		return "main", nil
+	}
+
+	payload, err := buildBrowsePayload(context.Background(), &bitbucket.Client{}, resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		Repo:      "widgets",
+		LocalRepo: &gitrepo.RepoContext{RootDir: rootDir},
+	}, "deadbeef", browseOptions{})
+	if err != nil {
+		t.Fatalf("buildBrowsePayload returned error: %v", err)
+	}
+
+	expected := "https://bitbucket.org/acme/widgets/src/main/deadbeef"
+	if payload.Type != "path" || payload.Path != "deadbeef" || payload.URL != expected {
+		t.Fatalf("unexpected payload %+v", payload)
+	}
+}
+
+func TestBuildBrowsePayloadBranchOnlyBuildsRootPathURL(t *testing.T) {
+	t.Parallel()
+
+	payload, err := buildBrowsePayload(context.Background(), browseRepositoryClient{}, resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		Repo:      "widgets",
+	}, "", browseOptions{Branch: "release/1.0"})
+	if err != nil {
+		t.Fatalf("buildBrowsePayload returned error: %v", err)
+	}
+
+	expected := "https://bitbucket.org/acme/widgets/src/release%2F1.0/"
+	if payload.Type != "path" || payload.Ref != "release/1.0" || payload.Path != "" || payload.URL != expected {
+		t.Fatalf("unexpected payload %+v", payload)
+	}
+}
+
 func TestValidateBrowseOptionsRejectsConflicts(t *testing.T) {
 	t.Parallel()
 
@@ -175,5 +231,48 @@ func TestConfiguredBrowserCommandPrefersEnvThenConfig(t *testing.T) {
 	}
 	if command != "firefox" {
 		t.Fatalf("expected config browser command, got %q", command)
+	}
+}
+
+func TestDefaultBrowserCommandByPlatform(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		goos string
+		name string
+		args []string
+	}{
+		{goos: "darwin", name: "open", args: []string{"https://bitbucket.org/acme/widgets"}},
+		{goos: "windows", name: "rundll32", args: []string{"url.dll,FileProtocolHandler", "https://bitbucket.org/acme/widgets"}},
+		{goos: "linux", name: "xdg-open", args: []string{"https://bitbucket.org/acme/widgets"}},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.goos, func(t *testing.T) {
+			t.Parallel()
+
+			name, args := defaultBrowserCommand(tc.goos, "https://bitbucket.org/acme/widgets")
+			if name != tc.name {
+				t.Fatalf("expected %q, got %q", tc.name, name)
+			}
+			if strings.Join(args, "\n") != strings.Join(tc.args, "\n") {
+				t.Fatalf("expected %v, got %v", tc.args, args)
+			}
+		})
+	}
+}
+
+func TestResolveBrowsePathRejectsAbsolutePathOutsideRepo(t *testing.T) {
+	t.Parallel()
+
+	rootDir := t.TempDir()
+	outsideDir := t.TempDir()
+
+	_, err := resolveBrowsePath(resolvedRepoTarget{
+		LocalRepo: &gitrepo.RepoContext{RootDir: rootDir},
+	}, filepath.Join(outsideDir, "README.md"))
+	if err == nil || !strings.Contains(err.Error(), "outside the repository root") {
+		t.Fatalf("expected outside-repo error, got %v", err)
 	}
 }

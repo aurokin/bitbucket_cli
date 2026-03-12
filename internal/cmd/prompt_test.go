@@ -10,6 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type secretPromptReader struct {
+	*bytes.Buffer
+}
+
+func (secretPromptReader) Fd() uintptr {
+	return 0
+}
+
 func TestPromptRequiredStringUsesDefaultOnEmptyInput(t *testing.T) {
 	t.Parallel()
 
@@ -117,5 +125,67 @@ func TestPromptsDisabledFromConfig(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(configDir, "config.json")); err != nil {
 		t.Fatalf("expected config file to exist: %v", err)
+	}
+}
+
+func TestPromptSecretStringTrimsInput(t *testing.T) {
+	t.Parallel()
+
+	previousReadSecretInput := readSecretInput
+	t.Cleanup(func() { readSecretInput = previousReadSecretInput })
+
+	readSecretInput = func(fd int) ([]byte, error) {
+		return []byte("  secret-token  "), nil
+	}
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(secretPromptReader{Buffer: bytes.NewBuffer(nil)})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	value, err := promptSecretString(cmd, "Atlassian API token")
+	if err != nil {
+		t.Fatalf("promptSecretString returned error: %v", err)
+	}
+	if value != "secret-token" {
+		t.Fatalf("expected trimmed secret value, got %q", value)
+	}
+	if got := out.String(); got != "Atlassian API token: \n" {
+		t.Fatalf("unexpected prompt output %q", got)
+	}
+}
+
+func TestPromptSecretStringRetriesOnEmptyInput(t *testing.T) {
+	t.Parallel()
+
+	previousReadSecretInput := readSecretInput
+	t.Cleanup(func() { readSecretInput = previousReadSecretInput })
+
+	attempts := 0
+	readSecretInput = func(fd int) ([]byte, error) {
+		attempts++
+		if attempts == 1 {
+			return []byte("   "), nil
+		}
+		return []byte("retry-token"), nil
+	}
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(secretPromptReader{Buffer: bytes.NewBuffer(nil)})
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	value, err := promptSecretString(cmd, "Atlassian API token")
+	if err != nil {
+		t.Fatalf("promptSecretString returned error: %v", err)
+	}
+	if value != "retry-token" {
+		t.Fatalf("expected retry token, got %q", value)
+	}
+	if attempts != 2 {
+		t.Fatalf("expected two prompt attempts, got %d", attempts)
+	}
+	if got := out.String(); got != "Atlassian API token: \nA value is required.\nAtlassian API token: \n" {
+		t.Fatalf("unexpected prompt output %q", got)
 	}
 }

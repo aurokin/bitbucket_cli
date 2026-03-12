@@ -445,13 +445,18 @@ func openURLInBrowser(rawURL string) error {
 		return startBrowserProcess(args[0], append(args[1:], rawURL)...)
 	}
 
-	switch runtime.GOOS {
+	name, args := defaultBrowserCommand(runtime.GOOS, rawURL)
+	return startBrowserProcess(name, args...)
+}
+
+func defaultBrowserCommand(goos, rawURL string) (string, []string) {
+	switch goos {
 	case "darwin":
-		return startBrowserProcess("open", rawURL)
+		return "open", []string{rawURL}
 	case "windows":
-		return startBrowserProcess("rundll32", "url.dll,FileProtocolHandler", rawURL)
+		return "rundll32", []string{"url.dll,FileProtocolHandler", rawURL}
 	default:
-		return startBrowserProcess("xdg-open", rawURL)
+		return "xdg-open", []string{rawURL}
 	}
 }
 

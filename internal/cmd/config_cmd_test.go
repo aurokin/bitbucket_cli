@@ -88,3 +88,13 @@ func TestUnsupportedConfigKeyError(t *testing.T) {
 		t.Fatalf("expected planned-but-unsupported error, got %v", err)
 	}
 }
+
+func TestSetConfigValueRejectsInvalidBrowserCommand(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{}
+	err := setConfigValue(&cfg, "browser", `"unterminated`)
+	if err == nil || !strings.Contains(err.Error(), "browser command is invalid") {
+		t.Fatalf("expected invalid browser command error, got %v", err)
+	}
+}

@@ -11,6 +11,8 @@ import (
 	"golang.org/x/term"
 )
 
+var readSecretInput = term.ReadPassword
+
 func isInteractiveIO(in io.Reader, out io.Writer) bool {
 	stdin, ok := in.(interface{ Fd() uintptr })
 	if !ok || !term.IsTerminal(int(stdin.Fd())) {
@@ -122,7 +124,7 @@ func promptSecretString(cmd *cobra.Command, label string) (string, error) {
 			return "", err
 		}
 
-		value, err := term.ReadPassword(int(stdin.Fd()))
+		value, err := readSecretInput(int(stdin.Fd()))
 		if _, writeErr := io.WriteString(cmd.OutOrStdout(), "\n"); writeErr != nil {
 			return "", writeErr
 		}

@@ -47,6 +47,20 @@ go install ./cmd/bb
 bb version
 ```
 
+## Agent Skill
+
+This repo also ships a reusable `bb-cli` skill for agents.
+
+Install it from this repo with:
+
+```bash
+npx skills add https://github.com/aurokin/bitbucket_cli --skill bb-cli
+```
+
+You can also inspect the skill directly in [skills/bb-cli](./skills/bb-cli).
+
+`skills.sh` does not use a separate registry submission flow for publishing. Public skills become discoverable from their git repositories, and skills.sh visibility is driven by installs through the `skills` CLI.
+
 ## Implementation
 
 `bb` is implemented against the official Bitbucket Cloud REST API and stays aligned with documented Bitbucket Cloud behavior instead of inventing `gh` parity where the platform does not support it.

@@ -10,6 +10,7 @@ Use this skill when work centers on this repository's `bb` Bitbucket Cloud CLI.
 ## Quick Start
 
 - Install or update with `go install github.com/aurokin/bitbucket_cli/cmd/bb@latest`.
+- Install the reusable skill with `npx skills add https://github.com/aurokin/bitbucket_cli --skill bb-cli`.
 - Authenticate with `bb auth login`.
 - Validate auth with `bb auth status --check`.
 - Run local builds with `go build ./cmd/bb`.

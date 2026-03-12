@@ -106,3 +106,37 @@ func confirmExactMatch(cmd *cobra.Command, expected string) error {
 	}
 	return nil
 }
+
+func promptSecretString(cmd *cobra.Command, label string) (string, error) {
+	if cmd == nil {
+		return "", fmt.Errorf("prompt command is required")
+	}
+
+	stdin, ok := cmd.InOrStdin().(interface{ Fd() uintptr })
+	if !ok {
+		return "", fmt.Errorf("stdin does not support secure input")
+	}
+
+	for {
+		if _, err := io.WriteString(cmd.OutOrStdout(), label+": "); err != nil {
+			return "", err
+		}
+
+		value, err := term.ReadPassword(int(stdin.Fd()))
+		if _, writeErr := io.WriteString(cmd.OutOrStdout(), "\n"); writeErr != nil {
+			return "", writeErr
+		}
+		if err != nil {
+			return "", fmt.Errorf("read prompt input: %w", err)
+		}
+
+		trimmed := strings.TrimSpace(string(value))
+		if trimmed != "" {
+			return trimmed, nil
+		}
+
+		if _, err := io.WriteString(cmd.OutOrStdout(), "A value is required.\n"); err != nil {
+			return "", err
+		}
+	}
+}

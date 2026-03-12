@@ -35,7 +35,7 @@ func resolveAuthenticatedHostConfig(host string) (string, config.HostConfig, err
 
 	hostConfig, ok := cfg.Hosts[resolvedHost]
 	if !ok {
-		return "", config.HostConfig{}, fmt.Errorf("no stored credentials found for %s; run `bb auth login --username <email> --with-token`", resolvedHost)
+		return "", config.HostConfig{}, fmt.Errorf("no stored credentials found for %s; run `bb auth login`", resolvedHost)
 	}
 
 	return resolvedHost, hostConfig, nil
@@ -48,7 +48,7 @@ func authGuidanceError(err error) error {
 
 	switch err.Error() {
 	case "no authenticated hosts configured":
-		return fmt.Errorf("no authenticated hosts configured; run `bb auth login --username <email> --with-token`")
+		return fmt.Errorf("no authenticated hosts configured; run `bb auth login`")
 	default:
 		return err
 	}

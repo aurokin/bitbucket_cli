@@ -8,8 +8,14 @@ Authenticate with an Atlassian API token:
 
 ```bash
 printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
 bb auth status --check
 ```
+
+Create or rotate the token here:
+
+- https://id.atlassian.com/manage-profile/security/api-tokens
+- https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/
 
 Prefer explicit repository targets when you are outside a checkout or writing automation:
 
@@ -169,7 +175,7 @@ Automation conventions:
 
 ### What `gh` Offers That `bb` Does Not
 
-- Browser login and broader auth account management
+- Broader auth account management
 - Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
 - Richer repository administration such as list, edit, rename, fork, archive, and sync
 - Additional pull request flows such as review, checks, edit, ready, update-branch, and revert
@@ -198,6 +204,7 @@ References:
 
 - `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
 - `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
+- `bb` intentionally supports API-token login only. Browser login is out of scope unless Bitbucket Cloud exposes a cleaner CLI-safe auth path.
 - `bb config` exposes the keys that affect runtime today: `prompt`, `browser`, and `output.format`. Editor and pager configuration are still not wired up.
 - Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.
 - Live Bitbucket integration tests and human-output smoke tests are manual-only. They are never part of `go test ./...` or CI.

@@ -15,8 +15,11 @@ func recoveryDocEntries() []recoveryDocEntry {
 			Title:          "Invalid, Expired, Or Revoked API Token",
 			TypicalFailure: "authentication failed: the stored API token may be invalid, expired, or revoked.",
 			Recovery: []string{
-				`printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token`,
+				`BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login`,
 				"bb auth status --check",
+			},
+			Notes: []string{
+				"Create or rotate the token at " + atlassianAPITokenManageURL,
 			},
 		},
 		{
@@ -27,7 +30,7 @@ func recoveryDocEntries() []recoveryDocEntry {
 				"bb repo view --repo OhBizzle/bb-cli-integration-primary",
 			},
 			Notes: []string{
-				"If the token is valid but still denied, create a new Bitbucket API token with the required Bitbucket scopes and store it again with `bb auth login`.",
+				"If the token is valid but still denied, create a new Bitbucket API token with the required Bitbucket scopes at " + atlassianAPITokenManageURL + " and store it again with `bb auth login`.",
 			},
 		},
 		{

@@ -15,9 +15,11 @@ authentication failed: the stored API token may be invalid, expired, or revoked.
 Recovery:
 
 ```bash
-printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
 bb auth status --check
 ```
+
+Create or rotate the token at https://id.atlassian.com/manage-profile/security/api-tokens
 
 ## Missing Token Scopes Or Insufficient Access
 
@@ -34,7 +36,7 @@ bb auth status --check
 bb repo view --repo OhBizzle/bb-cli-integration-primary
 ```
 
-If the token is valid but still denied, create a new Bitbucket API token with the required Bitbucket scopes and store it again with `bb auth login`.
+If the token is valid but still denied, create a new Bitbucket API token with the required Bitbucket scopes at https://id.atlassian.com/manage-profile/security/api-tokens and store it again with `bb auth login`.
 
 ## Ambiguous Repository Resolution
 

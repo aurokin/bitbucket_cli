@@ -13,6 +13,7 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - Prefer real Bitbucket Cloud behavior over fake `gh` parity.
 - If Bitbucket Cloud cannot support a feature, do not ship a misleading approximation by default.
 - Document unsupported or impossible features in `README.md`, command help, and `ROADMAP.md` when relevant.
+- Keep authentication API-token-first. Do not add browser login unless Bitbucket Cloud exposes a clean CLI-safe flow and the docs are updated accordingly.
 - Prefer the shared `--repo` target model. Use `--workspace` only for disambiguation.
 - Preserve human and agent paths: `--json`, `--jq`, and `--no-prompt`.
 

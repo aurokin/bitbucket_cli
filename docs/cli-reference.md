@@ -207,7 +207,7 @@ Subcommands:
 
 Store credentials for a Bitbucket host
 
-Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email.
+Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email. Humans can run `bb auth login` interactively and paste the token securely. Agents can provide `BB_EMAIL` and `BB_TOKEN`, or pass `--username` and `--token` explicitly.
 
 Usage:
 
@@ -220,6 +220,7 @@ Examples:
 ```bash
 bb auth login --username you@example.com --with-token
 bb auth login --username you@example.com --token $BITBUCKET_TOKEN
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
 printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
 ```
 

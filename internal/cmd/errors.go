@@ -49,9 +49,9 @@ func apiGuidanceError(apiErr *bitbucket.APIError) error {
 
 	switch apiErr.StatusCode {
 	case 401:
-		return fmt.Errorf("authentication failed: the stored API token may be invalid, expired, or revoked. Run `bb auth login --username <email> --with-token` to replace it, then verify with `bb auth status --check`. Bitbucket said: %s", detail)
+		return fmt.Errorf("authentication failed: the stored API token may be invalid, expired, or revoked. Run `bb auth login` to replace it, then verify with `bb auth status --check`. Create or rotate the token at %s. Bitbucket said: %s", atlassianAPITokenManageURL, detail)
 	case 403:
-		return fmt.Errorf("request denied by Bitbucket Cloud: the API token may be missing required Bitbucket scopes, or the account may not have access to this workspace or repository. Create a token with the needed Bitbucket scopes, then verify with `bb auth status --check`. Bitbucket said: %s", detail)
+		return fmt.Errorf("request denied by Bitbucket Cloud: the API token may be missing required Bitbucket scopes, or the account may not have access to this workspace or repository. Create a token with the needed Bitbucket scopes at %s, then verify with `bb auth status --check`. Bitbucket said: %s", atlassianAPITokenManageURL, detail)
 	case 404:
 		return fmt.Errorf("Bitbucket could not find that resource, or your token cannot see it. Check the repository target, workspace slug, and pull request ID. Bitbucket said: %s", detail)
 	default:

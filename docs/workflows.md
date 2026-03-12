@@ -8,8 +8,14 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 
 ```bash
 printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
 bb auth status --check
 ```
+
+Create the token here before logging in:
+
+- https://id.atlassian.com/manage-profile/security/api-tokens
+- https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/
 
 ## Inspect And Clone A Repository
 

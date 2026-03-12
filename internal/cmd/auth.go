@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,11 @@ import (
 	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/auro/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
+)
+
+const (
+	atlassianAPITokenManageURL = "https://id.atlassian.com/manage-profile/security/api-tokens"
+	atlassianAPITokenDocsURL   = "https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/"
 )
 
 func newAuthCmd() *cobra.Command {
@@ -69,17 +75,19 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Store credentials for a Bitbucket host",
-		Long:  "Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email.",
+		Long:  "Store an Atlassian API token for Bitbucket Cloud. The username should be your Atlassian account email. Humans can run `bb auth login` interactively and paste the token securely. Agents can provide `BB_EMAIL` and `BB_TOKEN`, or pass `--username` and `--token` explicitly.",
 		Example: "  bb auth login --username you@example.com --with-token\n" +
 			"  bb auth login --username you@example.com --token $BITBUCKET_TOKEN\n" +
+			"  BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login\n" +
 			"  printf '%s\\n' \"$BITBUCKET_TOKEN\" | bb auth login --username you@example.com --with-token",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			resolvedToken, err := resolveTokenValue(cmd.InOrStdin(), token, tokenFromStdin)
+			resolvedUsername, err := resolveUsernameValue(cmd, username)
 			if err != nil {
 				return err
 			}
-			if strings.TrimSpace(username) == "" {
-				return fmt.Errorf("--username is required and should be your Atlassian account email")
+			resolvedToken, err := resolveTokenValue(cmd, token, tokenFromStdin)
+			if err != nil {
+				return err
 			}
 
 			cfg, err := config.Load()
@@ -88,7 +96,7 @@ func newAuthLoginCmd() *cobra.Command {
 			}
 
 			cfg.SetHost(host, config.HostConfig{
-				Username:  strings.TrimSpace(username),
+				Username:  resolvedUsername,
 				Token:     resolvedToken,
 				AuthType:  config.AuthTypeAPIToken,
 				UpdatedAt: time.Now().UTC(),
@@ -98,7 +106,7 @@ func newAuthLoginCmd() *cobra.Command {
 				return err
 			}
 
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Stored credentials for %s as %s\n", host, strings.TrimSpace(username)); err != nil {
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Stored credentials for %s as %s\n", host, resolvedUsername); err != nil {
 				return err
 			}
 			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb auth status --check --host %s", host))
@@ -148,7 +156,10 @@ func newAuthStatusCmd() *cobra.Command {
 					if _, err := io.WriteString(w, "No authenticated hosts.\n"); err != nil {
 						return err
 					}
-					return writeNextStep(w, "bb auth login --username <email> --with-token")
+					if err := writeLabelValue(w, "Create Token", atlassianAPITokenManageURL); err != nil {
+						return err
+					}
+					return writeNextStep(w, "bb auth login")
 				}
 
 				accountWidth := authStatusAccountWidth(output.TerminalWidth(w))
@@ -263,7 +274,10 @@ func newAuthLogoutCmd() *cobra.Command {
 			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Removed credentials for %s\n", resolvedHost); err != nil {
 				return err
 			}
-			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb auth login --host %s --username <email> --with-token", resolvedHost))
+			if err := writeLabelValue(cmd.OutOrStdout(), "Create Token", atlassianAPITokenManageURL); err != nil {
+				return err
+			}
+			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb auth login --host %s", resolvedHost))
 		},
 	}
 
@@ -272,27 +286,51 @@ func newAuthLogoutCmd() *cobra.Command {
 	return cmd
 }
 
-func resolveTokenValue(r io.Reader, token string, tokenFromStdin bool) (string, error) {
+func resolveUsernameValue(cmd *cobra.Command, username string) (string, error) {
+	trimmed := strings.TrimSpace(username)
+	if trimmed != "" {
+		return trimmed, nil
+	}
+
+	if envEmail := strings.TrimSpace(os.Getenv("BB_EMAIL")); envEmail != "" {
+		return envEmail, nil
+	}
+
+	if promptsEnabled(cmd) {
+		return promptRequiredString(cmd, "Atlassian account email", "")
+	}
+
+	return "", fmt.Errorf("an Atlassian account email is required. Pass --username, set BB_EMAIL, or run in an interactive terminal. Create an API token at %s", atlassianAPITokenManageURL)
+}
+
+func resolveTokenValue(cmd *cobra.Command, token string, tokenFromStdin bool) (string, error) {
 	trimmed := strings.TrimSpace(token)
 	if trimmed != "" {
 		return trimmed, nil
 	}
 
-	if !tokenFromStdin {
-		return "", fmt.Errorf("provide an API token with --token or pass --with-token to read it from stdin")
+	if tokenFromStdin {
+		data, err := io.ReadAll(cmd.InOrStdin())
+		if err != nil {
+			return "", fmt.Errorf("read token from stdin: %w", err)
+		}
+
+		trimmed = strings.TrimSpace(string(data))
+		if trimmed == "" {
+			return "", fmt.Errorf("stdin did not contain an API token")
+		}
+		return trimmed, nil
 	}
 
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return "", fmt.Errorf("read token from stdin: %w", err)
+	if envToken := strings.TrimSpace(os.Getenv("BB_TOKEN")); envToken != "" {
+		return envToken, nil
 	}
 
-	trimmed = strings.TrimSpace(string(data))
-	if trimmed == "" {
-		return "", fmt.Errorf("stdin did not contain an API token")
+	if promptsEnabled(cmd) {
+		return promptSecretString(cmd, "Atlassian API token")
 	}
 
-	return trimmed, nil
+	return "", fmt.Errorf("an Atlassian API token is required. Pass --token, use --with-token, set BB_TOKEN, or run in an interactive terminal. Create one at %s", atlassianAPITokenManageURL)
 }
 
 func buildAuthStatusPayload(ctx context.Context, cfg config.Config, selectedHost string, check bool) (authStatusPayload, error) {

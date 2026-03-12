@@ -25,9 +25,14 @@ bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json 
 
 ```bash
 printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
 bb auth status --check --json
 bb config set browser 'firefox --new-window'
 ```
+
+Create or rotate the token at:
+
+- https://id.atlassian.com/manage-profile/security/api-tokens
 
 ## Repository Commands
 

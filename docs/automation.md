@@ -33,6 +33,8 @@ bb --no-prompt repo delete OhBizzle/example-repo --yes --json workspace,repo,del
 
 ```bash
 bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json build_number,state,target,created_on
+bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}' --json pipeline,step,log
+bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
 bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json host,workspace,repo,pipeline,steps
 ```
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -251,18 +252,40 @@ func (c *Client) GetPipelineByBuildNumber(ctx context.Context, workspace, repoSl
 		return Pipeline{}, fmt.Errorf("pipeline build number must be greater than zero")
 	}
 
-	pipelines, err := c.ListPipelines(ctx, workspace, repoSlug, ListPipelinesOptions{
-		Query: fmt.Sprintf("build_number=%d", buildNumber),
-		Limit: 1,
-	})
-	if err != nil {
-		return Pipeline{}, err
-	}
-	if len(pipelines) == 0 || pipelines[0].BuildNumber != buildNumber {
-		return Pipeline{}, fmt.Errorf("pipeline #%d was not found", buildNumber)
+	values := url.Values{}
+	values.Set("pagelen", "50")
+	values.Set("sort", "-created_on")
+
+	nextPath := fmt.Sprintf("/repositories/%s/%s/pipelines/?%s", url.PathEscape(workspace), url.PathEscape(repoSlug), values.Encode())
+	for nextPath != "" {
+		resp, err := c.Do(ctx, http.MethodGet, nextPath, nil, nil)
+		if err != nil {
+			return Pipeline{}, err
+		}
+
+		var page pipelineListResponse
+		func() {
+			defer resp.Body.Close()
+			err = requireSuccess(resp)
+			if err != nil {
+				return
+			}
+			err = json.NewDecoder(resp.Body).Decode(&page)
+		}()
+		if err != nil {
+			return Pipeline{}, fmt.Errorf("decode pipeline list: %w", err)
+		}
+
+		for _, pipeline := range page.Values {
+			if pipeline.BuildNumber == buildNumber {
+				return pipeline, nil
+			}
+		}
+
+		nextPath = page.Next
 	}
 
-	return pipelines[0], nil
+	return Pipeline{}, fmt.Errorf("pipeline #%d was not found", buildNumber)
 }
 
 func (c *Client) TriggerPipeline(ctx context.Context, workspace, repoSlug string, options TriggerPipelineOptions) (Pipeline, error) {
@@ -336,6 +359,61 @@ func (c *Client) ListPipelineSteps(ctx context.Context, workspace, repoSlug, pip
 	}
 
 	return page.Values, nil
+}
+
+func (c *Client) GetPipelineStepLog(ctx context.Context, workspace, repoSlug, pipelineUUID, stepUUID string) (string, error) {
+	if workspace == "" || repoSlug == "" {
+		return "", fmt.Errorf("workspace and repository are required")
+	}
+	pipelineUUID = normalizePipelineUUID(pipelineUUID)
+	if pipelineUUID == "" {
+		return "", fmt.Errorf("pipeline UUID is required")
+	}
+	stepUUID = normalizePipelineUUID(stepUUID)
+	if stepUUID == "" {
+		return "", fmt.Errorf("pipeline step UUID is required")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pipelines/%s/steps/%s/log", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(pipelineUUID), url.PathEscape(stepUUID))
+	resp, err := c.Do(ctx, http.MethodGet, path, nil, map[string]string{"Accept": "*/*"})
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return "", err
+	}
+
+	payload, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read pipeline step log: %w", err)
+	}
+
+	return string(payload), nil
+}
+
+func (c *Client) StopPipeline(ctx context.Context, workspace, repoSlug, pipelineUUID string) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	pipelineUUID = normalizePipelineUUID(pipelineUUID)
+	if pipelineUUID == "" {
+		return fmt.Errorf("pipeline UUID is required")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pipelines/%s/stopPipeline", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(pipelineUUID))
+	resp, err := c.Do(ctx, http.MethodPost, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func normalizePipelineUUID(value string) string {

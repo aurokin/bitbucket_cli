@@ -41,12 +41,14 @@ func GenerateJSONShapesDoc() (string, error) {
 		},
 		{
 			Title:       "Pipeline List And View",
-			Description: "Representative shape for pipeline list items and the pipeline view payload.",
+			Description: "Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.",
 			Commands: []string{
 				"bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json '*'",
+				"bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}' --json '*'",
+				"bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json '*'",
 				"bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json '*'",
 			},
-			Type: []any{bitbucket.Pipeline{}, pipelineViewPayload{}},
+			Type: []any{bitbucket.Pipeline{}, pipelineLogPayload{}, pipelineStopPayload{}, pipelineViewPayload{}},
 		},
 		{
 			Title:       "Pull Request List And View",

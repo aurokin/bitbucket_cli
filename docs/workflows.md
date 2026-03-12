@@ -32,6 +32,7 @@ bb repo clone OhBizzle/bb-cli-integration-primary
 ```bash
 bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
 bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines
+bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
 ```
 
 ## Review A Pull Request

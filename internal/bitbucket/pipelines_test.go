@@ -71,8 +71,11 @@ func TestGetPipeline(t *testing.T) {
 
 func TestGetPipelineByBuildNumber(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Query().Get("q"); got != "build_number=12" {
-			t.Fatalf("unexpected q %q", got)
+		if got := r.URL.Query().Get("sort"); got != "-created_on" {
+			t.Fatalf("unexpected sort %q", got)
+		}
+		if got := r.URL.Query().Get("pagelen"); got != "50" {
+			t.Fatalf("unexpected pagelen %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"values":[{"uuid":"{uuid-12}","build_number":12,"state":{"name":"COMPLETED"}}]}`))
@@ -110,6 +113,50 @@ func TestListPipelineSteps(t *testing.T) {
 	}
 	if len(steps) != 1 || steps[0].Name != "Build" {
 		t.Fatalf("unexpected steps %+v", steps)
+	}
+}
+
+func TestGetPipelineStepLog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pipelines/{uuid-1}/steps/{step-1}/log" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if got := r.Header.Get("Accept"); got != "*/*" {
+			t.Fatalf("unexpected Accept header %q", got)
+		}
+		_, _ = w.Write([]byte("step log output\n"))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client := pipelineTestClient(t)
+
+	log, err := client.GetPipelineStepLog(context.Background(), "acme", "widgets", "{uuid-1}", "{step-1}")
+	if err != nil {
+		t.Fatalf("GetPipelineStepLog returned error: %v", err)
+	}
+	if log != "step log output\n" {
+		t.Fatalf("unexpected step log %q", log)
+	}
+}
+
+func TestStopPipeline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pipelines/{uuid-1}/stopPipeline" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client := pipelineTestClient(t)
+
+	if err := client.StopPipeline(context.Background(), "acme", "widgets", "{uuid-1}"); err != nil {
+		t.Fatalf("StopPipeline returned error: %v", err)
 	}
 }
 

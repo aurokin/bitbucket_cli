@@ -22,22 +22,23 @@ import (
 )
 
 const (
-	fixtureProjectKey        = "BBCLI"
-	fixtureProjectName       = "bb-cli integration"
-	fixturePrimaryRepoSlug   = "bb-cli-integration-primary"
-	fixtureSecondaryRepoSlug = "bb-cli-integration-secondary"
-	fixtureIssuesRepoSlug    = "bb-cli-integration-issues"
-	fixturePipelinesRepoSlug = "bb-cli-integration-pipelines"
-	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
-	fixtureDeleteRepoSlug    = "bb-cli-delete-command-target"
-	fixtureFeatureBranch     = "bb-cli-int-feature"
-	fixturePRTitle           = "bb cli integration fixture pull request"
-	fixtureCreatePRBranch    = "bb-cli-create-command-branch"
-	fixtureCreatePRTitle     = "bb cli create command pull request"
-	fixtureClosePRBranch     = "bb-cli-close-command-branch"
-	fixtureClosePRTitle      = "bb cli close command pull request"
-	fixtureMergePRBranch     = "bb-cli-merge-command-branch"
-	fixtureMergePRTitle      = "bb cli merge command pull request"
+	fixtureProjectKey         = "BBCLI"
+	fixtureProjectName        = "bb-cli integration"
+	fixturePrimaryRepoSlug    = "bb-cli-integration-primary"
+	fixtureSecondaryRepoSlug  = "bb-cli-integration-secondary"
+	fixtureIssuesRepoSlug     = "bb-cli-integration-issues"
+	fixturePipelinesRepoSlug  = "bb-cli-integration-pipelines"
+	fixtureCreateRepoSlug     = "bb-cli-created-via-command"
+	fixtureDeleteRepoSlug     = "bb-cli-delete-command-target"
+	fixturePipelineStopBranch = "bb-cli-pipeline-stop"
+	fixtureFeatureBranch      = "bb-cli-int-feature"
+	fixturePRTitle            = "bb cli integration fixture pull request"
+	fixtureCreatePRBranch     = "bb-cli-create-command-branch"
+	fixtureCreatePRTitle      = "bb cli create command pull request"
+	fixtureClosePRBranch      = "bb-cli-close-command-branch"
+	fixtureClosePRTitle       = "bb cli close command pull request"
+	fixtureMergePRBranch      = "bb-cli-merge-command-branch"
+	fixtureMergePRTitle       = "bb cli merge command pull request"
 )
 
 type integrationFixture struct {
@@ -475,6 +476,106 @@ func TestBitbucketCloudPipelineView(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPipelineLog(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
+	if !pipelineLogAvailable(t, client, workspace, pipelines.Repo.Slug, pipelines.Pipeline.UUID, pipelines.PipelineSteps[0].UUID) {
+		t.Skip("Bitbucket did not expose a raw step log for the pipeline fixture")
+	}
+	binary := buildBinary(t)
+
+	cmd := exec.Command(
+		binary,
+		"pipeline", "log", fmt.Sprintf("%d", pipelines.Pipeline.BuildNumber),
+		"--repo", workspace+"/"+pipelines.Repo.Slug,
+		"--step", pipelines.PipelineSteps[0].UUID,
+		"--json", "*",
+	)
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline log failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string                 `json:"workspace"`
+		Repo      string                 `json:"repo"`
+		Pipeline  bitbucket.Pipeline     `json:"pipeline"`
+		Step      bitbucket.PipelineStep `json:"step"`
+		Log       string                 `json:"log"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline log JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != pipelines.Repo.Slug {
+		t.Fatalf("unexpected pipeline log identity %+v", payload)
+	}
+	if payload.Pipeline.UUID != pipelines.Pipeline.UUID || payload.Step.UUID != pipelines.PipelineSteps[0].UUID {
+		t.Fatalf("unexpected pipeline log payload %+v", payload)
+	}
+	if strings.TrimSpace(payload.Log) == "" {
+		t.Fatalf("expected non-empty pipeline log payload %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPipelineStop(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
+	running := ensureRunningPipeline(t, client, pipelines.RepoDir, workspace, pipelines.Repo.Slug)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if bytes.Contains(output, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("pipeline stop requires broader pipeline write scopes:\n%s", output)
+		}
+		if bytes.Contains(output, []byte("is no longer stoppable")) {
+			t.Skipf("pipeline stop fixture completed before the stop signal was accepted:\n%s", output)
+		}
+		t.Fatalf("bb pipeline stop failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string             `json:"workspace"`
+		Repo      string             `json:"repo"`
+		Pipeline  bitbucket.Pipeline `json:"pipeline"`
+		Stopped   bool               `json:"stopped"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline stop JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != pipelines.Repo.Slug || !payload.Stopped {
+		t.Fatalf("unexpected pipeline stop payload %+v", payload)
+	}
+
+	stopped := waitForPipelineState(t, client, workspace, pipelines.Repo.Slug, running.UUID, 36, 5*time.Second)
+	if !strings.EqualFold(pipelineStateName(stopped), "STOPPED") {
+		t.Fatalf("expected stopped pipeline state, got %+v", stopped)
+	}
+}
+
 func TestBitbucketCloudStatus(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
@@ -742,6 +843,7 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	fixture := ensureFixture(t, client, hostConfig, workspace)
 	issueRepo := ensureIssueRepository(t, client, workspace)
 	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
+	canReadPipelineLog := pipelineLogAvailable(t, client, workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
 	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
 	binary := buildBinary(t)
 
@@ -832,6 +934,21 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected steps section in pipeline view output:\n%s", pipelineViewOutput)
 	}
 
+	if canReadPipelineLog {
+		pipelineLogCmd := exec.Command(binary, "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID)
+		pipelineLogCmd.Env = os.Environ()
+		pipelineLogOutput, err := pipelineLogCmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("bb pipeline log human output failed: %v\n%s", err, pipelineLogOutput)
+		}
+		if !strings.Contains(string(pipelineLogOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+			t.Fatalf("expected repo header in pipeline log output:\n%s", pipelineLogOutput)
+		}
+		if !strings.Contains(string(pipelineLogOutput), "Step:") {
+			t.Fatalf("expected step label in pipeline log output:\n%s", pipelineLogOutput)
+		}
+	}
+
 	prListCmd := exec.Command(binary, "pr", "list", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
 	prListCmd.Env = os.Environ()
 	prListOutput, err := prListCmd.CombinedOutput()
@@ -905,6 +1022,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	fixture := ensureFixture(t, client, hostConfig, workspace)
 	issueRepo := ensureIssueRepository(t, client, workspace)
 	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
+	canReadPipelineLog := pipelineLogAvailable(t, client, workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
 	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
 	binary := buildBinary(t)
 
@@ -965,6 +1083,26 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if pipelineView.Workspace != workspace || pipelineView.Repo != pipelineRepo.Repo.Slug || pipelineView.Pipeline.BuildNumber == 0 {
 		t.Fatalf("unexpected pipeline view payload %+v", pipelineView)
+	}
+
+	if canReadPipelineLog {
+		pipelineLogCmd := exec.Command(binary, "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID, "--json", "pipeline,step,log")
+		pipelineLogCmd.Env = os.Environ()
+		pipelineLogOutput, err := pipelineLogCmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("bb pipeline log generated-docs smoke failed: %v\n%s", err, pipelineLogOutput)
+		}
+		var pipelineLog struct {
+			Pipeline bitbucket.Pipeline     `json:"pipeline"`
+			Step     bitbucket.PipelineStep `json:"step"`
+			Log      string                 `json:"log"`
+		}
+		if err := json.Unmarshal(pipelineLogOutput, &pipelineLog); err != nil {
+			t.Fatalf("parse pipeline log JSON: %v\n%s", err, pipelineLogOutput)
+		}
+		if pipelineLog.Pipeline.BuildNumber == 0 || pipelineLog.Step.UUID == "" || strings.TrimSpace(pipelineLog.Log) == "" {
+			t.Fatalf("unexpected pipeline log payload %+v", pipelineLog)
+		}
 	}
 
 	prStatusCmd := exec.Command(binary, "pr", "status", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "workspace,repo,current_branch_name,created,review_requested")
@@ -1375,7 +1513,7 @@ func ensurePipelineRepoContent(t *testing.T, repoDir string) {
 	}
 
 	writeFile(t, filepath.Join(repoDir, "README.md"), "# pipelines fixture repo\n")
-	writeFile(t, filepath.Join(repoDir, "bitbucket-pipelines.yml"), "pipelines:\n  default:\n    - step:\n        name: fixture-step\n        script:\n          - echo 'bb pipeline fixture'\n")
+	writeFile(t, filepath.Join(repoDir, "bitbucket-pipelines.yml"), "pipelines:\n  default:\n    - step:\n        name: fixture-step\n        script:\n          - echo 'bb pipeline fixture'\n  branches:\n    bb-cli-pipeline-stop:\n      - step:\n          name: stop-fixture-step\n          script:\n            - echo 'starting stop fixture'\n            - sleep 180\n")
 	runGit(t, repoDir, "add", "README.md", "bitbucket-pipelines.yml")
 
 	if workingTreeClean(t, repoDir) {
@@ -1474,6 +1612,95 @@ func waitForPipelineSteps(t *testing.T, client *bitbucket.Client, workspace, rep
 		t.Fatalf("list pipeline steps: %v", err)
 	}
 	return steps
+}
+
+func pipelineLogAvailable(t *testing.T, client *bitbucket.Client, workspace, repoSlug, pipelineUUID, stepUUID string) bool {
+	t.Helper()
+
+	_, err := client.GetPipelineStepLog(context.Background(), workspace, repoSlug, pipelineUUID, stepUUID)
+	if err == nil {
+		return true
+	}
+	if apiErr, ok := bitbucket.AsAPIError(err); ok && (apiErr.StatusCode == http.StatusNotFound || apiErr.StatusCode == http.StatusNotAcceptable) {
+		return false
+	}
+	t.Fatalf("probe pipeline log availability: %v", err)
+	return false
+}
+
+func ensureRunningPipeline(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string) bitbucket.Pipeline {
+	t.Helper()
+
+	pipelines, err := client.ListPipelines(context.Background(), workspace, repoSlug, bitbucket.ListPipelinesOptions{
+		Sort:  "-created_on",
+		Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("list running pipeline fixtures: %v", err)
+	}
+	for _, pipeline := range pipelines {
+		if pipeline.Target.RefName == fixturePipelineStopBranch && isActivePipeline(pipeline) {
+			return pipeline
+		}
+	}
+
+	ensureBranchCommit(t, repoDir, fixturePipelineStopBranch, "stop-trigger.txt", fmt.Sprintf("stop fixture updated %s\n", time.Now().UTC().Format(time.RFC3339Nano)))
+	for attempt := 0; attempt < 24; attempt++ {
+		pipelines, err = client.ListPipelines(context.Background(), workspace, repoSlug, bitbucket.ListPipelinesOptions{
+			Sort:  "-created_on",
+			Limit: 20,
+		})
+		if err == nil {
+			for _, pipeline := range pipelines {
+				if pipeline.Target.RefName == fixturePipelineStopBranch && isActivePipeline(pipeline) {
+					return pipeline
+				}
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	triggered, err := client.TriggerPipeline(context.Background(), workspace, repoSlug, bitbucket.TriggerPipelineOptions{
+		RefType: "branch",
+		RefName: fixturePipelineStopBranch,
+	})
+	if err != nil {
+		t.Fatalf("trigger stop pipeline fixture: %v", err)
+	}
+	return triggered
+}
+
+func waitForPipelineState(t *testing.T, client *bitbucket.Client, workspace, repoSlug, pipelineUUID string, attempts int, delay time.Duration) bitbucket.Pipeline {
+	t.Helper()
+
+	var pipeline bitbucket.Pipeline
+	for attempt := 0; attempt < attempts; attempt++ {
+		var err error
+		pipeline, err = client.GetPipeline(context.Background(), workspace, repoSlug, pipelineUUID)
+		if err != nil {
+			t.Fatalf("get pipeline %s: %v", pipelineUUID, err)
+		}
+		if !isActivePipeline(pipeline) {
+			return pipeline
+		}
+		time.Sleep(delay)
+	}
+
+	return pipeline
+}
+
+func isActivePipeline(pipeline bitbucket.Pipeline) bool {
+	return !strings.EqualFold(pipelineStateName(pipeline), "STOPPED") &&
+		!strings.EqualFold(pipelineStateName(pipeline), "SUCCESSFUL") &&
+		!strings.EqualFold(pipelineStateName(pipeline), "FAILED") &&
+		!strings.EqualFold(pipelineStateName(pipeline), "ERROR")
+}
+
+func pipelineStateName(pipeline bitbucket.Pipeline) string {
+	if pipeline.State.Result.Name != "" {
+		return pipeline.State.Result.Name
+	}
+	return pipeline.State.Name
 }
 
 func repositoryExists(t *testing.T, client *bitbucket.Client, workspace, slug string) bool {

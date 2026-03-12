@@ -71,3 +71,53 @@ func TestWritePipelineListTable(t *testing.T) {
 		t.Fatalf("expected truncation marker in output, got %q", got)
 	}
 }
+
+func TestResolvePipelineStep(t *testing.T) {
+	t.Parallel()
+
+	steps := []bitbucket.PipelineStep{
+		{UUID: "{step-1}", Name: "Build"},
+		{UUID: "{step-2}", Name: "Test"},
+	}
+
+	step, err := resolvePipelineStep(steps, "Test")
+	if err != nil {
+		t.Fatalf("resolvePipelineStep returned error: %v", err)
+	}
+	if step.UUID != "{step-2}" {
+		t.Fatalf("unexpected step %+v", step)
+	}
+}
+
+func TestResolvePipelineStepRequiresExplicitSelectionWhenMultiple(t *testing.T) {
+	t.Parallel()
+
+	_, err := resolvePipelineStep([]bitbucket.PipelineStep{
+		{UUID: "{step-1}", Name: "Build"},
+		{UUID: "{step-2}", Name: "Test"},
+	}, "")
+	if err == nil || !strings.Contains(err.Error(), "multiple pipeline steps are available") {
+		t.Fatalf("expected multiple-step error, got %v", err)
+	}
+}
+
+func TestResolvePipelineStepFallsBackToSingleStep(t *testing.T) {
+	t.Parallel()
+
+	step, err := resolvePipelineStep([]bitbucket.PipelineStep{{UUID: "{step-1}", Name: "Build"}}, "")
+	if err != nil {
+		t.Fatalf("resolvePipelineStep returned error: %v", err)
+	}
+	if step.UUID != "{step-1}" {
+		t.Fatalf("unexpected step %+v", step)
+	}
+}
+
+func TestPipelineStepLabel(t *testing.T) {
+	t.Parallel()
+
+	label := pipelineStepLabel(bitbucket.PipelineStep{UUID: "{step-1}", Name: "Build"})
+	if label != "Build ({step-1})" {
+		t.Fatalf("unexpected step label %q", label)
+	}
+}

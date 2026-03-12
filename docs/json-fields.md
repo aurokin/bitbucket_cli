@@ -10,6 +10,8 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |
 | `bb pipeline list` | `build_number`, `completed_on`, `created_on`, `creator`, `links`, `state`, `target`, `uuid` | `bb pipeline list --json build_number,completed_on,created_on` |
+| `bb pipeline log` | `host`, `log`, `pipeline`, `repo`, `step`, `workspace` | `bb pipeline log --json host,log,pipeline` |
+| `bb pipeline stop` | `host`, `pipeline`, `repo`, `stopped`, `workspace` | `bb pipeline stop --json host,pipeline,repo` |
 | `bb pipeline view` | `host`, `pipeline`, `repo`, `steps`, `workspace` | `bb pipeline view --json host,pipeline,repo` |
 | `bb pr list` | `author`, `close_source_branch`, `comment_count`, `created_on`, `description`, `destination`, `draft`, `id`, `links`, `merge_commit`, `participants`, `queued`, `reviewers`, `source`, `state`, `task_count`, `title`, `updated_on` | `bb pr list --json author,close_source_branch,comment_count` |
 | `bb pr view` | `author`, `close_source_branch`, `comment_count`, `created_on`, `description`, `destination`, `draft`, `id`, `links`, `merge_commit`, `participants`, `queued`, `reviewers`, `source`, `state`, `task_count`, `title`, `updated_on` | `bb pr view --json author,close_source_branch,comment_count` |

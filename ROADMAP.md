@@ -2,9 +2,6 @@
 
 ## Next Commands
 
-- Pipeline actions and logs
-  Extend the current pipeline list and view support with supported follow-up actions like log inspection and rerun or stop flows only where Bitbucket Cloud has real API support.
-
 ## Later Phase
 
 - Browse redesign

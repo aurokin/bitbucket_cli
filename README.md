@@ -27,6 +27,7 @@ Humans can lean on local git inference and the default header-first output:
 ```bash
 bb repo view
 bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
+bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
 bb pr list
 bb pr view 1
 bb pr diff 1 --stat
@@ -53,6 +54,7 @@ bb --no-prompt pr create \
   --json id,title,state,links
 
 bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json patch,stats
+bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
 bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,steps
 bb status --json authored_prs,review_requested_prs,your_issues
 bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --jq '.[] | .id'
@@ -100,6 +102,8 @@ Automation conventions:
 - `bb repo clone`
 - `bb repo delete`
 - `bb pipeline list`
+- `bb pipeline log`
+- `bb pipeline stop`
 - `bb pipeline view`
 - `bb pr list`
 - `bb pr status`
@@ -178,6 +182,12 @@ References:
 
 - https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
 - https://jira.atlassian.com/browse/BCLOUD-23807
+
+## Notes On Pipeline Behavior
+
+- `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: list, view, log, and stop.
+- `bb` does not provide pipeline rerun because the current Bitbucket Cloud pipeline REST docs do not expose a rerun endpoint. `bb` does not fake rerun by creating a new run behind your back.
+- Raw step logs are not guaranteed for every Bitbucket pipeline step. When Bitbucket does not expose a log file for a step, `bb pipeline log` fails clearly instead of inventing synthetic output.
 
 ## Notes On Current Behavior
 

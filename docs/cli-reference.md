@@ -34,6 +34,8 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb issue view`
 - `bb pipeline`
   - `bb pipeline list`
+  - `bb pipeline log`
+  - `bb pipeline stop`
   - `bb pipeline view`
 - `bb pr`
   - `bb pr checkout`
@@ -664,6 +666,8 @@ Flags:
 Subcommands:
 
 - `bb pipeline list`: List pipeline runs for a repository
+- `bb pipeline log`: Show the log for one pipeline step
+- `bb pipeline stop`: Stop a running pipeline
 - `bb pipeline view`: View one pipeline run
 
 ## `bb pipeline list`
@@ -694,6 +698,66 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--state`: Filter pipelines by pipeline state name
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline log`
+
+Show the log for one pipeline step
+
+Show the raw log for a pipeline step. If the pipeline has exactly one step, bb selects it automatically. Otherwise pass --step with a step UUID or name.
+
+Usage:
+
+```text
+bb pipeline log <number-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines
+bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
+bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,step,log
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--step`: Pipeline step UUID or name when a pipeline has more than one step
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline stop`
+
+Stop a running pipeline
+
+Stop a Bitbucket pipeline run. Humans must confirm the exact repository and pipeline number unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline stop <number-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes
+bb pipeline stop '{uuid}' --repo OhBizzle/bb-cli-integration-pipelines --json '*'
+bb --no-prompt pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
 
 ## `bb pipeline view`
 

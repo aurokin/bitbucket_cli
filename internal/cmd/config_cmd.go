@@ -70,9 +70,7 @@ func newConfigListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 
 	return cmd
 }
@@ -110,9 +108,7 @@ func newConfigGetCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 
 	return cmd
 }

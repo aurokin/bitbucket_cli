@@ -148,9 +148,7 @@ func newStatusCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Limit status aggregation to one workspace")
 	cmd.Flags().IntVar(&repoLimit, "repo-limit", 100, "Maximum repositories to scan per workspace")

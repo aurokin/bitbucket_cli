@@ -136,14 +136,15 @@ func resolveMergeStrategy(pr bitbucket.PullRequest, requested string) (string, e
 }
 
 type prStatusPayload struct {
-	Host              string                  `json:"host"`
-	Workspace         string                  `json:"workspace"`
-	Repo              string                  `json:"repo"`
-	CurrentUser       bitbucket.CurrentUser   `json:"current_user"`
-	CurrentBranchName string                  `json:"current_branch_name,omitempty"`
-	CurrentBranch     *bitbucket.PullRequest  `json:"current_branch,omitempty"`
-	Created           []bitbucket.PullRequest `json:"created"`
-	ReviewRequested   []bitbucket.PullRequest `json:"review_requested"`
+	Host               string                  `json:"host"`
+	Workspace          string                  `json:"workspace"`
+	Repo               string                  `json:"repo"`
+	CurrentUser        bitbucket.CurrentUser   `json:"current_user"`
+	CurrentBranchName  string                  `json:"current_branch_name,omitempty"`
+	CurrentBranchError string                  `json:"current_branch_error,omitempty"`
+	CurrentBranch      *bitbucket.PullRequest  `json:"current_branch,omitempty"`
+	Created            []bitbucket.PullRequest `json:"created"`
+	ReviewRequested    []bitbucket.PullRequest `json:"review_requested"`
 }
 
 type prDiffPayload struct {
@@ -156,15 +157,16 @@ type prDiffPayload struct {
 	Stats     []bitbucket.PullRequestDiffStat `json:"stats"`
 }
 
-func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.CurrentUser, currentBranch string, prs []bitbucket.PullRequest) prStatusPayload {
+func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.CurrentUser, currentBranch, currentBranchError string, prs []bitbucket.PullRequest) prStatusPayload {
 	payload := prStatusPayload{
-		Host:              target.Host,
-		Workspace:         target.Workspace,
-		Repo:              target.Repo,
-		CurrentUser:       currentUser,
-		CurrentBranchName: currentBranch,
-		Created:           make([]bitbucket.PullRequest, 0),
-		ReviewRequested:   make([]bitbucket.PullRequest, 0),
+		Host:               target.Host,
+		Workspace:          target.Workspace,
+		Repo:               target.Repo,
+		CurrentUser:        currentUser,
+		CurrentBranchName:  currentBranch,
+		CurrentBranchError: currentBranchError,
+		Created:            make([]bitbucket.PullRequest, 0),
+		ReviewRequested:    make([]bitbucket.PullRequest, 0),
 	}
 
 	currentBranchID := 0

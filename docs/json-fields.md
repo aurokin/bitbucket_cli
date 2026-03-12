@@ -16,7 +16,7 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb pipeline view` | `host`, `pipeline`, `repo`, `steps`, `workspace` | `bb pipeline view --json host,pipeline,repo` |
 | `bb pr list` | `author`, `close_source_branch`, `comment_count`, `created_on`, `description`, `destination`, `draft`, `id`, `links`, `merge_commit`, `participants`, `queued`, `reviewers`, `source`, `state`, `task_count`, `title`, `updated_on` | `bb pr list --json author,close_source_branch,comment_count` |
 | `bb pr view` | `author`, `close_source_branch`, `comment_count`, `created_on`, `description`, `destination`, `draft`, `id`, `links`, `merge_commit`, `participants`, `queued`, `reviewers`, `source`, `state`, `task_count`, `title`, `updated_on` | `bb pr view --json author,close_source_branch,comment_count` |
-| `bb pr status` | `created`, `current_branch`, `current_branch_name`, `current_user`, `host`, `repo`, `review_requested`, `workspace` | `bb pr status --json created,current_branch,current_branch_name` |
+| `bb pr status` | `created`, `current_branch`, `current_branch_error`, `current_branch_name`, `current_user`, `host`, `repo`, `review_requested`, `workspace` | `bb pr status --json created,current_branch,current_branch_error` |
 | `bb pr diff` | `host`, `id`, `patch`, `repo`, `stats`, `title`, `workspace` | `bb pr diff --json host,id,patch` |
 | `bb issue list` | `assignee`, `content`, `created_on`, `id`, `kind`, `links`, `priority`, `reporter`, `state`, `title`, `updated_on` | `bb issue list --json assignee,content,created_on` |
 | `bb issue view` | `assignee`, `content`, `created_on`, `id`, `kind`, `links`, `priority`, `reporter`, `state`, `title`, `updated_on` | `bb issue view --json assignee,content,created_on` |

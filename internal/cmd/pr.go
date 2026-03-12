@@ -86,9 +86,7 @@ func newPRCloseCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
@@ -167,9 +165,7 @@ func newPRCommentCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
@@ -249,9 +245,7 @@ func newPRDiffCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
@@ -302,11 +296,15 @@ func newPRStatusCmd() *cobra.Command {
 			}
 
 			currentBranch := ""
+			currentBranchError := ""
 			if target.LocalRepo != nil {
-				currentBranch, _ = gitrepo.CurrentBranch(context.Background(), target.LocalRepo.RootDir)
+				currentBranch, err = gitrepo.CurrentBranch(context.Background(), target.LocalRepo.RootDir)
+				if err != nil {
+					currentBranchError = err.Error()
+				}
 			}
 
-			payload := buildPRStatusPayload(target, currentUser, currentBranch, prs)
+			payload := buildPRStatusPayload(target, currentUser, currentBranch, currentBranchError, prs)
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if _, err := fmt.Fprintf(w, "Repository: %s/%s\n", payload.Workspace, payload.Repo); err != nil {
@@ -319,6 +317,11 @@ func newPRStatusCmd() *cobra.Command {
 					}
 				} else if _, err := fmt.Fprintln(w, "Current Branch: unavailable"); err != nil {
 					return err
+				}
+				if payload.CurrentBranchError != "" {
+					if err := writeLabelValue(w, "Current Branch Error", payload.CurrentBranchError); err != nil {
+						return err
+					}
 				}
 
 				if _, err := fmt.Fprintln(w, ""); err != nil {
@@ -362,9 +365,7 @@ func newPRStatusCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
@@ -425,9 +426,7 @@ func newPRListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")

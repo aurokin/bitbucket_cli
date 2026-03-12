@@ -471,6 +471,7 @@ Representative shape:
     "state": "OPEN",
     "title": "Example title"
   },
+  "current_branch_error": "\u003ccurrent-branch-error\u003e",
   "current_branch_name": "\u003ccurrent-branch-name\u003e",
   "current_user": {
     "account_id": "account-id",

@@ -55,9 +55,7 @@ func newPRViewCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.json, "json", "", "Output JSON with the specified comma-separated fields, or '*' for all fields")
-	cmd.Flags().Lookup("json").NoOptDefVal = "*"
-	cmd.Flags().StringVar(&flags.jq, "jq", "", "Filter JSON output using a jq expression")
+	addFormatFlags(cmd, &flags)
 	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")

@@ -156,7 +156,7 @@ func TestBuildPRStatusPayload(t *testing.T) {
 		},
 	}
 
-	payload := buildPRStatusPayload(target, user, "feature/current", prs)
+	payload := buildPRStatusPayload(target, user, "feature/current", "", prs)
 	if payload.CurrentBranch == nil || payload.CurrentBranch.ID != 1 {
 		t.Fatalf("expected current branch PR #1, got %+v", payload.CurrentBranch)
 	}
@@ -165,6 +165,20 @@ func TestBuildPRStatusPayload(t *testing.T) {
 	}
 	if len(payload.ReviewRequested) != 1 || payload.ReviewRequested[0].ID != 3 {
 		t.Fatalf("expected review requested PR #3, got %+v", payload.ReviewRequested)
+	}
+}
+
+func TestBuildPRStatusPayloadPreservesCurrentBranchError(t *testing.T) {
+	t.Parallel()
+
+	payload := buildPRStatusPayload(resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "OhBizzle",
+		Repo:      "widgets",
+	}, bitbucket.CurrentUser{}, "", "branch lookup failed", nil)
+
+	if payload.CurrentBranchError != "branch lookup failed" {
+		t.Fatalf("expected current branch error to be preserved, got %+v", payload)
 	}
 }
 

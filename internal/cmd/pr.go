@@ -307,60 +307,7 @@ func newPRStatusCmd() *cobra.Command {
 			payload := buildPRStatusPayload(target, currentUser, currentBranch, currentBranchError, prs)
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if _, err := fmt.Fprintf(w, "Repository: %s/%s\n", payload.Workspace, payload.Repo); err != nil {
-					return err
-				}
-
-				if payload.CurrentBranchName != "" {
-					if _, err := fmt.Fprintf(w, "Current Branch: %s\n", payload.CurrentBranchName); err != nil {
-						return err
-					}
-				} else if _, err := fmt.Fprintln(w, "Current Branch: unavailable"); err != nil {
-					return err
-				}
-				if payload.CurrentBranchError != "" {
-					if err := writeLabelValue(w, "Current Branch Error", payload.CurrentBranchError); err != nil {
-						return err
-					}
-				}
-
-				if _, err := fmt.Fprintln(w, ""); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintln(w, "Current Branch Pull Request"); err != nil {
-					return err
-				}
-				currentBranchPRs := make([]bitbucket.PullRequest, 0, 1)
-				if payload.CurrentBranch != nil {
-					currentBranchPRs = append(currentBranchPRs, *payload.CurrentBranch)
-				}
-				if err := writePRStatusSection(w, currentBranchPRs...); err != nil {
-					return err
-				}
-
-				if _, err := fmt.Fprintln(w, ""); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintln(w, "Created By You"); err != nil {
-					return err
-				}
-				if err := writePRStatusSection(w, payload.Created...); err != nil {
-					return err
-				}
-
-				if _, err := fmt.Fprintln(w, ""); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintln(w, "Review Requested"); err != nil {
-					return err
-				}
-				if err := writePRStatusSection(w, payload.ReviewRequested...); err != nil {
-					return err
-				}
-				if len(payload.Created) == 0 && len(payload.ReviewRequested) == 0 && payload.CurrentBranch == nil {
-					return writeNextStep(w, fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.Repo))
-				}
-				return nil
+				return writePRStatusSummary(w, payload)
 			})
 		},
 	}

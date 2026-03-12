@@ -345,6 +345,9 @@ func TestResolveRepoTarget(t *testing.T) {
 		if target.Workspace != "OhBizzle" || target.Repo != "widgets" {
 			t.Fatalf("unexpected target %+v", target)
 		}
+		if len(target.Warnings) != 0 {
+			t.Fatalf("did not expect warnings when local inference is disabled, got %+v", target.Warnings)
+		}
 	})
 
 	t.Run("uses matching local repo for bare repo", func(t *testing.T) {
@@ -379,6 +382,22 @@ func TestResolveRepoTarget(t *testing.T) {
 		}, false)
 		if err == nil || err.Error() != "multiple workspaces available; specify --workspace" {
 			t.Fatalf("expected ambiguous workspace error, got %v", err)
+		}
+	})
+
+	t.Run("warns when explicit repo falls back without local context", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		target, err := resolveRepoTarget(context.Background(), repoSelector{
+			Workspace: "OhBizzle",
+			Repo:      "widgets",
+			Explicit:  true,
+		}, stubWorkspaceResolver{}, true)
+		if err != nil {
+			t.Fatalf("resolveRepoTarget returned error: %v", err)
+		}
+		if len(target.Warnings) != 1 || target.Warnings[0] != "local repository context unavailable; continuing without local checkout metadata (not a repo)" {
+			t.Fatalf("expected local repo warning, got %+v", target.Warnings)
 		}
 	})
 }
@@ -440,6 +459,7 @@ func TestRequireExplicitRepoTarget(t *testing.T) {
 
 func withLocalRepoContext(t *testing.T, repo gitrepo.RepoContext, err error) {
 	t.Helper()
+	lockCommandTestHooks(t)
 
 	originalGetwd := getWorkingDirectory
 	originalResolve := resolveRepoAtDir
@@ -469,6 +489,8 @@ func TestCoalesce(t *testing.T) {
 }
 
 func TestResolveLocalRepoContextPropagatesGetwdError(t *testing.T) {
+	lockCommandTestHooks(t)
+
 	originalGetwd := getWorkingDirectory
 	originalResolve := resolveRepoAtDir
 	getWorkingDirectory = func() (string, error) { return "", fmt.Errorf("boom") }

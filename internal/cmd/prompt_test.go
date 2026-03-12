@@ -129,7 +129,7 @@ func TestPromptsDisabledFromConfig(t *testing.T) {
 }
 
 func TestPromptSecretStringTrimsInput(t *testing.T) {
-	t.Parallel()
+	lockCommandTestHooks(t)
 
 	previousReadSecretInput := readSecretInput
 	t.Cleanup(func() { readSecretInput = previousReadSecretInput })
@@ -156,7 +156,7 @@ func TestPromptSecretStringTrimsInput(t *testing.T) {
 }
 
 func TestPromptSecretStringRetriesOnEmptyInput(t *testing.T) {
-	t.Parallel()
+	lockCommandTestHooks(t)
 
 	previousReadSecretInput := readSecretInput
 	t.Cleanup(func() { readSecretInput = previousReadSecretInput })

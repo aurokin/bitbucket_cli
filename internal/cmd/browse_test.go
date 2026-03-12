@@ -55,7 +55,7 @@ func TestBuildBrowsePayloadPullRequest(t *testing.T) {
 }
 
 func TestBuildBrowsePayloadPathUsesLocalBranchAndLine(t *testing.T) {
-	t.Parallel()
+	lockCommandTestHooks(t)
 
 	rootDir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(rootDir, "internal", "cmd"), 0o755); err != nil {
@@ -93,7 +93,7 @@ func TestBuildBrowsePayloadPathUsesLocalBranchAndLine(t *testing.T) {
 }
 
 func TestBuildBrowsePayloadPathFallsBackToRepositoryMainBranch(t *testing.T) {
-	t.Parallel()
+	lockCommandTestHooks(t)
 
 	rootDir := t.TempDir()
 
@@ -145,7 +145,7 @@ func TestBuildBrowsePayloadCommit(t *testing.T) {
 }
 
 func TestBuildBrowsePayloadTreatsExistingCommitLikeFilenameAsPath(t *testing.T) {
-	t.Parallel()
+	lockCommandTestHooks(t)
 
 	rootDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(rootDir, "deadbeef"), []byte("fixture"), 0o644); err != nil {
@@ -236,6 +236,8 @@ func TestValidateBrowseOptionsRejectsConflicts(t *testing.T) {
 }
 
 func TestConfiguredBrowserCommandPrefersEnvThenConfig(t *testing.T) {
+	lockCommandTestHooks(t)
+
 	previousLoad := loadBrowseConfig
 	t.Cleanup(func() { loadBrowseConfig = previousLoad })
 	loadBrowseConfig = func() (config.Config, error) {

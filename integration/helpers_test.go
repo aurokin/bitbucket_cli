@@ -58,13 +58,7 @@ func (s integrationSession) PipelineFixture(t *testing.T) pipelineFixture {
 func (s integrationSession) Run(t *testing.T, dir string, args ...string) []byte {
 	t.Helper()
 
-	cmd := exec.Command(s.Binary, args...)
-	if dir != "" {
-		cmd.Dir = dir
-	}
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
+	output, err := runExternalAllowFailure(t, dir, false, s.Binary, args...)
 	if err != nil {
 		t.Fatalf("bb %v failed: %v\n%s", args, err, output)
 	}
@@ -74,12 +68,34 @@ func (s integrationSession) Run(t *testing.T, dir string, args ...string) []byte
 func (s integrationSession) RunAllowFailure(t *testing.T, dir string, args ...string) ([]byte, error) {
 	t.Helper()
 
-	cmd := exec.Command(s.Binary, args...)
+	return runExternalAllowFailure(t, dir, false, s.Binary, args...)
+}
+
+func runExternal(t *testing.T, dir string, scrubOutput bool, name string, args ...string) []byte {
+	t.Helper()
+
+	output, err := runExternalAllowFailure(t, dir, scrubOutput, name, args...)
+	if err != nil {
+		if scrubOutput {
+			t.Fatalf("%s %v failed: %v\n%s", name, args, err, scrub(output))
+		}
+		t.Fatalf("%s %v failed: %v\n%s", name, args, err, output)
+	}
+	return output
+}
+
+func runExternalAllowFailure(t *testing.T, dir string, scrubOutput bool, name string, args ...string) ([]byte, error) {
+	t.Helper()
+
+	cmd := exec.Command(name, args...)
 	if dir != "" {
 		cmd.Dir = dir
 	}
 	cmd.Env = os.Environ()
 
 	output, err := cmd.CombinedOutput()
+	if scrubOutput {
+		output = scrub(output)
+	}
 	return output, err
 }

@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
 
 func TestResolveRepoCloneInput(t *testing.T) {
 	t.Parallel()
@@ -99,5 +103,41 @@ func TestRepoVisibilityLabel(t *testing.T) {
 	}
 	if got := repoVisibilityLabel(false); got != "public" {
 		t.Fatalf("unexpected public visibility label %q", got)
+	}
+}
+
+func TestWriteRepoViewSummaryIncludesWarningsAndNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := repoViewPayload{
+		Host:        "bitbucket.org",
+		Workspace:   "acme",
+		RepoSlug:    "widgets",
+		Warnings:    []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		Name:        "Widgets",
+		Private:     true,
+		ProjectKey:  "BBCLI",
+		MainBranch:  "main",
+		HTMLURL:     "https://bitbucket.org/acme/widgets",
+		HTTPSClone:  "https://bitbucket.org/acme/widgets.git",
+		Description: "Fixture repository",
+	}
+
+	if err := writeRepoViewSummary(&buf, payload); err != nil {
+		t.Fatalf("writeRepoViewSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Visibility: private",
+		"URL: https://bitbucket.org/acme/widgets",
+		"Next: bb repo clone acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
 	}
 }

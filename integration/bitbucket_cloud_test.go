@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1557,15 +1556,7 @@ func buildBinary(t *testing.T) string {
 	}
 
 	binary := filepath.Join(t.TempDir(), "bb")
-	cmd := exec.Command("go", "build", "-o", binary, "./cmd/bb")
-	cmd.Dir = repoRoot
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("build bb binary: %v\n%s", err, output)
-	}
-
+	runExternal(t, repoRoot, false, "go", "build", "-o", binary, "./cmd/bb")
 	return binary
 }
 
@@ -1573,13 +1564,7 @@ func cloneRepository(t *testing.T, hostConfig config.HostConfig, workspace, repo
 	t.Helper()
 
 	cloneURL := authenticatedCloneURL(hostConfig, workspace, repoSlug)
-	cmd := exec.Command("git", "clone", cloneURL, dir)
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git clone %s failed: %v\n%s", repoSlug, err, scrub(output))
-	}
+	runExternal(t, "", true, "git", "clone", cloneURL, dir)
 }
 
 func authenticatedCloneURL(hostConfig config.HostConfig, workspace, repoSlug string) string {
@@ -1606,9 +1591,7 @@ func configureGitIdentity(t *testing.T, repoDir string) {
 func hasCommit(t *testing.T, repoDir string) bool {
 	t.Helper()
 
-	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
-	cmd.Dir = repoDir
-	if err := cmd.Run(); err != nil {
+	if _, err := runExternalAllowFailure(t, repoDir, true, "git", "rev-parse", "--verify", "HEAD"); err != nil {
 		return false
 	}
 	return true
@@ -1617,34 +1600,21 @@ func hasCommit(t *testing.T, repoDir string) bool {
 func remoteBranchExists(t *testing.T, repoDir, branch string) bool {
 	t.Helper()
 
-	cmd := exec.Command("git", "ls-remote", "--exit-code", "--heads", "origin", branch)
-	cmd.Dir = repoDir
-	return cmd.Run() == nil
+	_, err := runExternalAllowFailure(t, repoDir, true, "git", "ls-remote", "--exit-code", "--heads", "origin", branch)
+	return err == nil
 }
 
 func currentGitBranch(t *testing.T, repoDir string) string {
 	t.Helper()
 
-	cmd := exec.Command("git", "branch", "--show-current")
-	cmd.Dir = repoDir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git branch --show-current failed: %v\n%s", err, scrub(output))
-	}
-
+	output := runExternal(t, repoDir, true, "git", "branch", "--show-current")
 	return strings.TrimSpace(string(output))
 }
 
 func gitOutput(t *testing.T, repoDir string, args ...string) string {
 	t.Helper()
 
-	cmd := exec.Command("git", args...)
-	cmd.Dir = repoDir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git %v failed: %v\n%s", args, err, scrub(output))
-	}
-
+	output := runExternal(t, repoDir, true, "git", args...)
 	return strings.TrimSpace(string(output))
 }
 
@@ -1662,13 +1632,7 @@ func getPullRequest(t *testing.T, client *bitbucket.Client, workspace, repoSlug 
 func workingTreeClean(t *testing.T, repoDir string) bool {
 	t.Helper()
 
-	cmd := exec.Command("git", "status", "--porcelain")
-	cmd.Dir = repoDir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git status failed: %v\n%s", err, scrub(output))
-	}
-
+	output := runExternal(t, repoDir, true, "git", "status", "--porcelain")
 	return strings.TrimSpace(string(output)) == ""
 }
 
@@ -1724,21 +1688,13 @@ func request(t *testing.T, client *bitbucket.Client, method, path string, body a
 func runGit(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
 
-	cmd := exec.Command("git", args...)
-	cmd.Dir = repoDir
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git %v failed: %v\n%s", args, err, scrub(output))
-	}
+	runExternal(t, repoDir, true, "git", args...)
 }
 
 func runGitAllowFailure(t *testing.T, repoDir string, args ...string) {
 	t.Helper()
 
-	cmd := exec.Command("git", args...)
-	cmd.Dir = repoDir
-	_, _ = cmd.CombinedOutput()
+	_, _ = runExternalAllowFailure(t, repoDir, true, "git", args...)
 }
 
 func scrub(data []byte) []byte {

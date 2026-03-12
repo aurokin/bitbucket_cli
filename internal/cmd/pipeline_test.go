@@ -121,3 +121,44 @@ func TestPipelineStepLabel(t *testing.T) {
 		t.Fatalf("unexpected step label %q", label)
 	}
 }
+
+func TestWritePipelineViewSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := pipelineViewPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Pipeline: bitbucket.Pipeline{
+			BuildNumber: 42,
+			UUID:        "{pipeline-42}",
+			State:       bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "SUCCESSFUL"}},
+			Target:      bitbucket.PipelineTarget{RefType: "branch", RefName: "main"},
+			Creator:     bitbucket.PipelineActor{DisplayName: "Hunter Sadler"},
+			CreatedOn:   "2026-03-11T00:00:00Z",
+			CompletedOn: "2026-03-11T00:01:05Z",
+			Links:       bitbucket.PipelineLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pipelines/results/42"}},
+		},
+		Steps: []bitbucket.PipelineStep{
+			{Name: "Build", UUID: "{step-1}", State: bitbucket.PipelineState{Name: "COMPLETED"}},
+		},
+	}
+
+	if err := writePipelineViewSummary(&buf, payload); err != nil {
+		t.Fatalf("writePipelineViewSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Pipeline: #42",
+		"State:",
+		"https://bitbucket.org/acme/widgets/pipelines/results/42",
+		"Steps:",
+		"Build",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}

@@ -149,6 +149,8 @@ func TestBuildCrossRepoStatusAddsWarningsAndTotals(t *testing.T) {
 }
 
 func TestBuildCrossRepoStatusUsesBoundedConcurrency(t *testing.T) {
+	lockCommandTestHooks(t)
+
 	client := &fakeStatusClient{
 		repositories: map[string][]bitbucket.Repository{
 			"acme": {

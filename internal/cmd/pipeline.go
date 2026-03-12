@@ -165,59 +165,7 @@ func newPipelineViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", pipeline.BuildNumber); err != nil {
-					return err
-				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "State:\t%s\n", pipelineStateLabel(pipeline.State)); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Ref:\t%s\n", pipelineRefLabel(pipeline.Target)); err != nil {
-					return err
-				}
-				if pipeline.Creator.DisplayName != "" {
-					if _, err := fmt.Fprintf(tw, "Creator:\t%s\n", pipeline.Creator.DisplayName); err != nil {
-						return err
-					}
-				}
-				if _, err := fmt.Fprintf(tw, "UUID:\t%s\n", pipeline.UUID); err != nil {
-					return err
-				}
-				if pipeline.CreatedOn != "" {
-					if _, err := fmt.Fprintf(tw, "Created:\t%s\n", pipeline.CreatedOn); err != nil {
-						return err
-					}
-				}
-				if pipeline.CompletedOn != "" {
-					if _, err := fmt.Fprintf(tw, "Completed:\t%s\n", pipeline.CompletedOn); err != nil {
-						return err
-					}
-				}
-				if duration := pipelineDuration(pipeline); duration != "" {
-					if _, err := fmt.Fprintf(tw, "Duration:\t%s\n", duration); err != nil {
-						return err
-					}
-				}
-				if pipeline.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pipeline.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
-					return err
-				}
-				if len(steps) > 0 {
-					if _, err := fmt.Fprintln(w, "\nSteps:"); err != nil {
-						return err
-					}
-					if err := writePipelineStepTable(w, steps); err != nil {
-						return err
-					}
-				}
-				return nil
+				return writePipelineViewSummary(w, payload)
 			})
 		},
 	}
@@ -447,6 +395,62 @@ func writePipelineListTable(w io.Writer, pipelines []bitbucket.Pipeline) error {
 		}
 	}
 	return tw.Flush()
+}
+
+func writePipelineViewSummary(w io.Writer, payload pipelineViewPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", payload.Pipeline.BuildNumber); err != nil {
+		return err
+	}
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pipelineStateLabel(payload.Pipeline.State)); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(tw, "Ref:\t%s\n", pipelineRefLabel(payload.Pipeline.Target)); err != nil {
+		return err
+	}
+	if payload.Pipeline.Creator.DisplayName != "" {
+		if _, err := fmt.Fprintf(tw, "Creator:\t%s\n", payload.Pipeline.Creator.DisplayName); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(tw, "UUID:\t%s\n", payload.Pipeline.UUID); err != nil {
+		return err
+	}
+	if payload.Pipeline.CreatedOn != "" {
+		if _, err := fmt.Fprintf(tw, "Created:\t%s\n", payload.Pipeline.CreatedOn); err != nil {
+			return err
+		}
+	}
+	if payload.Pipeline.CompletedOn != "" {
+		if _, err := fmt.Fprintf(tw, "Completed:\t%s\n", payload.Pipeline.CompletedOn); err != nil {
+			return err
+		}
+	}
+	if duration := pipelineDuration(payload.Pipeline); duration != "" {
+		if _, err := fmt.Fprintf(tw, "Duration:\t%s\n", duration); err != nil {
+			return err
+		}
+	}
+	if payload.Pipeline.Links.HTML.Href != "" {
+		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.Pipeline.Links.HTML.Href); err != nil {
+			return err
+		}
+	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	if len(payload.Steps) > 0 {
+		if _, err := fmt.Fprintln(w, "\nSteps:"); err != nil {
+			return err
+		}
+		if err := writePipelineStepTable(w, payload.Steps); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writePipelineStepTable(w io.Writer, steps []bitbucket.PipelineStep) error {

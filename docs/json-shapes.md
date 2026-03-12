@@ -35,6 +35,9 @@ Representative shape:
   "repo": "repo-slug",
   "root": "/path/to/repo",
   "ssh_clone": "git@bitbucket.org:workspace-slug/repo-slug.git",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
   "workspace": "workspace-slug"
 }
 ```
@@ -509,6 +512,9 @@ Representative shape:
       "state": "OPEN",
       "title": "Example title"
     }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
   ],
   "workspace": "workspace-slug"
 }

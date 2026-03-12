@@ -182,6 +182,21 @@ func TestBuildPRStatusPayloadPreservesCurrentBranchError(t *testing.T) {
 	}
 }
 
+func TestBuildPRStatusPayloadPreservesTargetWarnings(t *testing.T) {
+	t.Parallel()
+
+	payload := buildPRStatusPayload(resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "OhBizzle",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}, bitbucket.CurrentUser{}, "", "", nil)
+
+	if len(payload.Warnings) != 1 || !strings.Contains(payload.Warnings[0], "local repository context unavailable") {
+		t.Fatalf("expected target warnings to be preserved, got %+v", payload)
+	}
+}
+
 func TestReviewRequestedFromUser(t *testing.T) {
 	t.Parallel()
 
@@ -377,6 +392,35 @@ func TestWritePullRequestSummaryTableIncludesOptionalFields(t *testing.T) {
 		"Merge Commit:",
 		"Updated:",
 		"Description:",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWritePRStatusSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := prStatusPayload{
+		Workspace:         "acme",
+		Repo:              "widgets",
+		Warnings:          []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		CurrentBranchName: "",
+	}
+
+	if err := writePRStatusSummary(&buf, payload); err != nil {
+		t.Fatalf("writePRStatusSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Current Branch: unavailable",
+		"Current Branch Pull Request",
+		"Next: bb pr list --repo acme/widgets",
 	} {
 		if !strings.Contains(got, expected) {
 			t.Fatalf("expected %q in output, got %q", expected, got)

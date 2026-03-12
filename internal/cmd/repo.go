@@ -68,6 +68,7 @@ func newRepoViewCmd() *cobra.Command {
 				Host:        target.Host,
 				Workspace:   target.Workspace,
 				RepoSlug:    repository.Slug,
+				Warnings:    append([]string(nil), target.Warnings...),
 				Name:        repository.Name,
 				FullName:    repository.FullName,
 				Description: repository.Description,
@@ -86,52 +87,7 @@ func newRepoViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Name", payload.Name); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Host", payload.Host); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(payload.Private)); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Project", payload.ProjectKey); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Project Name", payload.ProjectName); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Main Branch", payload.MainBranch); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "URL", payload.HTMLURL); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "HTTPS Clone", payload.HTTPSClone); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "SSH Clone", payload.SSHClone); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Remote", payload.RemoteName); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Local Clone URL", payload.LocalCloneURL); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Local Root", payload.RootDir); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Description", payload.Description); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Full Name", payload.FullName); err != nil {
-					return err
-				}
-				return writeNextStep(w, repoViewNextStep(payload))
+				return writeRepoViewSummary(w, payload)
 			})
 		},
 	}
@@ -145,22 +101,75 @@ func newRepoViewCmd() *cobra.Command {
 }
 
 type repoViewPayload struct {
-	Host          string `json:"host"`
-	Workspace     string `json:"workspace"`
-	RepoSlug      string `json:"repo"`
-	Name          string `json:"name,omitempty"`
-	FullName      string `json:"full_name,omitempty"`
-	Description   string `json:"description,omitempty"`
-	Private       bool   `json:"private"`
-	ProjectKey    string `json:"project_key,omitempty"`
-	ProjectName   string `json:"project_name,omitempty"`
-	MainBranch    string `json:"main_branch,omitempty"`
-	HTMLURL       string `json:"html_url,omitempty"`
-	HTTPSClone    string `json:"https_clone,omitempty"`
-	SSHClone      string `json:"ssh_clone,omitempty"`
-	RemoteName    string `json:"remote,omitempty"`
-	LocalCloneURL string `json:"local_clone_url,omitempty"`
-	RootDir       string `json:"root,omitempty"`
+	Host          string   `json:"host"`
+	Workspace     string   `json:"workspace"`
+	RepoSlug      string   `json:"repo"`
+	Warnings      []string `json:"warnings,omitempty"`
+	Name          string   `json:"name,omitempty"`
+	FullName      string   `json:"full_name,omitempty"`
+	Description   string   `json:"description,omitempty"`
+	Private       bool     `json:"private"`
+	ProjectKey    string   `json:"project_key,omitempty"`
+	ProjectName   string   `json:"project_name,omitempty"`
+	MainBranch    string   `json:"main_branch,omitempty"`
+	HTMLURL       string   `json:"html_url,omitempty"`
+	HTTPSClone    string   `json:"https_clone,omitempty"`
+	SSHClone      string   `json:"ssh_clone,omitempty"`
+	RemoteName    string   `json:"remote,omitempty"`
+	LocalCloneURL string   `json:"local_clone_url,omitempty"`
+	RootDir       string   `json:"root,omitempty"`
+}
+
+func writeRepoViewSummary(w io.Writer, payload repoViewPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Name", payload.Name); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Host", payload.Host); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(payload.Private)); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Project", payload.ProjectKey); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Project Name", payload.ProjectName); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Main Branch", payload.MainBranch); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "URL", payload.HTMLURL); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "HTTPS Clone", payload.HTTPSClone); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "SSH Clone", payload.SSHClone); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Remote", payload.RemoteName); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Local Clone URL", payload.LocalCloneURL); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Local Root", payload.RootDir); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Description", payload.Description); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Full Name", payload.FullName); err != nil {
+		return err
+	}
+	return writeNextStep(w, repoViewNextStep(payload))
 }
 
 func cloneURLForName(targets []bitbucket.NamedCloneTarget, name string) string {

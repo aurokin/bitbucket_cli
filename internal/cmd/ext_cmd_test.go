@@ -47,6 +47,8 @@ func TestDiscoverExtensions(t *testing.T) {
 }
 
 func TestRunExtensionCommand(t *testing.T) {
+	lockCommandTestHooks(t)
+
 	originalLookPath := execLookPath
 	originalExecute := executeExternalFunc
 	t.Cleanup(func() {

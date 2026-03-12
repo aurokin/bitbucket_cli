@@ -30,6 +30,7 @@ type repoSelector struct {
 
 type resolvedRepoTarget struct {
 	LocalRepo *gitrepo.RepoContext
+	Warnings  []string
 	Host      string
 	Workspace string
 	Repo      string
@@ -261,13 +262,17 @@ func resolveRepoTarget(ctx context.Context, selector repoSelector, client worksp
 	selector.Repo = strings.TrimSpace(selector.Repo)
 
 	var local *gitrepo.RepoContext
+	warnings := make([]string, 0, 1)
 	if allowLocal {
 		if localRepo, err := resolveLocalRepoContext(ctx); err == nil {
 			local = &localRepo
+		} else if selector.Repo != "" {
+			warnings = append(warnings, localRepoContextWarning(err))
 		}
 	}
 
 	target := resolvedRepoTarget{
+		Warnings:  warnings,
 		Host:      selector.Host,
 		Repo:      selector.Repo,
 		Workspace: selector.Workspace,
@@ -310,6 +315,7 @@ func resolveRepoTarget(ctx context.Context, selector repoSelector, client worksp
 	if local != nil {
 		return resolvedRepoTarget{
 			LocalRepo: local,
+			Warnings:  warnings,
 			Host:      coalesce(selector.Host, local.Host),
 			Workspace: local.Workspace,
 			Repo:      local.RepoSlug,
@@ -372,4 +378,12 @@ func coalesce(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func localRepoContextWarning(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("local repository context unavailable; continuing without local checkout metadata (%v)", err)
 }

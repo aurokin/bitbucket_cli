@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	"github.com/auro/bitbucket_cli/internal/output"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
 

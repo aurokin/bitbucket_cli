@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 )
 
 type fakeStatusClient struct {

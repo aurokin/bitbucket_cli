@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestListPullRequests(t *testing.T) {

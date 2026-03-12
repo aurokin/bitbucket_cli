@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

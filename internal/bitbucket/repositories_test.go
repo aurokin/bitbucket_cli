@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestListWorkspaces(t *testing.T) {

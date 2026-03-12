@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 )
 
 func userFacingError(err error) error {

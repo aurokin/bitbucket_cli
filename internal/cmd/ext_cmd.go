@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/auro/bitbucket_cli/internal/config"
-	"github.com/auro/bitbucket_cli/internal/output"
+	"github.com/aurokin/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
 

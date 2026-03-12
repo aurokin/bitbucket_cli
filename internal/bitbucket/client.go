@@ -13,7 +13,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 const defaultCloudAPIBaseURL = "https://api.bitbucket.org/2.0"

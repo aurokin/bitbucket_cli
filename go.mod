@@ -1,4 +1,4 @@
-module github.com/auro/bitbucket_cli
+module github.com/aurokin/bitbucket_cli
 
 go 1.25.0
 

@@ -5,8 +5,8 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/auro/bitbucket_cli/internal/output"
-	"github.com/auro/bitbucket_cli/internal/version"
+	"github.com/aurokin/bitbucket_cli/internal/output"
+	"github.com/aurokin/bitbucket_cli/internal/version"
 	"github.com/spf13/cobra"
 )
 

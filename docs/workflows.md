@@ -16,7 +16,7 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 ## Install
 
 ```bash
-go install github.com/auro/bitbucket_cli/cmd/bb@latest
+go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
 bb version
 ```
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/auro/bitbucket_cli/internal/cmd"
+	"github.com/aurokin/bitbucket_cli/internal/cmd"
 )
 
 func main() {

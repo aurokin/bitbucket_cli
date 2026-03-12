@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 const (

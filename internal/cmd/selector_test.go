@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	gitrepo "github.com/auro/bitbucket_cli/internal/git"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	gitrepo "github.com/aurokin/bitbucket_cli/internal/git"
 )
 
 type stubWorkspaceResolver struct {

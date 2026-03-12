@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
-	gitrepo "github.com/auro/bitbucket_cli/internal/git"
-	"github.com/auro/bitbucket_cli/internal/output"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	gitrepo "github.com/aurokin/bitbucket_cli/internal/git"
+	"github.com/aurokin/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
 

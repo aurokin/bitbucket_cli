@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auro/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 )
 
 func TestBuildRepositorySearchQuery(t *testing.T) {

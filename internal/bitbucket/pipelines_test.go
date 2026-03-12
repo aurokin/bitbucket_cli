@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auro/bitbucket_cli/internal/config"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestListPipelines(t *testing.T) {

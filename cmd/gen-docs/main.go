@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	cmdpkg "github.com/auro/bitbucket_cli/internal/cmd"
+	cmdpkg "github.com/aurokin/bitbucket_cli/internal/cmd"
 )
 
 func main() {

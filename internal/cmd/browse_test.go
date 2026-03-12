@@ -95,6 +95,8 @@ func TestBuildBrowsePayloadPathUsesLocalBranchAndLine(t *testing.T) {
 func TestBuildBrowsePayloadPathFallsBackToRepositoryMainBranch(t *testing.T) {
 	t.Parallel()
 
+	rootDir := t.TempDir()
+
 	previousBranch := currentBrowseBranch
 	t.Cleanup(func() { currentBrowseBranch = previousBranch })
 	currentBrowseBranch = func(context.Context, string) (string, error) {
@@ -111,6 +113,7 @@ func TestBuildBrowsePayloadPathFallsBackToRepositoryMainBranch(t *testing.T) {
 		Host:      "bitbucket.org",
 		Workspace: "acme",
 		Repo:      "widgets",
+		LocalRepo: &gitrepo.RepoContext{RootDir: rootDir},
 	}, "README.md", browseOptions{})
 	if err != nil {
 		t.Fatalf("buildBrowsePayload returned error: %v", err)
@@ -119,6 +122,9 @@ func TestBuildBrowsePayloadPathFallsBackToRepositoryMainBranch(t *testing.T) {
 	expected := "https://bitbucket.org/acme/widgets/src/main/README.md"
 	if payload.Ref != "main" || payload.URL != expected {
 		t.Fatalf("unexpected payload %+v", payload)
+	}
+	if len(payload.Warnings) == 0 || !strings.Contains(payload.Warnings[0], "falling back to the repository main branch") {
+		t.Fatalf("expected fallback warning, got %+v", payload)
 	}
 }
 
@@ -191,6 +197,27 @@ func TestBuildBrowsePayloadBranchOnlyBuildsRootPathURL(t *testing.T) {
 	expected := "https://bitbucket.org/acme/widgets/src/release%2F1.0/"
 	if payload.Type != "path" || payload.Ref != "release/1.0" || payload.Path != "" || payload.URL != expected {
 		t.Fatalf("unexpected payload %+v", payload)
+	}
+}
+
+func TestBuildBrowsePayloadWarnsWhenTreatingPathAsRepoRelativeWithoutLocalContext(t *testing.T) {
+	t.Parallel()
+
+	payload, err := buildBrowsePayload(context.Background(), browseRepositoryClient{
+		repository: bitbucket.Repository{
+			MainBranch: bitbucket.RepositoryBranch{Name: "main"},
+		},
+	}, resolvedRepoTarget{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		Repo:      "widgets",
+	}, "README.md", browseOptions{})
+	if err != nil {
+		t.Fatalf("buildBrowsePayload returned error: %v", err)
+	}
+
+	if len(payload.Warnings) == 0 || !strings.Contains(payload.Warnings[0], "repository-relative") {
+		t.Fatalf("expected repository-relative warning, got %+v", payload)
 	}
 }
 

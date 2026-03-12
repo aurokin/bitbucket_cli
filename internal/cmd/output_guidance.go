@@ -28,3 +28,15 @@ func writeNextStep(w io.Writer, command string) error {
 	_, err := fmt.Fprintf(w, "Next: %s\n", command)
 	return err
 }
+
+func writeWarnings(w io.Writer, warnings []string) error {
+	for _, warning := range warnings {
+		if warning == "" {
+			continue
+		}
+		if _, err := fmt.Fprintf(w, "Warning: %s\n", warning); err != nil {
+			return err
+		}
+	}
+	return nil
+}

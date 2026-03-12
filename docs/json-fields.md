@@ -9,7 +9,7 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb repo view` | `description`, `full_name`, `host`, `html_url`, `https_clone`, `local_clone_url`, `main_branch`, `name`, `private`, `project_key`, `project_name`, `remote`, `repo`, `root`, `ssh_clone`, `workspace` | `bb repo view --json description,full_name,host` |
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |
-| `bb browse` | `commit`, `host`, `issue`, `line`, `opened`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `workspace` | `bb browse --json commit,host,issue` |
+| `bb browse` | `commit`, `host`, `issue`, `line`, `opened`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `warnings`, `workspace` | `bb browse --json commit,host,issue` |
 | `bb pipeline list` | `build_number`, `completed_on`, `created_on`, `creator`, `links`, `state`, `target`, `uuid` | `bb pipeline list --json build_number,completed_on,created_on` |
 | `bb pipeline log` | `host`, `log`, `pipeline`, `repo`, `step`, `workspace` | `bb pipeline log --json host,log,pipeline` |
 | `bb pipeline stop` | `host`, `pipeline`, `repo`, `stopped`, `workspace` | `bb pipeline stop --json host,pipeline,repo` |

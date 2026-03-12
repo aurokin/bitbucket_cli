@@ -21,18 +21,19 @@ import (
 )
 
 type browsePayload struct {
-	Host      string `json:"host"`
-	Workspace string `json:"workspace"`
-	Repo      string `json:"repo"`
-	Type      string `json:"type"`
-	URL       string `json:"url"`
-	Ref       string `json:"ref,omitempty"`
-	Path      string `json:"path,omitempty"`
-	Line      int    `json:"line,omitempty"`
-	Commit    string `json:"commit,omitempty"`
-	PR        int    `json:"pr,omitempty"`
-	Issue     int    `json:"issue,omitempty"`
-	Opened    bool   `json:"opened"`
+	Host      string   `json:"host"`
+	Workspace string   `json:"workspace"`
+	Repo      string   `json:"repo"`
+	Type      string   `json:"type"`
+	URL       string   `json:"url"`
+	Warnings  []string `json:"warnings,omitempty"`
+	Ref       string   `json:"ref,omitempty"`
+	Path      string   `json:"path,omitempty"`
+	Line      int      `json:"line,omitempty"`
+	Commit    string   `json:"commit,omitempty"`
+	PR        int      `json:"pr,omitempty"`
+	Issue     int      `json:"issue,omitempty"`
+	Opened    bool     `json:"opened"`
 }
 
 type browseOptions struct {
@@ -103,6 +104,9 @@ func newBrowseCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), formatOptions, payload, func(w io.Writer) error {
 				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+					return err
+				}
+				if err := writeWarnings(w, payload.Warnings); err != nil {
 					return err
 				}
 				if err := writeLabelValue(w, "Type", payload.Type); err != nil {
@@ -199,11 +203,12 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 	}
 
 	if raw == "" {
-		ref, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
+		ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
 		if err != nil {
 			return browsePayload{}, err
 		}
 		payload.Type = "path"
+		payload.Warnings = append(payload.Warnings, warnings...)
 		payload.Ref = ref
 		payload.URL = fmt.Sprintf("%s/src/%s/", base, escapeURLPath(ref))
 		return payload, nil
@@ -211,7 +216,7 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 
 	path, line, ok := parsePathLineReference(raw)
 	if ok || shouldTreatAsPath(raw, target) {
-		ref, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
+		ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
 		if err != nil {
 			return browsePayload{}, err
 		}
@@ -219,8 +224,12 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 		if err != nil {
 			return browsePayload{}, err
 		}
+		if target.LocalRepo == nil && resolvedPath != "" {
+			warnings = append(warnings, fmt.Sprintf("resolved %q without local repository context; treating it as repository-relative", resolvedPath))
+		}
 
 		payload.Type = "path"
+		payload.Warnings = append(payload.Warnings, warnings...)
 		payload.Ref = ref
 		payload.Path = resolvedPath
 		payload.Line = line
@@ -235,7 +244,7 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 		return payload, nil
 	}
 
-	ref, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
+	ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
 	if err != nil {
 		return browsePayload{}, err
 	}
@@ -243,8 +252,12 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 	if err != nil {
 		return browsePayload{}, err
 	}
+	if target.LocalRepo == nil && resolvedPath != "" {
+		warnings = append(warnings, fmt.Sprintf("resolved %q without local repository context; treating it as repository-relative", resolvedPath))
+	}
 
 	payload.Type = "path"
+	payload.Warnings = append(payload.Warnings, warnings...)
 	payload.Ref = ref
 	payload.Path = resolvedPath
 	payload.URL = buildBrowsePathURL(base, ref, resolvedPath, 0)
@@ -290,28 +303,34 @@ func browseBaseURL(host, workspace, repo string) string {
 	return fmt.Sprintf("https://%s/%s/%s", webHost, escapeURLPath(workspace), escapeURLPath(repo))
 }
 
-func resolveBrowseRef(ctx context.Context, client browseRepositoryGetter, target resolvedRepoTarget, branchFlag, commitFlag string) (string, error) {
+func resolveBrowseRef(ctx context.Context, client browseRepositoryGetter, target resolvedRepoTarget, branchFlag, commitFlag string) (string, []string, error) {
 	if strings.TrimSpace(commitFlag) != "" {
-		return strings.TrimSpace(commitFlag), nil
+		return strings.TrimSpace(commitFlag), nil, nil
 	}
 	if strings.TrimSpace(branchFlag) != "" {
-		return strings.TrimSpace(branchFlag), nil
+		return strings.TrimSpace(branchFlag), nil, nil
 	}
+	warnings := make([]string, 0, 1)
 	if target.LocalRepo != nil && target.LocalRepo.RootDir != "" {
 		branch, err := currentBrowseBranch(ctx, target.LocalRepo.RootDir)
 		if err == nil && strings.TrimSpace(branch) != "" {
-			return strings.TrimSpace(branch), nil
+			return strings.TrimSpace(branch), nil, nil
+		}
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("could not determine the local branch; falling back to the repository main branch (%v)", err))
+		} else {
+			warnings = append(warnings, "could not determine the local branch; falling back to the repository main branch")
 		}
 	}
 
 	repository, err := client.GetRepository(ctx, target.Workspace, target.Repo)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if strings.TrimSpace(repository.MainBranch.Name) == "" {
-		return "", fmt.Errorf("could not determine a branch for %s/%s", target.Workspace, target.Repo)
+		return "", nil, fmt.Errorf("could not determine a branch for %s/%s", target.Workspace, target.Repo)
 	}
-	return strings.TrimSpace(repository.MainBranch.Name), nil
+	return strings.TrimSpace(repository.MainBranch.Name), warnings, nil
 }
 
 func parsePathLineReference(raw string) (string, int, bool) {

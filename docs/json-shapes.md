@@ -100,6 +100,9 @@ Representative shape:
   "repo": "repo-slug",
   "type": "commit_file",
   "url": "\u003curl\u003e",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
   "workspace": "workspace-slug"
 }
 ```

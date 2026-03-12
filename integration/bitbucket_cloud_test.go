@@ -378,10 +378,7 @@ func TestBitbucketCloudPipelineStop(t *testing.T) {
 	pipelines := session.PipelineFixture(t)
 	running := ensureRunningPipeline(t, session.Client, pipelines.RepoDir, session.Workspace, pipelines.Repo.Slug)
 
-	cmd := exec.Command(session.Binary, "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
+	output, err := session.RunAllowFailure(t, "", "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
 	if err != nil {
 		if bytes.Contains(output, []byte("Missing Token Scopes Or Insufficient Access")) {
 			t.Skipf("pipeline stop requires broader pipeline write scopes:\n%s", output)

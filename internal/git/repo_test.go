@@ -57,6 +57,14 @@ func TestParseRemoteURL(t *testing.T) {
 	}
 }
 
+func TestParseRemoteURLRejectsEmptyHost(t *testing.T) {
+	t.Parallel()
+
+	if _, err := ParseRemoteURL("ssh:///acme/widgets.git"); err == nil {
+		t.Fatalf("expected ParseRemoteURL to reject an empty host")
+	}
+}
+
 func TestResolveRepoContext(t *testing.T) {
 	t.Parallel()
 

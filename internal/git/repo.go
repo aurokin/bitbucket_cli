@@ -209,6 +209,11 @@ func parseSCPStyleURL(raw string) (ParsedRemote, error) {
 }
 
 func remoteFromParts(host, path string) (ParsedRemote, error) {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return ParsedRemote{}, fmt.Errorf("remote host is empty")
+	}
+
 	path = strings.TrimPrefix(path, "/")
 	path = strings.TrimSuffix(path, ".git")
 

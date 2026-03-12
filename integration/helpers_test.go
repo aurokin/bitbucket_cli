@@ -70,3 +70,16 @@ func (s integrationSession) Run(t *testing.T, dir string, args ...string) []byte
 	}
 	return output
 }
+
+func (s integrationSession) RunAllowFailure(t *testing.T, dir string, args ...string) ([]byte, error) {
+	t.Helper()
+
+	cmd := exec.Command(s.Binary, args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	return output, err
+}

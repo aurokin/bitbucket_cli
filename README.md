@@ -2,7 +2,7 @@
 
 `bb` is a Bitbucket Cloud CLI aimed at both humans and agents.
 
-## Install
+## Install CLI
 
 `bb` is currently installed with Go. There are no packaged release binaries yet.
 
@@ -47,7 +47,7 @@ go install ./cmd/bb
 bb version
 ```
 
-## Agent Skill
+## Install Agent Skill
 
 This repo also ships a reusable `bb-cli` skill for agents.
 
@@ -60,6 +60,31 @@ npx skills add https://github.com/aurokin/bitbucket_cli --skill bb-cli
 You can also inspect the skill directly in [skills/bb-cli](./skills/bb-cli).
 
 `skills.sh` does not use a separate registry submission flow for publishing. Public skills become discoverable from their git repositories, and skills.sh visibility is driven by installs through the `skills` CLI.
+
+## Quick Start
+
+Authenticate with an Atlassian API token:
+
+```bash
+printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
+BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
+bb auth status --check
+```
+
+Create or rotate the token here:
+
+- https://id.atlassian.com/manage-profile/security/api-tokens
+- https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/
+
+Prefer explicit repository targets when you are outside a checkout or writing automation:
+
+```bash
+bb browse --repo workspace-slug/repo-slug --no-browser
+bb repo view --repo workspace-slug/repo-slug
+bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pr list --repo workspace-slug/repo-slug
+bb issue list --repo workspace-slug/issues-repo-slug
+```
 
 ## Implementation
 
@@ -86,31 +111,6 @@ Main API groups used by `bb`:
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
 - Users and current-account validation: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 - Source browsing and file-oriented repository URLs: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/
-
-## Quick Start
-
-Authenticate with an Atlassian API token:
-
-```bash
-printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
-BB_EMAIL=you@example.com BB_TOKEN=$BITBUCKET_TOKEN bb auth login
-bb auth status --check
-```
-
-Create or rotate the token here:
-
-- https://id.atlassian.com/manage-profile/security/api-tokens
-- https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/
-
-Prefer explicit repository targets when you are outside a checkout or writing automation:
-
-```bash
-bb browse --repo workspace-slug/repo-slug --no-browser
-bb repo view --repo workspace-slug/repo-slug
-bb pipeline list --repo workspace-slug/pipelines-repo-slug
-bb pr list --repo workspace-slug/repo-slug
-bb issue list --repo workspace-slug/issues-repo-slug
-```
 
 ## Human Workflows
 

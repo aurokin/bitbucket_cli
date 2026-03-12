@@ -73,6 +73,37 @@ Representative shapes:
 }
 ```
 
+## Browse
+
+Representative shape for browse payloads when printing or emitting JSON instead of opening the browser.
+
+Commands:
+
+```bash
+bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
+bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
+bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
+```
+
+Representative shape:
+
+```json
+{
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "issue": 1,
+  "line": 1,
+  "opened": true,
+  "path": "file.txt",
+  "pr": 1,
+  "ref": "\u003cref\u003e",
+  "repo": "repo-slug",
+  "type": "commit_file",
+  "url": "\u003curl\u003e",
+  "workspace": "workspace-slug"
+}
+```
+
 ## Pipeline List And View
 
 Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.

@@ -733,6 +733,47 @@ func TestBitbucketCloudRepoView(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudBrowse(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	fixture := ensureFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb browse failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Workspace string `json:"workspace"`
+		Repo      string `json:"repo"`
+		Type      string `json:"type"`
+		URL       string `json:"url"`
+		PR        int    `json:"pr"`
+		Opened    bool   `json:"opened"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse browse JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.Type != "pull-request" || payload.PR != fixture.PrimaryPRID || payload.Opened {
+		t.Fatalf("unexpected browse payload %+v", payload)
+	}
+	if !strings.Contains(payload.URL, fmt.Sprintf("/%s/%s/pull-requests/%d", workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)) {
+		t.Fatalf("unexpected browse URL %q", payload.URL)
+	}
+}
+
 func TestBitbucketCloudRepoClone(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
@@ -859,6 +900,22 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	}
 	if !strings.Contains(string(repoViewOutput), "Next: bb pr list --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo view next step:\n%s", repoViewOutput)
+	}
+
+	browseCmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser")
+	browseCmd.Env = os.Environ()
+	browseOutput, err := browseCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb browse human output failed: %v\n%s", err, browseOutput)
+	}
+	if !strings.Contains(string(browseOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in browse output:\n%s", browseOutput)
+	}
+	if !strings.Contains(string(browseOutput), "Type: pull-request") {
+		t.Fatalf("expected browse type in output:\n%s", browseOutput)
+	}
+	if !strings.Contains(string(browseOutput), "Status: printed") {
+		t.Fatalf("expected browse printed status in output:\n%s", browseOutput)
 	}
 
 	repoCreateCmd := exec.Command(binary, "repo", "create", fixtureCreateRepoSlug, "--workspace", workspace, "--project-key", fixtureProjectKey, "--reuse-existing")
@@ -1063,6 +1120,24 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if repoView.Workspace != workspace || repoView.Repo != fixture.PrimaryRepo.Slug || repoView.Name == "" {
 		t.Fatalf("unexpected repo view payload %+v", repoView)
+	}
+
+	browseCmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "url,type,pr")
+	browseCmd.Env = os.Environ()
+	browseOutput, err := browseCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb browse generated-docs smoke failed: %v\n%s", err, browseOutput)
+	}
+	var browse struct {
+		URL  string `json:"url"`
+		Type string `json:"type"`
+		PR   int    `json:"pr"`
+	}
+	if err := json.Unmarshal(browseOutput, &browse); err != nil {
+		t.Fatalf("parse browse JSON: %v\n%s", err, browseOutput)
+	}
+	if browse.Type != "pull-request" || browse.PR != fixture.PrimaryPRID || browse.URL == "" {
+		t.Fatalf("unexpected browse payload %+v", browse)
 	}
 
 	pipelineViewCmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--json", "host,workspace,repo,pipeline,steps")

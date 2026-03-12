@@ -11,8 +11,8 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Seed arbitrary git content into the primary and secondary repositories
 - Seed a dedicated pipelines repository with `bitbucket-pipelines.yml` and ensure there is at least one reusable pipeline run
 - Ensure there is an open pull request in the primary repository
-- Run the `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pipeline list`, `bb pipeline log`, `bb pipeline stop`, `bb pipeline view`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue view`, `bb issue create`, `bb issue close`, `bb issue reopen`, and `bb status` commands against the seeded repositories
-- Smoke-test the human-readable output paths for repo, pipeline, pull request, issue, and search commands
+- Run the `bb browse`, `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pipeline list`, `bb pipeline log`, `bb pipeline stop`, `bb pipeline view`, `bb pr list`, `bb pr status`, `bb pr diff`, `bb pr comment`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue view`, `bb issue create`, `bb issue close`, `bb issue reopen`, and `bb status` commands against the seeded repositories
+- Smoke-test the human-readable output paths for browse, repo, pipeline, pull request, issue, and search commands
 - Smoke-test representative structured-output commands used by the generated docs
 
 ## Fixture Names
@@ -31,6 +31,7 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoClone -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoCreate -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoDelete -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudBrowse -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPipelineList -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPipelineLog -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPipelineStop -v

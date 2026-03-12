@@ -14,6 +14,7 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb auth login` |  |  | yes | yes |  |  | `--default`, `--token`, `--username`, `--with-token` |
 | `bb auth logout` |  |  | yes | yes |  |  |  |
 | `bb auth status` | yes | yes | yes | yes |  |  | `--check` |
+| `bb browse` | yes | yes | yes | yes | yes | yes | `--branch`, `--commit`, `--issue`, `--no-browser`, `--pipelines`, `--pr`, `--settings` |
 | `bb config get` | yes | yes | yes |  |  |  |  |
 | `bb config list` | yes | yes | yes |  |  |  |  |
 | `bb config path` |  |  | yes |  |  |  |  |

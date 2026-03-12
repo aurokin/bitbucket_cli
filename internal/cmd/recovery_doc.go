@@ -46,6 +46,7 @@ func recoveryDocEntries() []recoveryDocEntry {
 			TypicalFailure: "could not determine the repository from the current directory",
 			Recovery: []string{
 				"bb repo view --repo OhBizzle/bb-cli-integration-primary",
+				"bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser",
 				"bb repo clone OhBizzle/bb-cli-integration-primary",
 			},
 		},

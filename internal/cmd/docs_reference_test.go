@@ -127,6 +127,7 @@ func TestRootHelpHighlightsHumanAndAgentPaths(t *testing.T) {
 	output := renderHelp(t, "--help")
 	for _, fragment := range []string{
 		"Prefer --repo <workspace>/<repo> for explicit targeting.",
+		"bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser",
 		"bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines",
 		"bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'",
 		"bb status --json authored_prs,review_requested_prs,your_issues",
@@ -149,6 +150,22 @@ func TestPipelineHelpShowsExplicitRepoExamples(t *testing.T) {
 	} {
 		if !strings.Contains(output, fragment) {
 			t.Fatalf("pipeline list help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestBrowseHelpShowsExplicitRepoExamples(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "browse", "--help")
+	for _, fragment := range []string{
+		"bb browse --repo OhBizzle/bb-cli-integration-primary",
+		"--no-browser",
+		"--pr int",
+		"--issue int",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("browse help missing %q\n%s", fragment, output)
 		}
 	}
 }

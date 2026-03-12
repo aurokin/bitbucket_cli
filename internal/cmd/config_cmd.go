@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/auro/bitbucket_cli/internal/config"
 	"github.com/auro/bitbucket_cli/internal/output"
@@ -20,7 +21,7 @@ func newConfigCmd() *cobra.Command {
 	configCmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage bb behavior defaults",
-		Long:  "Manage persistent bb settings that affect runtime behavior today, such as prompt behavior and the default output format.",
+		Long:  "Manage persistent bb settings that affect runtime behavior today, such as prompt behavior, browser selection for `bb browse`, and the default output format.",
 	}
 
 	configCmd.AddCommand(
@@ -83,6 +84,7 @@ func newConfigGetCmd() *cobra.Command {
 		Use:   "get <key>",
 		Short: "Get one effective bb setting",
 		Example: "  bb config get prompt\n" +
+			"  bb config get browser\n" +
 			"  bb config get output.format --json",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -120,6 +122,7 @@ func newConfigSetCmd() *cobra.Command {
 		Use:   "set <key> <value>",
 		Short: "Set a persistent bb setting",
 		Example: "  bb config set prompt false\n" +
+			"  bb config set browser 'firefox --new-window'\n" +
 			"  bb config set output.format json\n" +
 			"  bb config get output.format",
 		Args: cobra.ExactArgs(2),
@@ -156,6 +159,7 @@ func newConfigUnsetCmd() *cobra.Command {
 		Use:   "unset <key>",
 		Short: "Unset a persistent bb setting",
 		Example: "  bb config unset prompt\n" +
+			"  bb config unset browser\n" +
 			"  bb config unset output.format",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -200,8 +204,8 @@ func newConfigPathCmd() *cobra.Command {
 }
 
 func effectiveConfigValues(cfg config.Config) []configValue {
-	values := make([]configValue, 0, 2)
-	for _, key := range []string{"prompt", "output.format"} {
+	values := make([]configValue, 0, 3)
+	for _, key := range []string{"prompt", "browser", "output.format"} {
 		value, err := configValueForKey(cfg, key)
 		if err == nil {
 			values = append(values, value)
@@ -224,6 +228,14 @@ func configValueForKey(cfg config.Config, key string) (configValue, error) {
 			source = "config"
 		}
 		return configValue{Key: "output.format", Value: cfg.EffectiveOutputFormat(), Source: source}, nil
+	case "browser":
+		source := "default"
+		value := "system"
+		if cfg.Settings.Browser != "" {
+			source = "config"
+			value = cfg.Settings.Browser
+		}
+		return configValue{Key: "browser", Value: value, Source: source}, nil
 	default:
 		return configValue{}, unsupportedConfigKeyError(key)
 	}
@@ -246,6 +258,12 @@ func setConfigValue(cfg *config.Config, key, rawValue string) error {
 		default:
 			return fmt.Errorf("output.format must be %q or %q", config.OutputFormatTable, config.OutputFormatJSON)
 		}
+	case "browser":
+		value := strings.TrimSpace(rawValue)
+		if value == "" {
+			return fmt.Errorf("browser cannot be empty")
+		}
+		cfg.Settings.Browser = value
 	default:
 		return unsupportedConfigKeyError(key)
 	}
@@ -260,6 +278,8 @@ func unsetConfigValue(cfg *config.Config, key string) error {
 		cfg.Settings.Prompt = nil
 	case "output.format":
 		cfg.Settings.OutputFormat = ""
+	case "browser":
+		cfg.Settings.Browser = ""
 	default:
 		return unsupportedConfigKeyError(key)
 	}
@@ -270,10 +290,10 @@ func unsetConfigValue(cfg *config.Config, key string) error {
 
 func unsupportedConfigKeyError(key string) error {
 	switch normalizeConfigKey(key) {
-	case "browser", "editor", "pager":
-		return fmt.Errorf("config key %q is planned but not supported yet. Supported keys today: prompt, output.format", key)
+	case "editor", "pager":
+		return fmt.Errorf("config key %q is planned but not supported yet. Supported keys today: prompt, browser, output.format", key)
 	default:
-		return fmt.Errorf("unknown config key %q; supported keys: prompt, output.format", key)
+		return fmt.Errorf("unknown config key %q; supported keys: prompt, browser, output.format", key)
 	}
 }
 

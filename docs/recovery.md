@@ -65,6 +65,7 @@ Recovery:
 
 ```bash
 bb repo view --repo OhBizzle/bb-cli-integration-primary
+bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser
 bb repo clone OhBizzle/bb-cli-integration-primary
 ```
 

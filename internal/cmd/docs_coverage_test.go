@@ -12,6 +12,7 @@ func TestWorkflowDocsCoverMajorCommandFamilies(t *testing.T) {
 
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "workflows.md"), []string{
 		"bb auth login",
+		"bb browse",
 		"bb repo view",
 		"bb pipeline list",
 		"bb pr view",
@@ -26,6 +27,7 @@ func TestAutomationDocsCoverMajorCommandFamilies(t *testing.T) {
 
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "automation.md"), []string{
 		"bb auth login",
+		"bb browse",
 		"bb repo view",
 		"bb pipeline list",
 		"bb pr list",
@@ -42,6 +44,7 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 	t.Parallel()
 
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "json-shapes.md"), []string{
+		"bb browse",
 		"bb repo view",
 		"bb pipeline view",
 		"bb pr status",
@@ -49,6 +52,7 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"bb status",
 	})
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "json-fields.md"), []string{
+		"bb browse",
 		"bb repo view",
 		"bb pipeline view",
 		"bb pr status",
@@ -56,6 +60,7 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"bb auth status",
 	})
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "flag-matrix.md"), []string{
+		"bb browse",
 		"bb pr create",
 		"--no-prompt",
 		"--repo",
@@ -70,6 +75,7 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"bb auth login",
 		"bb auth status --check",
 		"--repo <workspace>/<repo>",
+		"--no-browser",
 		"bb alias set",
 	})
 }

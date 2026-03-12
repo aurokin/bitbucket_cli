@@ -40,6 +40,16 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: []any{repoClonePayload{}, repoDeletePayload{}},
 		},
 		{
+			Title:       "Browse",
+			Description: "Representative shape for browse payloads when printing or emitting JSON instead of opening the browser.",
+			Commands: []string{
+				"bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'",
+				"bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'",
+				"bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'",
+			},
+			Type: browsePayload{},
+		},
+		{
 			Title:       "Pipeline List And View",
 			Description: "Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.",
 			Commands: []string{

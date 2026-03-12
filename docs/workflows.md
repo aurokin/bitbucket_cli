@@ -16,6 +16,8 @@ bb auth status --check
 Inside a checkout, local git remotes are enough:
 
 ```bash
+bb browse
+bb browse README.md:12 --no-browser
 bb repo view
 bb pr list
 ```
@@ -23,6 +25,7 @@ bb pr list
 Outside a checkout, prefer an explicit target:
 
 ```bash
+bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser
 bb repo view --repo OhBizzle/bb-cli-integration-primary
 bb repo clone OhBizzle/bb-cli-integration-primary
 ```

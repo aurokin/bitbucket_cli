@@ -13,11 +13,20 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 - Use `--no-prompt` for mutations and all non-interactive runs.
 - Do not parse the default human-readable output when structured output is available.
 
+## Browse
+
+```bash
+bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type
+bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --branch main --no-browser --json url,type,path,line,ref
+bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type,pr
+```
+
 ## Authentication
 
 ```bash
 printf '%s\n' "$BITBUCKET_TOKEN" | bb auth login --username you@example.com --with-token
 bb auth status --check --json
+bb config set browser 'firefox --new-window'
 ```
 
 ## Repository Commands

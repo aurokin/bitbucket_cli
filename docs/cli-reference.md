@@ -16,6 +16,7 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb auth login`
   - `bb auth logout`
   - `bb auth status`
+- `bb browse`
 - `bb config`
   - `bb config get`
   - `bb config list`
@@ -279,11 +280,49 @@ Flags:
 - `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 
+## `bb browse`
+
+Open or print Bitbucket web URLs
+
+Open Bitbucket repository, pull request, issue, commit, settings, pipelines, and source URLs. Default behavior opens the browser; use --no-browser to print the URL instead.
+
+Usage:
+
+```text
+bb browse [target] [flags]
+```
+
+Examples:
+
+```bash
+bb browse --repo OhBizzle/bb-cli-integration-primary
+bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser
+bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary
+bb browse --pipelines --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb browse a1b2c3d --repo OhBizzle/bb-cli-integration-primary --no-browser
+```
+
+Flags:
+
+- `--branch`: Branch name for source browsing
+- `--commit`: Commit SHA for source browsing
+- `--host`: Bitbucket host to use
+- `--issue`: Open one issue by ID
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-browser`: Print the destination URL instead of opening the browser
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pipelines`: Open repository pipelines
+- `--pr`: Open one pull request by ID
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--settings`: Open repository settings
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
 ## `bb config`
 
 Manage bb behavior defaults
 
-Manage persistent bb settings that affect runtime behavior today, such as prompt behavior and the default output format.
+Manage persistent bb settings that affect runtime behavior today, such as prompt behavior, browser selection for `bb browse`, and the default output format.
 
 Usage:
 
@@ -317,6 +356,7 @@ Examples:
 
 ```bash
 bb config get prompt
+bb config get browser
 bb config get output.format --json
 ```
 
@@ -377,6 +417,7 @@ Examples:
 
 ```bash
 bb config set prompt false
+bb config set browser 'firefox --new-window'
 bb config set output.format json
 bb config get output.format
 ```
@@ -399,6 +440,7 @@ Examples:
 
 ```bash
 bb config unset prompt
+bb config unset browser
 bb config unset output.format
 ```
 

@@ -14,6 +14,7 @@ bb auth status --check
 Prefer explicit repository targets when you are outside a checkout or writing automation:
 
 ```bash
+bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser
 bb repo view --repo OhBizzle/bb-cli-integration-primary
 bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
 bb pr list --repo OhBizzle/bb-cli-integration-primary
@@ -25,6 +26,8 @@ bb issue list --repo OhBizzle/bb-cli-integration-issues
 Humans can lean on local git inference and the default header-first output:
 
 ```bash
+bb browse
+bb browse README.md:12 --no-browser
 bb repo view
 bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
 bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
@@ -46,6 +49,7 @@ The human-readable path is designed to:
 Agents and scripts should prefer explicit, deterministic invocations:
 
 ```bash
+bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type,pr
 bb --no-prompt pr create \
   --repo OhBizzle/bb-cli-integration-primary \
   --source feature \
@@ -86,6 +90,7 @@ Automation conventions:
 - `bb auth logout`
 - `bb auth status`
 - `bb api`
+- `bb browse`
 - `bb config list`
 - `bb config get`
 - `bb config set`
@@ -145,6 +150,7 @@ Automation conventions:
 ### What `gh` Offers That `bb` Also Offers
 
 - Authenticated API access through `gh api` / `bb api`
+- Browser navigation through `gh browse` / `bb browse`
 - Repository inspection, creation, cloning, and deletion
 - Pipeline run listing and inspection
 - Pull request listing, status, viewing, diffing, commenting, creation, checkout, merge, and close flows
@@ -164,7 +170,6 @@ Automation conventions:
 ### What `gh` Offers That `bb` Does Not
 
 - Browser login and broader auth account management
-- `browse`
 - Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
 - Richer repository administration such as list, edit, rename, fork, archive, and sync
 - Additional pull request flows such as review, checks, edit, ready, update-branch, and revert
@@ -192,6 +197,7 @@ References:
 ## Notes On Current Behavior
 
 - `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
-- `bb config` only exposes keys that affect runtime today: `prompt` and `output.format`. Browser, editor, and pager configuration are not wired up yet and are not exposed as working settings.
+- `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
+- `bb config` exposes the keys that affect runtime today: `prompt`, `browser`, and `output.format`. Editor and pager configuration are still not wired up.
 - Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.
 - Live Bitbucket integration tests and human-output smoke tests are manual-only. They are never part of `go test ./...` or CI.

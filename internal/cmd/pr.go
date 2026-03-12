@@ -78,28 +78,7 @@ func newPRCloseCmd() *cobra.Command {
 				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
 					return err
 				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", closedPR.ID); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", closedPR.Title); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "State:\t%s\n", closedPR.State); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", closedPR.Source.Branch.Name); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", closedPR.Destination.Branch.Name); err != nil {
-					return err
-				}
-				if closedPR.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", closedPR.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writePullRequestSummaryTable(w, closedPR, pullRequestSummaryOptions{}); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", closedPR.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))

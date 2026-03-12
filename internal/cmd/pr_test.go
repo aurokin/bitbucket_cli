@@ -327,3 +327,45 @@ func TestWritePRListTableWithRepositoryHeader(t *testing.T) {
 		t.Fatalf("expected PR row, got %q", got)
 	}
 }
+
+func TestWritePullRequestSummaryTableIncludesOptionalFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	pr := bitbucket.PullRequest{
+		ID:          9,
+		Title:       "Ship feature",
+		State:       "MERGED",
+		UpdatedOn:   "2026-03-10T12:34:56Z",
+		Description: "Ready to land",
+		Author:      bitbucket.PullRequestActor{DisplayName: "Hunter Sadler"},
+		Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/ship"}},
+		Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		Links:       bitbucket.PullRequestLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pull-requests/9"}},
+	}
+
+	if err := writePullRequestSummaryTable(&buf, pr, pullRequestSummaryOptions{
+		IncludeAuthor:      true,
+		IncludeUpdated:     true,
+		IncludeDescription: true,
+		Strategy:           "merge_commit",
+		MergeCommit:        "abc1234",
+	}); err != nil {
+		t.Fatalf("writePullRequestSummaryTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"ID:",
+		"Title:",
+		"Author:",
+		"Strategy:",
+		"Merge Commit:",
+		"Updated:",
+		"Description:",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}

@@ -63,10 +63,19 @@ func newPRCheckoutCmd() *cobra.Command {
 				return err
 			}
 
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Checked out %s/%s PR #%d onto %s\n", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, pr.ID, pr.Source.Branch.Name); err != nil {
+			if err := writeTargetHeader(cmd.OutOrStdout(), "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
 				return err
 			}
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Root: %s\n", repoContext.RootDir); err != nil {
+			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Pull Request: #%d\n", pr.ID); err != nil {
+				return err
+			}
+			if err := writeLabelValue(cmd.OutOrStdout(), "Branch", pr.Source.Branch.Name); err != nil {
+				return err
+			}
+			if err := writeLabelValue(cmd.OutOrStdout(), "Local Root", repoContext.RootDir); err != nil {
+				return err
+			}
+			if err := writeLabelValue(cmd.OutOrStdout(), "Status", "checked out"); err != nil {
 				return err
 			}
 			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb pr view %d --repo %s/%s", pr.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
@@ -137,38 +146,10 @@ func newPRMergeCmd() *cobra.Command {
 				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
 					return err
 				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", mergedPR.ID); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", mergedPR.Title); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "State:\t%s\n", mergedPR.State); err != nil {
-					return err
-				}
-				if mergeStrategy != "" {
-					if _, err := fmt.Fprintf(tw, "Strategy:\t%s\n", mergeStrategy); err != nil {
-						return err
-					}
-				}
-				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", mergedPR.Source.Branch.Name); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", mergedPR.Destination.Branch.Name); err != nil {
-					return err
-				}
-				if mergedPR.MergeCommit.Hash != "" {
-					if _, err := fmt.Fprintf(tw, "Merge Commit:\t%s\n", mergedPR.MergeCommit.Hash); err != nil {
-						return err
-					}
-				}
-				if mergedPR.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", mergedPR.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writePullRequestSummaryTable(w, mergedPR, pullRequestSummaryOptions{
+					Strategy:    mergeStrategy,
+					MergeCommit: mergedPR.MergeCommit.Hash,
+				}); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", mergedPR.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
@@ -262,28 +243,7 @@ func newPRCreateCmd() *cobra.Command {
 				if err := writeTargetHeader(w, "Repository", repoTarget.Workspace, repoTarget.Repo); err != nil {
 					return err
 				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", pr.Title); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "State:\t%s\n", pr.State); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", pr.Source.Branch.Name); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
-					return err
-				}
-				if pr.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pr.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writePullRequestSummaryTable(w, pr, pullRequestSummaryOptions{}); err != nil {
 					return err
 				}
 				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", pr.ID, repoTarget.Workspace, repoTarget.Repo))

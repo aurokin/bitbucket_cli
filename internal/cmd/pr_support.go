@@ -398,3 +398,61 @@ func stringSliceContains(values []string, target string) bool {
 func defaultPRTitle(sourceBranch string) string {
 	return sourceBranch
 }
+
+type pullRequestSummaryOptions struct {
+	IncludeAuthor      bool
+	IncludeUpdated     bool
+	IncludeDescription bool
+	Strategy           string
+	MergeCommit        string
+}
+
+func writePullRequestSummaryTable(w io.Writer, pr bitbucket.PullRequest, options pullRequestSummaryOptions) error {
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(tw, "Title:\t%s\n", pr.Title); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pr.State); err != nil {
+		return err
+	}
+	if options.IncludeAuthor && pr.Author.DisplayName != "" {
+		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", pr.Author.DisplayName); err != nil {
+			return err
+		}
+	}
+	if options.Strategy != "" {
+		if _, err := fmt.Fprintf(tw, "Strategy:\t%s\n", options.Strategy); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(tw, "Source:\t%s\n", pr.Source.Branch.Name); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
+		return err
+	}
+	if options.IncludeUpdated && pr.UpdatedOn != "" {
+		if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", pr.UpdatedOn); err != nil {
+			return err
+		}
+	}
+	if options.MergeCommit != "" {
+		if _, err := fmt.Fprintf(tw, "Merge Commit:\t%s\n", options.MergeCommit); err != nil {
+			return err
+		}
+	}
+	if pr.Links.HTML.Href != "" {
+		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pr.Links.HTML.Href); err != nil {
+			return err
+		}
+	}
+	if options.IncludeDescription && pr.Description != "" {
+		if _, err := fmt.Fprintf(tw, "Description:\t%s\n", pr.Description); err != nil {
+			return err
+		}
+	}
+	return tw.Flush()
+}

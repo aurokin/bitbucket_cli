@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/auro/bitbucket_cli/internal/output"
@@ -44,41 +43,11 @@ func newPRViewCmd() *cobra.Command {
 				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
 					return err
 				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", pr.Title); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "State:\t%s\n", pr.State); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Author:\t%s\n", pr.Author.DisplayName); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Source:\t%s\n", pr.Source.Branch.Name); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
-					return err
-				}
-				if pr.UpdatedOn != "" {
-					if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", pr.UpdatedOn); err != nil {
-						return err
-					}
-				}
-				if pr.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pr.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if pr.Description != "" {
-					if _, err := fmt.Fprintf(tw, "Description:\t%s\n", pr.Description); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
+				if err := writePullRequestSummaryTable(w, pr, pullRequestSummaryOptions{
+					IncludeAuthor:      true,
+					IncludeUpdated:     true,
+					IncludeDescription: true,
+				}); err != nil {
 					return err
 				}
 				return writeNextStep(w, prViewNextStep(prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, pr.ID))

@@ -6,11 +6,11 @@ func FuzzParseRepoSelector(f *testing.F) {
 	seeds := [][3]string{
 		{"", "", ""},
 		{"", "", "widgets"},
-		{"", "OhBizzle", "widgets"},
-		{"bitbucket.org", "", "OhBizzle/widgets"},
-		{"", "", "https://bitbucket.org/OhBizzle/widgets"},
-		{"", "", "ssh://git@bitbucket.org/OhBizzle/widgets.git"},
-		{"bitbucket.org", "OhBizzle", "https://bitbucket.org/OhBizzle/widgets"},
+		{"", "acme", "widgets"},
+		{"bitbucket.org", "", "acme/widgets"},
+		{"", "", "https://bitbucket.org/acme/widgets"},
+		{"", "", "ssh://git@bitbucket.org/acme/widgets.git"},
+		{"bitbucket.org", "acme", "https://bitbucket.org/acme/widgets"},
 	}
 	for _, seed := range seeds {
 		f.Add(seed[0], seed[1], seed[2])
@@ -33,10 +33,10 @@ func FuzzParseRepoSelector(f *testing.F) {
 func FuzzParseRepoTargetInput(f *testing.F) {
 	seeds := [][4]string{
 		{"", "", "", ""},
-		{"", "OhBizzle", "", "widgets"},
-		{"bitbucket.org", "", "OhBizzle/widgets", ""},
-		{"", "", "", "https://bitbucket.org/OhBizzle/widgets"},
-		{"bitbucket.org", "OhBizzle", "widgets", "OhBizzle/widgets"},
+		{"", "acme", "", "widgets"},
+		{"bitbucket.org", "", "acme/widgets", ""},
+		{"", "", "", "https://bitbucket.org/acme/widgets"},
+		{"bitbucket.org", "acme", "widgets", "acme/widgets"},
 	}
 	for _, seed := range seeds {
 		f.Add(seed[0], seed[1], seed[2], seed[3])
@@ -57,8 +57,8 @@ func FuzzParsePullRequestSelector(f *testing.F) {
 	seeds := []string{
 		"1",
 		"42",
-		"https://bitbucket.org/OhBizzle/widgets/pull-requests/7",
-		"https://bitbucket.org/OhBizzle/widgets/src/main/README.md",
+		"https://bitbucket.org/acme/widgets/pull-requests/7",
+		"https://bitbucket.org/acme/widgets/src/main/README.md",
 		"",
 	}
 	for _, seed := range seeds {

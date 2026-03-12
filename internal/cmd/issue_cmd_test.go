@@ -35,7 +35,7 @@ func TestWriteIssueTable(t *testing.T) {
 			State:     "new",
 			UpdatedOn: "2026-03-11T00:00:00Z",
 			Reporter: bitbucket.IssueActor{
-				DisplayName: "Hunter Sadler With Long Name",
+				DisplayName: "Example User With Long Name",
 			},
 		},
 	}
@@ -103,7 +103,7 @@ func TestWriteIssueTableWithRepositoryHeader(t *testing.T) {
 			Title:     "Fixture issue",
 			State:     "new",
 			UpdatedOn: "2026-03-11T00:00:00Z",
-			Reporter:  bitbucket.IssueActor{DisplayName: "Hunter Sadler"},
+			Reporter:  bitbucket.IssueActor{DisplayName: "Example User"},
 		},
 	}
 

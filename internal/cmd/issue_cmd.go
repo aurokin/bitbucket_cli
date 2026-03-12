@@ -41,8 +41,8 @@ func newIssueListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List issues for a repository",
-		Example: "  bb issue list --repo OhBizzle/bb-cli-integration-issues\n" +
-			"  bb issue list --repo OhBizzle/bb-cli-integration-primary\n" +
+		Example: "  bb issue list --repo workspace-slug/issues-repo-slug\n" +
+			"  bb issue list --repo workspace-slug/repo-slug\n" +
 			"  bb issue list --state open --json id,title,state",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -98,8 +98,8 @@ func newIssueViewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view <id>",
 		Short: "View one issue",
-		Example: "  bb issue view 1 --repo OhBizzle/bb-cli-integration-issues\n" +
-			"  bb issue view 1 --repo OhBizzle/bb-cli-integration-primary --json",
+		Example: "  bb issue view 1 --repo workspace-slug/issues-repo-slug\n" +
+			"  bb issue view 1 --repo workspace-slug/repo-slug --json",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -197,8 +197,8 @@ func newIssueCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create an issue",
-		Example: "  bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'\n" +
-			"  bb issue create --repo OhBizzle/bb-cli-integration-primary --title 'Broken flow' --body 'Needs investigation'\n" +
+		Example: "  bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'\n" +
+			"  bb issue create --repo workspace-slug/repo-slug --title 'Broken flow' --body 'Needs investigation'\n" +
 			"  bb issue create --title 'Request' --kind proposal --priority major --json",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -263,8 +263,8 @@ func newIssueEditCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit <id>",
 		Short: "Edit an issue",
-		Example: "  bb issue edit 1 --repo OhBizzle/bb-cli-integration-issues --title 'Updated title'\n" +
-			"  bb issue edit 1 --repo OhBizzle/bb-cli-integration-primary --state open --priority major --json",
+		Example: "  bb issue edit 1 --repo workspace-slug/issues-repo-slug --title 'Updated title'\n" +
+			"  bb issue edit 1 --repo workspace-slug/repo-slug --state open --priority major --json",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

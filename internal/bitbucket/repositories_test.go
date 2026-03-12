@@ -15,7 +15,7 @@ func TestListWorkspaces(t *testing.T) {
 		if r.URL.Path != "/2.0/workspaces" {
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"values":[{"slug":"OhBizzle","name":"Hunter Sadler"}]}`))
+		_, _ = w.Write([]byte(`{"values":[{"slug":"acme","name":"Example User"}]}`))
 	}))
 	defer server.Close()
 
@@ -34,7 +34,7 @@ func TestListWorkspaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListWorkspaces returned error: %v", err)
 	}
-	if len(workspaces) != 1 || workspaces[0].Slug != "OhBizzle" {
+	if len(workspaces) != 1 || workspaces[0].Slug != "acme" {
 		t.Fatalf("unexpected workspaces %+v", workspaces)
 	}
 }
@@ -44,7 +44,7 @@ func TestCreateRepository(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("unexpected method %s", r.Method)
 		}
-		if r.URL.Path != "/2.0/repositories/OhBizzle/widgets" {
+		if r.URL.Path != "/2.0/repositories/acme/widgets" {
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
 
@@ -80,7 +80,7 @@ func TestCreateRepository(t *testing.T) {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
 
-	repo, err := client.CreateRepository(context.Background(), "OhBizzle", "widgets", CreateRepositoryOptions{
+	repo, err := client.CreateRepository(context.Background(), "acme", "widgets", CreateRepositoryOptions{
 		Name:        "Widgets",
 		Description: "test repo",
 		ProjectKey:  "BBCLI",
@@ -96,7 +96,7 @@ func TestCreateRepository(t *testing.T) {
 
 func TestListRepositories(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/2.0/repositories/OhBizzle" {
+		if r.URL.Path != "/2.0/repositories/acme" {
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
 		if got := r.URL.Query().Get("q"); got == "" {
@@ -122,7 +122,7 @@ func TestListRepositories(t *testing.T) {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
 
-	repos, err := client.ListRepositories(context.Background(), "OhBizzle", ListRepositoriesOptions{
+	repos, err := client.ListRepositories(context.Background(), "acme", ListRepositoriesOptions{
 		Query: `name ~ "widgets"`,
 		Sort:  "-updated_on",
 		Limit: 10,
@@ -140,7 +140,7 @@ func TestDeleteRepository(t *testing.T) {
 		if r.Method != http.MethodDelete {
 			t.Fatalf("unexpected method %s", r.Method)
 		}
-		if r.URL.Path != "/2.0/repositories/OhBizzle/widgets" {
+		if r.URL.Path != "/2.0/repositories/acme/widgets" {
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -158,7 +158,7 @@ func TestDeleteRepository(t *testing.T) {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
 
-	if err := client.DeleteRepository(context.Background(), "OhBizzle", "widgets"); err != nil {
+	if err := client.DeleteRepository(context.Background(), "acme", "widgets"); err != nil {
 		t.Fatalf("DeleteRepository returned error: %v", err)
 	}
 }

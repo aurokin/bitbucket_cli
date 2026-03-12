@@ -45,8 +45,8 @@ func newPRCloseCmd() *cobra.Command {
 		Short: "Close a pull request without merging it",
 		Long:  "Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request.",
 		Example: "  bb pr close 1\n" +
-			"  bb pr close 1 --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb pr close https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json",
+			"  bb pr close 1 --repo workspace-slug/repo-slug\n" +
+			"  bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -107,8 +107,8 @@ func newPRCommentCmd() *cobra.Command {
 		Short: "Add a comment to a pull request",
 		Long:  "Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage.",
 		Example: "  bb pr comment 1 --body 'Looks good'\n" +
-			"  bb pr comment 1 --repo OhBizzle/bb-cli-integration-primary --body-file comment.md\n" +
-			"  printf 'Ship it\\n' | bb pr comment https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --body-file - --json",
+			"  bb pr comment 1 --repo workspace-slug/repo-slug --body-file comment.md\n" +
+			"  printf 'Ship it\\n' | bb pr comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --body-file - --json",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -188,8 +188,8 @@ func newPRDiffCmd() *cobra.Command {
 		Short: "View a pull request diff",
 		Long:  "Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats.",
 		Example: "  bb pr diff 1\n" +
-			"  bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --stat\n" +
-			"  bb pr diff https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json patch,stats",
+			"  bb pr diff 1 --repo workspace-slug/repo-slug --stat\n" +
+			"  bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json patch,stats",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -266,7 +266,7 @@ func newPRStatusCmd() *cobra.Command {
 		Short: "Show pull request status for a repository",
 		Long:  "Show pull request status for one repository, including the current branch pull request when available, open pull requests created by you, and open pull requests requesting your review.",
 		Example: "  bb pr status\n" +
-			"  bb pr status --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr status --repo workspace-slug/repo-slug\n" +
 			"  bb pr status --json current_branch,created,review_requested",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -333,8 +333,8 @@ func newPRListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List pull requests for a repository",
 		Example: "  bb pr list\n" +
-			"  bb pr list --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb pr list --repo https://bitbucket.org/OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr list --repo workspace-slug/repo-slug\n" +
+			"  bb pr list --repo https://bitbucket.org/workspace-slug/repo-slug\n" +
 			"  bb pr list --state ALL --json id,title,state",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

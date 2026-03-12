@@ -46,11 +46,11 @@ Create or rotate the token here:
 Prefer explicit repository targets when you are outside a checkout or writing automation:
 
 ```bash
-bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser
-bb repo view --repo OhBizzle/bb-cli-integration-primary
-bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
-bb pr list --repo OhBizzle/bb-cli-integration-primary
-bb issue list --repo OhBizzle/bb-cli-integration-issues
+bb browse --repo workspace-slug/repo-slug --no-browser
+bb repo view --repo workspace-slug/repo-slug
+bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pr list --repo workspace-slug/repo-slug
+bb issue list --repo workspace-slug/issues-repo-slug
 ```
 
 ## Human Workflows
@@ -61,8 +61,8 @@ Humans can lean on local git inference and the default header-first output:
 bb browse
 bb browse README.md:12 --no-browser
 bb repo view
-bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
-bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
+bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 bb pr list
 bb pr view 1
 bb pr diff 1 --stat
@@ -81,19 +81,19 @@ The human-readable path is designed to:
 Agents and scripts should prefer explicit, deterministic invocations:
 
 ```bash
-bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type,pr
+bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
 bb --no-prompt pr create \
-  --repo OhBizzle/bb-cli-integration-primary \
+  --repo workspace-slug/repo-slug \
   --source feature \
   --destination main \
   --title "Add feature" \
   --json id,title,state,links
 
-bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json patch,stats
-bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
-bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,steps
+bb pr diff 1 --repo workspace-slug/repo-slug --json patch,stats
+bb --no-prompt pipeline stop 1 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped
+bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
 bb status --json authored_prs,review_requested_prs,your_issues
-bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --jq '.[] | .id'
+bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 ```
 
 Automation conventions:

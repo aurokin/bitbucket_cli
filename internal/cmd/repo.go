@@ -42,8 +42,8 @@ func newRepoViewCmd() *cobra.Command {
 		Short: "Show repository information",
 		Long:  "Show repository information from Bitbucket Cloud. When run inside a git checkout, local remote details are included in the output.",
 		Example: "  bb repo view\n" +
-			"  bb repo view --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb repo view --repo https://bitbucket.org/OhBizzle/bb-cli-integration-primary\n" +
+			"  bb repo view --repo workspace-slug/repo-slug\n" +
+			"  bb repo view --repo https://bitbucket.org/workspace-slug/repo-slug\n" +
 			"  bb repo view --json name,project_key,main_branch",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -210,9 +210,9 @@ func newRepoCreateCmd() *cobra.Command {
 		Use:   "create [repository]",
 		Short: "Create a repository in Bitbucket Cloud",
 		Long:  "Create a repository in Bitbucket Cloud. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. Use --reuse-existing when the command may be run repeatedly.",
-		Example: "  bb repo create OhBizzle/my-repo --project-key BBCLI\n" +
-			"  bb repo create --repo OhBizzle/my-repo --reuse-existing --json\n" +
-			"  bb repo create my-repo --workspace OhBizzle",
+		Example: "  bb repo create workspace-slug/my-repo --project-key BBCLI\n" +
+			"  bb repo create --repo workspace-slug/my-repo --reuse-existing --json\n" +
+			"  bb repo create my-repo --workspace workspace-slug",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -282,11 +282,11 @@ func newRepoCloneCmd() *cobra.Command {
 		Use:   "clone [repository] [directory]",
 		Short: "Clone a Bitbucket repository locally",
 		Long:  "Clone a Bitbucket repository over HTTPS using the configured API token. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. The origin remote is rewritten after cloning so the token is not stored in git config.",
-		Example: "  bb repo clone OhBizzle/bb-cli-integration-primary\n" +
-			"  bb repo clone --repo OhBizzle/bb-cli-integration-primary ./tmp/repo\n" +
-			"  bb repo clone bb-cli-integration-primary --workspace OhBizzle\n" +
-			"  bb repo clone https://bitbucket.org/OhBizzle/bb-cli-integration-primary\n" +
-			"  bb repo clone OhBizzle/bb-cli-integration-primary ./tmp/repo --json",
+		Example: "  bb repo clone workspace-slug/repo-slug\n" +
+			"  bb repo clone --repo workspace-slug/repo-slug ./tmp/repo\n" +
+			"  bb repo clone repo-slug --workspace workspace-slug\n" +
+			"  bb repo clone https://bitbucket.org/workspace-slug/repo-slug\n" +
+			"  bb repo clone workspace-slug/repo-slug ./tmp/repo --json",
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -381,10 +381,10 @@ func newRepoDeleteCmd() *cobra.Command {
 		Use:   "delete [repository]",
 		Short: "Delete a Bitbucket repository",
 		Long:  "Delete a Bitbucket repository in Bitbucket Cloud. Prefer --repo <workspace>/<repo> for explicit targeting; use --workspace only to disambiguate a bare repository name. Humans must confirm the exact workspace/repository unless --yes is provided. Scripts and agents should use --yes together with --no-prompt when they need deterministic behavior.",
-		Example: "  bb repo delete OhBizzle/bb-cli-delete-command-target --yes\n" +
-			"  bb repo delete --repo OhBizzle/bb-cli-delete-command-target --yes\n" +
-			"  bb repo delete bb-cli-delete-command-target --workspace OhBizzle --yes\n" +
-			"  bb repo delete https://bitbucket.org/OhBizzle/bb-cli-delete-command-target --json",
+		Example: "  bb repo delete workspace-slug/delete-repo-slug --yes\n" +
+			"  bb repo delete --repo workspace-slug/delete-repo-slug --yes\n" +
+			"  bb repo delete delete-repo-slug --workspace workspace-slug --yes\n" +
+			"  bb repo delete https://bitbucket.org/workspace-slug/delete-repo-slug --json",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

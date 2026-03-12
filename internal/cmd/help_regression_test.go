@@ -25,7 +25,7 @@ func TestRepoViewHelpRegression(t *testing.T) {
 
 	output := renderHelp(t, "repo", "view", "--help")
 	for _, fragment := range []string{
-		"bb repo view --repo OhBizzle/bb-cli-integration-primary",
+		"bb repo view --repo workspace-slug/repo-slug",
 		"Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL",
 		"--json string",
 	} {
@@ -56,7 +56,7 @@ func TestPipelineListHelpRegression(t *testing.T) {
 
 	output := renderHelp(t, "pipeline", "list", "--help")
 	for _, fragment := range []string{
-		"bb pipeline list --repo OhBizzle/bb-cli-integration-primary --state COMPLETED --json build_number,state,target",
+		"bb pipeline list --repo workspace-slug/repo-slug --state COMPLETED --json build_number,state,target",
 		"--state string",
 		"--limit int",
 	} {
@@ -71,7 +71,7 @@ func TestBrowseHelpRegression(t *testing.T) {
 
 	output := renderHelp(t, "browse", "--help")
 	for _, fragment := range []string{
-		"bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser",
+		"bb browse README.md:12 --repo workspace-slug/repo-slug --no-browser",
 		"--pr int",
 		"--no-browser",
 	} {
@@ -86,7 +86,7 @@ func TestStatusHelpRegression(t *testing.T) {
 
 	output := renderHelp(t, "status", "--help")
 	for _, fragment := range []string{
-		"bb status --workspace OhBizzle --limit 10",
+		"bb status --workspace workspace-slug --limit 10",
 		"--json string",
 		"--repo-limit int",
 	} {

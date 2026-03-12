@@ -71,7 +71,7 @@ func newStatusCmd() *cobra.Command {
 		Short: "Show cross-repository pull request and issue status",
 		Long:  "Show authored pull requests, pull requests requesting your review, and open issues that involve you across accessible repositories.",
 		Example: "  bb status\n" +
-			"  bb status --workspace OhBizzle --limit 10\n" +
+			"  bb status --workspace workspace-slug --limit 10\n" +
 			"  bb status --json authored_prs,review_requested_prs,your_issues",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

@@ -166,9 +166,9 @@ Examples:
 
 ```bash
 bb api /user
-bb api '/repositories/OhBizzle/bb-cli-integration-primary/pullrequests?state=OPEN'
+bb api '/repositories/workspace-slug/repo-slug/pullrequests?state=OPEN'
 bb api /user --jq .display_name
-printf '{"name":"my-repo"}' | bb api /repositories/OhBizzle/my-repo -X POST --input -
+printf '{"name":"my-repo"}' | bb api /repositories/workspace-slug/my-repo -X POST --input -
 ```
 
 Flags:
@@ -296,11 +296,11 @@ bb browse [target] [flags]
 Examples:
 
 ```bash
-bb browse --repo OhBizzle/bb-cli-integration-primary
-bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser
-bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary
-bb browse --pipelines --repo OhBizzle/bb-cli-integration-primary --json '*'
-bb browse a1b2c3d --repo OhBizzle/bb-cli-integration-primary --no-browser
+bb browse --repo workspace-slug/repo-slug
+bb browse README.md:12 --repo workspace-slug/repo-slug --no-browser
+bb browse --pr 1 --repo workspace-slug/repo-slug
+bb browse --pipelines --repo workspace-slug/repo-slug --json '*'
+bb browse a1b2c3d --repo workspace-slug/repo-slug --no-browser
 ```
 
 Flags:
@@ -561,8 +561,8 @@ bb issue create [flags]
 Examples:
 
 ```bash
-bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'
-bb issue create --repo OhBizzle/bb-cli-integration-primary --title 'Broken flow' --body 'Needs investigation'
+bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'
+bb issue create --repo workspace-slug/repo-slug --title 'Broken flow' --body 'Needs investigation'
 bb issue create --title 'Request' --kind proposal --priority major --json
 ```
 
@@ -592,8 +592,8 @@ bb issue edit <id> [flags]
 Examples:
 
 ```bash
-bb issue edit 1 --repo OhBizzle/bb-cli-integration-issues --title 'Updated title'
-bb issue edit 1 --repo OhBizzle/bb-cli-integration-primary --state open --priority major --json
+bb issue edit 1 --repo workspace-slug/issues-repo-slug --title 'Updated title'
+bb issue edit 1 --repo workspace-slug/repo-slug --state open --priority major --json
 ```
 
 Flags:
@@ -623,8 +623,8 @@ bb issue list [flags]
 Examples:
 
 ```bash
-bb issue list --repo OhBizzle/bb-cli-integration-issues
-bb issue list --repo OhBizzle/bb-cli-integration-primary
+bb issue list --repo workspace-slug/issues-repo-slug
+bb issue list --repo workspace-slug/repo-slug
 bb issue list --state open --json id,title,state
 ```
 
@@ -675,8 +675,8 @@ bb issue view <id> [flags]
 Examples:
 
 ```bash
-bb issue view 1 --repo OhBizzle/bb-cli-integration-issues
-bb issue view 1 --repo OhBizzle/bb-cli-integration-primary --json
+bb issue view 1 --repo workspace-slug/issues-repo-slug
+bb issue view 1 --repo workspace-slug/repo-slug --json
 ```
 
 Flags:
@@ -726,8 +726,8 @@ bb pipeline list [flags]
 Examples:
 
 ```bash
-bb pipeline list --repo OhBizzle/bb-cli-integration-primary
-bb pipeline list --repo OhBizzle/bb-cli-integration-primary --state COMPLETED --json build_number,state,target
+bb pipeline list --repo workspace-slug/repo-slug
+bb pipeline list --repo workspace-slug/repo-slug --state COMPLETED --json build_number,state,target
 bb pipeline list --limit 5
 ```
 
@@ -757,9 +757,9 @@ bb pipeline log <number-or-uuid> [flags]
 Examples:
 
 ```bash
-bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines
-bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
-bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,step,log
+bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug
+bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
+bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug --json pipeline,step,log
 ```
 
 Flags:
@@ -787,9 +787,9 @@ bb pipeline stop <number-or-uuid> [flags]
 Examples:
 
 ```bash
-bb pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes
-bb pipeline stop '{uuid}' --repo OhBizzle/bb-cli-integration-pipelines --json '*'
-bb --no-prompt pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
+bb pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes
+bb pipeline stop '{uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+bb --no-prompt pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped
 ```
 
 Flags:
@@ -815,8 +815,8 @@ bb pipeline view <number-or-uuid> [flags]
 Examples:
 
 ```bash
-bb pipeline view 42 --repo OhBizzle/bb-cli-integration-primary
-bb pipeline view '{uuid}' --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb pipeline view 42 --repo workspace-slug/repo-slug
+bb pipeline view '{uuid}' --repo workspace-slug/repo-slug --json '*'
 bb pipeline view 42
 ```
 
@@ -875,8 +875,8 @@ Examples:
 
 ```bash
 bb pr checkout 1
-bb pr checkout 1 --repo OhBizzle/bb-cli-integration-primary
-bb pr checkout https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1
+bb pr checkout 1 --repo workspace-slug/repo-slug
+bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
 ```
 
 Flags:
@@ -902,8 +902,8 @@ Examples:
 
 ```bash
 bb pr close 1
-bb pr close 1 --repo OhBizzle/bb-cli-integration-primary
-bb pr close https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json
+bb pr close 1 --repo workspace-slug/repo-slug
+bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json
 ```
 
 Flags:
@@ -931,8 +931,8 @@ Examples:
 
 ```bash
 bb pr comment 1 --body 'Looks good'
-bb pr comment 1 --repo OhBizzle/bb-cli-integration-primary --body-file comment.md
-printf 'Ship it\n' | bb pr comment https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --body-file - --json
+bb pr comment 1 --repo workspace-slug/repo-slug --body-file comment.md
+printf 'Ship it\n' | bb pr comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --body-file - --json
 ```
 
 Flags:
@@ -998,8 +998,8 @@ Examples:
 
 ```bash
 bb pr diff 1
-bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --stat
-bb pr diff https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1 --json patch,stats
+bb pr diff 1 --repo workspace-slug/repo-slug --stat
+bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json patch,stats
 ```
 
 Flags:
@@ -1026,8 +1026,8 @@ Examples:
 
 ```bash
 bb pr list
-bb pr list --repo OhBizzle/bb-cli-integration-primary
-bb pr list --repo https://bitbucket.org/OhBizzle/bb-cli-integration-primary
+bb pr list --repo workspace-slug/repo-slug
+bb pr list --repo https://bitbucket.org/workspace-slug/repo-slug
 bb pr list --state ALL --json id,title,state
 ```
 
@@ -1058,7 +1058,7 @@ Examples:
 
 ```bash
 bb pr merge 7
-bb pr merge 7 --repo OhBizzle/bb-cli-integration-primary
+bb pr merge 7 --repo workspace-slug/repo-slug
 bb pr merge 7 --strategy merge_commit
 bb pr merge 7 --message 'Ship feature' --close-source-branch --json
 ```
@@ -1091,7 +1091,7 @@ Examples:
 
 ```bash
 bb pr status
-bb pr status --repo OhBizzle/bb-cli-integration-primary
+bb pr status --repo workspace-slug/repo-slug
 bb pr status --json current_branch,created,review_requested
 ```
 
@@ -1120,7 +1120,7 @@ Examples:
 ```bash
 bb pr view 1
 bb pr view 1 --json title,state,source,destination
-bb pr view https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1
+bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
 ```
 
 Flags:
@@ -1172,11 +1172,11 @@ bb repo clone [repository] [directory] [flags]
 Examples:
 
 ```bash
-bb repo clone OhBizzle/bb-cli-integration-primary
-bb repo clone --repo OhBizzle/bb-cli-integration-primary ./tmp/repo
-bb repo clone bb-cli-integration-primary --workspace OhBizzle
-bb repo clone https://bitbucket.org/OhBizzle/bb-cli-integration-primary
-bb repo clone OhBizzle/bb-cli-integration-primary ./tmp/repo --json
+bb repo clone workspace-slug/repo-slug
+bb repo clone --repo workspace-slug/repo-slug ./tmp/repo
+bb repo clone repo-slug --workspace workspace-slug
+bb repo clone https://bitbucket.org/workspace-slug/repo-slug
+bb repo clone workspace-slug/repo-slug ./tmp/repo --json
 ```
 
 Flags:
@@ -1203,9 +1203,9 @@ bb repo create [repository] [flags]
 Examples:
 
 ```bash
-bb repo create OhBizzle/my-repo --project-key BBCLI
-bb repo create --repo OhBizzle/my-repo --reuse-existing --json
-bb repo create my-repo --workspace OhBizzle
+bb repo create workspace-slug/my-repo --project-key BBCLI
+bb repo create --repo workspace-slug/my-repo --reuse-existing --json
+bb repo create my-repo --workspace workspace-slug
 ```
 
 Flags:
@@ -1237,10 +1237,10 @@ bb repo delete [repository] [flags]
 Examples:
 
 ```bash
-bb repo delete OhBizzle/bb-cli-delete-command-target --yes
-bb repo delete --repo OhBizzle/bb-cli-delete-command-target --yes
-bb repo delete bb-cli-delete-command-target --workspace OhBizzle --yes
-bb repo delete https://bitbucket.org/OhBizzle/bb-cli-delete-command-target --json
+bb repo delete workspace-slug/delete-repo-slug --yes
+bb repo delete --repo workspace-slug/delete-repo-slug --yes
+bb repo delete delete-repo-slug --workspace workspace-slug --yes
+bb repo delete https://bitbucket.org/workspace-slug/delete-repo-slug --json
 ```
 
 Flags:
@@ -1269,8 +1269,8 @@ Examples:
 
 ```bash
 bb repo view
-bb repo view --repo OhBizzle/bb-cli-integration-primary
-bb repo view --repo https://bitbucket.org/OhBizzle/bb-cli-integration-primary
+bb repo view --repo workspace-slug/repo-slug
+bb repo view --repo https://bitbucket.org/workspace-slug/repo-slug
 bb repo view --json name,project_key,main_branch
 ```
 
@@ -1318,8 +1318,8 @@ bb search issues <query> [flags]
 Examples:
 
 ```bash
-bb search issues fixture --repo OhBizzle/bb-cli-integration-issues
-bb search issues bug --repo OhBizzle/bb-cli-integration-issues --json id,title,state
+bb search issues fixture --repo workspace-slug/issues-repo-slug
+bb search issues bug --repo workspace-slug/issues-repo-slug --json id,title,state
 ```
 
 Flags:
@@ -1345,8 +1345,8 @@ bb search prs <query> [flags]
 Examples:
 
 ```bash
-bb search prs fixture --repo OhBizzle/bb-cli-integration-primary
-bb search prs feature --repo OhBizzle/bb-cli-integration-primary --json id,title,state
+bb search prs fixture --repo workspace-slug/repo-slug
+bb search prs feature --repo workspace-slug/repo-slug --json id,title,state
 ```
 
 Flags:
@@ -1372,8 +1372,8 @@ bb search repos <query> [flags]
 Examples:
 
 ```bash
-bb search repos integration --workspace OhBizzle
-bb search repos bb-cli --workspace OhBizzle --json name,slug,description
+bb search repos integration --workspace workspace-slug
+bb search repos bb-cli --workspace workspace-slug --json name,slug,description
 ```
 
 Flags:
@@ -1401,7 +1401,7 @@ Examples:
 
 ```bash
 bb status
-bb status --workspace OhBizzle --limit 10
+bb status --workspace workspace-slug --limit 10
 bb status --json authored_prs,review_requested_prs,your_issues
 ```
 

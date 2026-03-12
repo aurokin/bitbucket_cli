@@ -1585,7 +1585,7 @@ func configureGitIdentity(t *testing.T, repoDir string) {
 	t.Helper()
 
 	runGit(t, repoDir, "config", "user.name", "bb cli integration")
-	runGit(t, repoDir, "config", "user.email", "hsadlersemail@gmail.com")
+	runGit(t, repoDir, "config", "user.email", "bb-cli-integration@example.invalid")
 }
 
 func hasCommit(t *testing.T, repoDir string) bool {

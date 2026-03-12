@@ -13,7 +13,7 @@ Representative shape for the repository view payload.
 Command:
 
 ```bash
-bb repo view --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb repo view --repo workspace-slug/repo-slug --json '*'
 ```
 
 Representative shape:
@@ -49,8 +49,8 @@ Representative shapes for repository clone and delete payloads.
 Commands:
 
 ```bash
-bb repo clone OhBizzle/bb-cli-integration-primary /tmp/bb-cli-integration-primary --json '*'
-bb --no-prompt repo delete OhBizzle/example-repo --yes --json '*'
+bb repo clone workspace-slug/repo-slug /tmp/repo-slug --json '*'
+bb --no-prompt repo delete workspace-slug/delete-repo-slug --yes --json '*'
 ```
 
 Representative shapes:
@@ -83,9 +83,9 @@ Representative shape for browse payloads when printing or emitting JSON instead 
 Commands:
 
 ```bash
-bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
-bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
-bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json '*'
+bb browse --repo workspace-slug/repo-slug --no-browser --json '*'
+bb browse README.md:12 --repo workspace-slug/repo-slug --no-browser --json '*'
+bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json '*'
 ```
 
 Representative shape:
@@ -117,10 +117,10 @@ Representative shapes for pipeline list items plus pipeline log, stop, and view 
 Commands:
 
 ```bash
-bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json '*'
-bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}' --json '*'
-bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json '*'
-bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json '*'
+bb pipeline list --repo workspace-slug/pipelines-repo-slug --json '*'
+bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --json '*'
+bb --no-prompt pipeline stop 1 --repo workspace-slug/pipelines-repo-slug --yes --json '*'
+bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json '*'
 ```
 
 Representative shapes:
@@ -327,8 +327,8 @@ Representative shape for pull request list items and the pull request view paylo
 Commands:
 
 ```bash
-bb pr list --repo OhBizzle/bb-cli-integration-primary --json '*'
-bb pr view 1 --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb pr list --repo workspace-slug/repo-slug --json '*'
+bb pr view 1 --repo workspace-slug/repo-slug --json '*'
 ```
 
 Representative shape:
@@ -420,7 +420,7 @@ Representative shape for the pull request status payload.
 Command:
 
 ```bash
-bb pr status --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb pr status --repo workspace-slug/repo-slug --json '*'
 ```
 
 Representative shape:
@@ -527,7 +527,7 @@ Representative shape for the pull request diff payload.
 Command:
 
 ```bash
-bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb pr diff 1 --repo workspace-slug/repo-slug --json '*'
 ```
 
 Representative shape:
@@ -563,8 +563,8 @@ Representative shape for issue list items and the issue view payload.
 Commands:
 
 ```bash
-bb issue list --repo OhBizzle/bb-cli-integration-issues --json '*'
-bb issue view 1 --repo OhBizzle/bb-cli-integration-issues --json '*'
+bb issue list --repo workspace-slug/issues-repo-slug --json '*'
+bb issue view 1 --repo workspace-slug/issues-repo-slug --json '*'
 ```
 
 Representative shape:
@@ -606,9 +606,9 @@ Representative shapes for repository, pull request, and issue search results.
 Commands:
 
 ```bash
-bb search repos bb-cli --workspace OhBizzle --json '*'
-bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --json '*'
-bb search issues broken --repo OhBizzle/bb-cli-integration-issues --json '*'
+bb search repos bb-cli --workspace workspace-slug --json '*'
+bb search prs fixture --repo workspace-slug/repo-slug --json '*'
+bb search issues broken --repo workspace-slug/issues-repo-slug --json '*'
 ```
 
 Representative shapes:
@@ -759,7 +759,7 @@ Representative shape for the cross-repository status payload.
 Command:
 
 ```bash
-bb status --workspace OhBizzle --json '*'
+bb status --workspace workspace-slug --json '*'
 ```
 
 Representative shape:

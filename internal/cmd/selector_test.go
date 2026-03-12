@@ -41,7 +41,7 @@ func TestParseRepoSelector(t *testing.T) {
 			name:          "workspace without repo",
 			repoFlag:      "",
 			wantErr:       "--workspace requires --repo",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 		},
 		{
 			name:     "bare repo",
@@ -53,19 +53,19 @@ func TestParseRepoSelector(t *testing.T) {
 		},
 		{
 			name:          "bare repo with workspace flag",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 			repoFlag:      "widgets",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
 		},
 		{
 			name:     "workspace repo",
-			repoFlag: "OhBizzle/widgets",
+			repoFlag: "acme/widgets",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
@@ -73,25 +73,25 @@ func TestParseRepoSelector(t *testing.T) {
 		{
 			name:          "workspace mismatch",
 			workspaceFlag: "Other",
-			repoFlag:      "OhBizzle/widgets",
-			wantErr:       `--workspace "Other" does not match repository target "OhBizzle/widgets"`,
+			repoFlag:      "acme/widgets",
+			wantErr:       `--workspace "Other" does not match repository target "acme/widgets"`,
 		},
 		{
 			name:     "https repository url",
-			repoFlag: "https://bitbucket.org/OhBizzle/widgets",
+			repoFlag: "https://bitbucket.org/acme/widgets",
 			want: repoSelector{
 				Host:      "bitbucket.org",
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
 		},
 		{
 			name:     "ssh clone url",
-			repoFlag: "ssh://git@bitbucket.org/OhBizzle/widgets.git",
+			repoFlag: "ssh://git@bitbucket.org/acme/widgets.git",
 			want: repoSelector{
 				Host:      "bitbucket.org",
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
@@ -99,13 +99,13 @@ func TestParseRepoSelector(t *testing.T) {
 		{
 			name:     "host mismatch",
 			hostFlag: "example.com",
-			repoFlag: "https://bitbucket.org/OhBizzle/widgets",
-			wantErr:  `--host "example.com" does not match repository target "https://bitbucket.org/OhBizzle/widgets"`,
+			repoFlag: "https://bitbucket.org/acme/widgets",
+			wantErr:  `--host "example.com" does not match repository target "https://bitbucket.org/acme/widgets"`,
 		},
 		{
 			name:     "invalid extra path",
-			repoFlag: "https://bitbucket.org/OhBizzle/widgets/pull-requests/1",
-			wantErr:  `repository URL "https://bitbucket.org/OhBizzle/widgets/pull-requests/1" must point to a repository`,
+			repoFlag: "https://bitbucket.org/acme/widgets/pull-requests/1",
+			wantErr:  `repository URL "https://bitbucket.org/acme/widgets/pull-requests/1" must point to a repository`,
 		},
 	}
 
@@ -145,41 +145,41 @@ func TestParseRepoTargetInput(t *testing.T) {
 	}{
 		{
 			name:          "workspace flag applies to positional bare repo",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 			positional:    "widgets",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
 		},
 		{
 			name:       "repo flag only",
-			repoFlag:   "OhBizzle/widgets",
+			repoFlag:   "acme/widgets",
 			positional: "",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
 		},
 		{
 			name:          "workspace flag merges with repo flag bare repo",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 			repoFlag:      "widgets",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
 		},
 		{
 			name:          "matching repo flag and positional",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 			repoFlag:      "widgets",
-			positional:    "OhBizzle/widgets",
+			positional:    "acme/widgets",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 				Repo:      "widgets",
 				Explicit:  true,
 			},
@@ -187,20 +187,20 @@ func TestParseRepoTargetInput(t *testing.T) {
 		{
 			name:       "host mismatch with repo url",
 			hostFlag:   "example.com",
-			positional: "https://bitbucket.org/OhBizzle/widgets",
+			positional: "https://bitbucket.org/acme/widgets",
 			wantErr:    `repository host "example.com" does not match "bitbucket.org"`,
 		},
 		{
 			name:          "workspace mismatch",
 			workspaceFlag: "Other",
-			positional:    "OhBizzle/widgets",
-			wantErr:       `repository workspace "Other" does not match "OhBizzle"`,
+			positional:    "acme/widgets",
+			wantErr:       `repository workspace "Other" does not match "acme"`,
 		},
 		{
 			name:          "workspace only is allowed until required later",
-			workspaceFlag: "OhBizzle",
+			workspaceFlag: "acme",
 			want: repoSelector{
-				Workspace: "OhBizzle",
+				Workspace: "acme",
 			},
 		},
 	}
@@ -243,11 +243,11 @@ func TestParsePullRequestSelector(t *testing.T) {
 		},
 		{
 			name: "url",
-			raw:  "https://bitbucket.org/OhBizzle/widgets/pull-requests/42",
+			raw:  "https://bitbucket.org/acme/widgets/pull-requests/42",
 			want: pullRequestSelector{
 				Repo: repoSelector{
 					Host:      "bitbucket.org",
-					Workspace: "OhBizzle",
+					Workspace: "acme",
 					Repo:      "widgets",
 					Explicit:  true,
 				},
@@ -256,8 +256,8 @@ func TestParsePullRequestSelector(t *testing.T) {
 		},
 		{
 			name:    "invalid path",
-			raw:     "https://bitbucket.org/OhBizzle/widgets/src/main.go",
-			wantErr: `pull request URL "https://bitbucket.org/OhBizzle/widgets/src/main.go" must point to a Bitbucket pull request`,
+			raw:     "https://bitbucket.org/acme/widgets/src/main.go",
+			wantErr: `pull request URL "https://bitbucket.org/acme/widgets/src/main.go" must point to a Bitbucket pull request`,
 		},
 		{
 			name:    "invalid raw",
@@ -291,8 +291,8 @@ func TestParsePullRequestSelector(t *testing.T) {
 func TestMergeRepoSelectors(t *testing.T) {
 	t.Parallel()
 
-	base := repoSelector{Host: "bitbucket.org", Workspace: "OhBizzle", Repo: "widgets", Explicit: true}
-	extra := repoSelector{Host: "bitbucket.org", Workspace: "OhBizzle", Repo: "widgets", Explicit: true}
+	base := repoSelector{Host: "bitbucket.org", Workspace: "acme", Repo: "widgets", Explicit: true}
+	extra := repoSelector{Host: "bitbucket.org", Workspace: "acme", Repo: "widgets", Explicit: true}
 
 	merged, err := mergeRepoSelectors(base, extra)
 	if err != nil {
@@ -303,7 +303,7 @@ func TestMergeRepoSelectors(t *testing.T) {
 	}
 
 	_, err = mergeRepoSelectors(base, repoSelector{Workspace: "Other"})
-	if err == nil || err.Error() != `repository workspace "OhBizzle" does not match "Other"` {
+	if err == nil || err.Error() != `repository workspace "acme" does not match "Other"` {
 		t.Fatalf("expected workspace mismatch error, got %v", err)
 	}
 }
@@ -312,7 +312,7 @@ func TestResolveRepoTarget(t *testing.T) {
 	t.Run("falls back to local repository", func(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{
 			Host:      "bitbucket.org",
-			Workspace: "OhBizzle",
+			Workspace: "acme",
 			RepoSlug:  "widgets",
 			RootDir:   "/tmp/widgets",
 		}, nil)
@@ -321,7 +321,7 @@ func TestResolveRepoTarget(t *testing.T) {
 		if err != nil {
 			t.Fatalf("resolveRepoTarget returned error: %v", err)
 		}
-		if target.Workspace != "OhBizzle" || target.Repo != "widgets" || target.Host != "bitbucket.org" {
+		if target.Workspace != "acme" || target.Repo != "widgets" || target.Host != "bitbucket.org" {
 			t.Fatalf("unexpected target %+v", target)
 		}
 		if target.LocalRepo == nil || target.LocalRepo.RootDir != "/tmp/widgets" {
@@ -337,12 +337,12 @@ func TestResolveRepoTarget(t *testing.T) {
 			Repo:     "widgets",
 			Explicit: true,
 		}, stubWorkspaceResolver{
-			workspaces: []bitbucket.Workspace{{Slug: "OhBizzle"}},
+			workspaces: []bitbucket.Workspace{{Slug: "acme"}},
 		}, false)
 		if err != nil {
 			t.Fatalf("resolveRepoTarget returned error: %v", err)
 		}
-		if target.Workspace != "OhBizzle" || target.Repo != "widgets" {
+		if target.Workspace != "acme" || target.Repo != "widgets" {
 			t.Fatalf("unexpected target %+v", target)
 		}
 		if len(target.Warnings) != 0 {
@@ -353,7 +353,7 @@ func TestResolveRepoTarget(t *testing.T) {
 	t.Run("uses matching local repo for bare repo", func(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{
 			Host:      "bitbucket.org",
-			Workspace: "OhBizzle",
+			Workspace: "acme",
 			RepoSlug:  "widgets",
 		}, nil)
 
@@ -366,7 +366,7 @@ func TestResolveRepoTarget(t *testing.T) {
 		if err != nil {
 			t.Fatalf("resolveRepoTarget returned error: %v", err)
 		}
-		if target.Workspace != "OhBizzle" {
+		if target.Workspace != "acme" {
 			t.Fatalf("expected local workspace, got %+v", target)
 		}
 	})
@@ -389,7 +389,7 @@ func TestResolveRepoTarget(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
 		target, err := resolveRepoTarget(context.Background(), repoSelector{
-			Workspace: "OhBizzle",
+			Workspace: "acme",
 			Repo:      "widgets",
 			Explicit:  true,
 		}, stubWorkspaceResolver{}, true)
@@ -406,11 +406,11 @@ func TestResolvePullRequestTarget(t *testing.T) {
 	t.Run("uses url repository context", func(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
-		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/OhBizzle/widgets/pull-requests/7", false)
+		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
 		if err != nil {
 			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
 		}
-		if target.ID != 7 || target.RepoTarget.Workspace != "OhBizzle" || target.RepoTarget.Repo != "widgets" {
+		if target.ID != 7 || target.RepoTarget.Workspace != "acme" || target.RepoTarget.Repo != "widgets" {
 			t.Fatalf("unexpected pull request target %+v", target)
 		}
 	})
@@ -418,7 +418,7 @@ func TestResolvePullRequestTarget(t *testing.T) {
 	t.Run("uses local repo for numeric id", func(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{
 			Host:      "bitbucket.org",
-			Workspace: "OhBizzle",
+			Workspace: "acme",
 			RepoSlug:  "widgets",
 		}, nil)
 
@@ -426,7 +426,7 @@ func TestResolvePullRequestTarget(t *testing.T) {
 		if err != nil {
 			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
 		}
-		if target.ID != 7 || target.RepoTarget.Workspace != "OhBizzle" || target.RepoTarget.Repo != "widgets" {
+		if target.ID != 7 || target.RepoTarget.Workspace != "acme" || target.RepoTarget.Repo != "widgets" {
 			t.Fatalf("unexpected pull request target %+v", target)
 		}
 	})
@@ -438,8 +438,8 @@ func TestResolvePullRequestTarget(t *testing.T) {
 			Workspace: "Other",
 			Repo:      "widgets",
 			Explicit:  true,
-		}, stubWorkspaceResolver{}, "https://bitbucket.org/OhBizzle/widgets/pull-requests/7", false)
-		if err == nil || err.Error() != `repository workspace "Other" does not match "OhBizzle"` {
+		}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
+		if err == nil || err.Error() != `repository workspace "Other" does not match "acme"` {
 			t.Fatalf("expected mismatch error, got %v", err)
 		}
 	})
@@ -448,11 +448,11 @@ func TestResolvePullRequestTarget(t *testing.T) {
 func TestRequireExplicitRepoTarget(t *testing.T) {
 	t.Parallel()
 
-	if err := requireExplicitRepoTarget(repoSelector{Workspace: "OhBizzle"}); err == nil || err.Error() != "repository is required; pass <repo>, <workspace>/<repo>, or --repo" {
+	if err := requireExplicitRepoTarget(repoSelector{Workspace: "acme"}); err == nil || err.Error() != "repository is required; pass <repo>, <workspace>/<repo>, or --repo" {
 		t.Fatalf("expected missing repository error, got %v", err)
 	}
 
-	if err := requireExplicitRepoTarget(repoSelector{Workspace: "OhBizzle", Repo: "widgets"}); err != nil {
+	if err := requireExplicitRepoTarget(repoSelector{Workspace: "acme", Repo: "widgets"}); err != nil {
 		t.Fatalf("did not expect error: %v", err)
 	}
 }

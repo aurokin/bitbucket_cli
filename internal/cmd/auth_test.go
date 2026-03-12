@@ -112,7 +112,7 @@ func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
 				Username:      "user@example.com",
 				AuthType:      "api-token",
 				Authenticated: &authenticated,
-				DisplayName:   "Hunter Sadler",
+				DisplayName:   "Example User",
 				UpdatedAt:     "2026-03-11T00:00:00Z",
 			},
 			{
@@ -134,7 +134,7 @@ func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
 	for _, expected := range []string{
 		"bitbucket.org",
 		"example.com",
-		"Hunter Sadler",
+		"Example User",
 		"example.com auth error: 401 Unauthorized",
 	} {
 		if !strings.Contains(got, expected) {

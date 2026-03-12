@@ -19,7 +19,7 @@ func newPRViewCmd() *cobra.Command {
 		Short: "View a pull request",
 		Example: "  bb pr view 1\n" +
 			"  bb pr view 1 --json title,state,source,destination\n" +
-			"  bb pr view https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1",
+			"  bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

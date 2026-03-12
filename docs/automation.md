@@ -26,9 +26,9 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 ## Browse
 
 ```bash
-bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type
-bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --branch main --no-browser --json url,type,path,line,ref
-bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary --no-browser --json url,type,pr
+bb browse --repo workspace-slug/repo-slug --no-browser --json url,type
+bb browse README.md:12 --repo workspace-slug/repo-slug --branch main --no-browser --json url,type,path,line,ref
+bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
 ```
 
 ## Authentication
@@ -54,51 +54,51 @@ bb api /user --jq '{display_name, account_id}'
 ## Repository Commands
 
 ```bash
-bb repo view --repo OhBizzle/bb-cli-integration-primary --json name,project_key,main_branch,html_url
-bb repo create --repo OhBizzle/example-repo --project-key BBCLI --reuse-existing --json slug,name,project
-bb repo clone OhBizzle/bb-cli-integration-primary /tmp/bb-cli-integration-primary --json workspace,repo,directory
-bb --no-prompt repo delete OhBizzle/example-repo --yes --json workspace,repo,deleted
+bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
+bb repo create --repo workspace-slug/example-repo --project-key BBCLI --reuse-existing --json slug,name,project
+bb repo clone workspace-slug/repo-slug /tmp/repo-slug --json workspace,repo,directory
+bb --no-prompt repo delete workspace-slug/example-repo --yes --json workspace,repo,deleted
 ```
 
 ## Pipeline Commands
 
 ```bash
-bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json build_number,state,target,created_on
-bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}' --json pipeline,step,log
-bb --no-prompt pipeline stop 1 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped
-bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json host,workspace,repo,pipeline,steps
+bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
+bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --json pipeline,step,log
+bb --no-prompt pipeline stop 1 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped
+bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json host,workspace,repo,pipeline,steps
 ```
 
 ## Pull Request Commands
 
 ```bash
-bb pr list --repo OhBizzle/bb-cli-integration-primary --json id,title,state,author
-bb pr view 1 --repo OhBizzle/bb-cli-integration-primary --json '*'
-bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json patch,stats
-bb pr comment 1 --repo OhBizzle/bb-cli-integration-primary --body "Please add a regression test." --json id,content,links
-bb --no-prompt pr create --repo OhBizzle/bb-cli-integration-primary --source feature --destination main --title "Add feature" --json id,title,state
-bb pr merge 2 --repo OhBizzle/bb-cli-integration-primary --json id,title,state
-bb pr close 3 --repo OhBizzle/bb-cli-integration-primary --json id,title,state
+bb pr list --repo workspace-slug/repo-slug --json id,title,state,author
+bb pr view 1 --repo workspace-slug/repo-slug --json '*'
+bb pr diff 1 --repo workspace-slug/repo-slug --json patch,stats
+bb pr comment 1 --repo workspace-slug/repo-slug --body "Please add a regression test." --json id,content,links
+bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title "Add feature" --json id,title,state
+bb pr merge 2 --repo workspace-slug/repo-slug --json id,title,state
+bb pr close 3 --repo workspace-slug/repo-slug --json id,title,state
 ```
 
 ## Issue Commands
 
 ```bash
-bb issue list --repo OhBizzle/bb-cli-integration-issues --json id,title,state
-bb issue view 1 --repo OhBizzle/bb-cli-integration-issues --json '*'
-bb issue create --repo OhBizzle/bb-cli-integration-issues --title "Broken flow" --body "Needs investigation." --json id,title,state
-bb issue edit 1 --repo OhBizzle/bb-cli-integration-issues --priority major --json id,title,priority,state
-bb issue close 1 --repo OhBizzle/bb-cli-integration-issues --json id,title,state
-bb issue reopen 1 --repo OhBizzle/bb-cli-integration-issues --json id,title,state
+bb issue list --repo workspace-slug/issues-repo-slug --json id,title,state
+bb issue view 1 --repo workspace-slug/issues-repo-slug --json '*'
+bb issue create --repo workspace-slug/issues-repo-slug --title "Broken flow" --body "Needs investigation." --json id,title,state
+bb issue edit 1 --repo workspace-slug/issues-repo-slug --priority major --json id,title,priority,state
+bb issue close 1 --repo workspace-slug/issues-repo-slug --json id,title,state
+bb issue reopen 1 --repo workspace-slug/issues-repo-slug --json id,title,state
 ```
 
 ## Search And Status
 
 ```bash
-bb search repos bb-cli --workspace OhBizzle --json name,slug,project
-bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --jq '.[] | {id, title, state}'
-bb search issues broken --repo OhBizzle/bb-cli-integration-issues --json id,title,state
-bb status --workspace OhBizzle --limit 10 --json authored_prs,review_requested_prs,your_issues,warnings
+bb search repos bb-cli --workspace workspace-slug --json name,slug,project
+bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | {id, title, state}'
+bb search issues broken --repo workspace-slug/issues-repo-slug --json id,title,state
+bb status --workspace workspace-slug --limit 10 --json authored_prs,review_requested_prs,your_issues,warnings
 ```
 
 ## Raw REST Access
@@ -107,8 +107,8 @@ Use `bb api` when you need an official endpoint that is not wrapped yet:
 
 ```bash
 bb api /user --jq '{display_name, account_id}'
-bb api /2.0/repositories/OhBizzle/bb-cli-integration-primary --jq '{slug, project, mainbranch}'
-bb api /2.0/repositories/OhBizzle/bb-cli-integration-primary/pullrequests --jq '.values[] | {id, title, state}'
+bb api /2.0/repositories/workspace-slug/repo-slug --jq '{slug, project, mainbranch}'
+bb api /2.0/repositories/workspace-slug/repo-slug/pullrequests --jq '.values[] | {id, title, state}'
 ```
 
 ## Alias And Config
@@ -116,7 +116,7 @@ bb api /2.0/repositories/OhBizzle/bb-cli-integration-primary/pullrequests --jq '
 ```bash
 bb config set output.format json
 bb config get output.format --json
-bb alias set pv 'pr view --repo OhBizzle/bb-cli-integration-primary'
+bb alias set pv 'pr view --repo workspace-slug/repo-slug'
 bb alias get pv
 bb extension list --json
 ```

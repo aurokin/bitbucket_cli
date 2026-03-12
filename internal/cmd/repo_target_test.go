@@ -19,23 +19,23 @@ func TestResolveRepoCloneInput(t *testing.T) {
 	}{
 		{
 			name:     "positional repo only",
-			args:     []string{"OhBizzle/widgets"},
-			wantRepo: "OhBizzle/widgets",
+			args:     []string{"acme/widgets"},
+			wantRepo: "acme/widgets",
 		},
 		{
 			name:     "positional repo and directory",
-			args:     []string{"OhBizzle/widgets", "./tmp/widgets"},
-			wantRepo: "OhBizzle/widgets",
+			args:     []string{"acme/widgets", "./tmp/widgets"},
+			wantRepo: "acme/widgets",
 			wantDir:  "./tmp/widgets",
 		},
 		{
 			name:     "repo flag only",
-			repoFlag: "OhBizzle/widgets",
+			repoFlag: "acme/widgets",
 		},
 		{
 			name:     "repo flag with directory",
 			args:     []string{"./tmp/widgets"},
-			repoFlag: "OhBizzle/widgets",
+			repoFlag: "acme/widgets",
 			wantDir:  "./tmp/widgets",
 		},
 		{
@@ -45,7 +45,7 @@ func TestResolveRepoCloneInput(t *testing.T) {
 		{
 			name:      "too many args with repo flag",
 			args:      []string{"./tmp/widgets", "./extra"},
-			repoFlag:  "OhBizzle/widgets",
+			repoFlag:  "acme/widgets",
 			wantError: "when --repo is provided, pass at most one clone directory argument",
 		},
 	}

@@ -67,8 +67,8 @@ func newPipelineListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List pipeline runs for a repository",
-		Example: "  bb pipeline list --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb pipeline list --repo OhBizzle/bb-cli-integration-primary --state COMPLETED --json build_number,state,target\n" +
+		Example: "  bb pipeline list --repo workspace-slug/repo-slug\n" +
+			"  bb pipeline list --repo workspace-slug/repo-slug --state COMPLETED --json build_number,state,target\n" +
 			"  bb pipeline list --limit 5",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -129,8 +129,8 @@ func newPipelineViewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view <number-or-uuid>",
 		Short: "View one pipeline run",
-		Example: "  bb pipeline view 42 --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb pipeline view '{uuid}' --repo OhBizzle/bb-cli-integration-primary --json '*'\n" +
+		Example: "  bb pipeline view 42 --repo workspace-slug/repo-slug\n" +
+			"  bb pipeline view '{uuid}' --repo workspace-slug/repo-slug --json '*'\n" +
 			"  bb pipeline view 42",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -189,9 +189,9 @@ func newPipelineLogCmd() *cobra.Command {
 		Use:   "log <number-or-uuid>",
 		Short: "Show the log for one pipeline step",
 		Long:  "Show the raw log for a pipeline step. If the pipeline has exactly one step, bb selects it automatically. Otherwise pass --step with a step UUID or name.",
-		Example: "  bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines\n" +
-			"  bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'\n" +
-			"  bb pipeline log 42 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,step,log",
+		Example: "  bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug\n" +
+			"  bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'\n" +
+			"  bb pipeline log 42 --repo workspace-slug/pipelines-repo-slug --json pipeline,step,log",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
@@ -284,9 +284,9 @@ func newPipelineStopCmd() *cobra.Command {
 		Use:   "stop <number-or-uuid>",
 		Short: "Stop a running pipeline",
 		Long:  "Stop a Bitbucket pipeline run. Humans must confirm the exact repository and pipeline number unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.",
-		Example: "  bb pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes\n" +
-			"  bb pipeline stop '{uuid}' --repo OhBizzle/bb-cli-integration-pipelines --json '*'\n" +
-			"  bb --no-prompt pipeline stop 42 --repo OhBizzle/bb-cli-integration-pipelines --yes --json pipeline,stopped",
+		Example: "  bb pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes\n" +
+			"  bb pipeline stop '{uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'\n" +
+			"  bb --no-prompt pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

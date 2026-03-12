@@ -27,7 +27,7 @@ func recoveryDocEntries() []recoveryDocEntry {
 			TypicalFailure: "request denied by Bitbucket Cloud: the API token may be missing required Bitbucket scopes",
 			Recovery: []string{
 				"bb auth status --check",
-				"bb repo view --repo OhBizzle/bb-cli-integration-primary",
+				"bb repo view --repo workspace-slug/repo-slug",
 			},
 			Notes: []string{
 				"If the token is valid but still denied, create a new Bitbucket API token with the required Bitbucket scopes at " + atlassianAPITokenManageURL + " and store it again with `bb auth login`.",
@@ -37,8 +37,8 @@ func recoveryDocEntries() []recoveryDocEntry {
 			Title:          "Ambiguous Repository Resolution",
 			TypicalFailure: "multiple workspaces are available; pass --repo <workspace>/<repo> or add --workspace to disambiguate",
 			Recovery: []string{
-				"bb repo view --repo OhBizzle/bb-cli-integration-primary",
-				"bb pr list --repo OhBizzle/bb-cli-integration-primary",
+				"bb repo view --repo workspace-slug/repo-slug",
+				"bb pr list --repo workspace-slug/repo-slug",
 			},
 			Notes: []string{
 				"Prefer `--repo <workspace>/<repo>` in automation and when you are outside a local checkout.",
@@ -48,9 +48,9 @@ func recoveryDocEntries() []recoveryDocEntry {
 			Title:          "No Repository In The Current Directory",
 			TypicalFailure: "could not determine the repository from the current directory",
 			Recovery: []string{
-				"bb repo view --repo OhBizzle/bb-cli-integration-primary",
-				"bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser",
-				"bb repo clone OhBizzle/bb-cli-integration-primary",
+				"bb repo view --repo workspace-slug/repo-slug",
+				"bb browse --repo workspace-slug/repo-slug --no-browser",
+				"bb repo clone workspace-slug/repo-slug",
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func recoveryDocEntries() []recoveryDocEntry {
 			TypicalFailure: `invalid alias "ship"`,
 			Recovery: []string{
 				"bb alias get ship",
-				`bb alias set ship 'pr create --repo OhBizzle/bb-cli-integration-primary --title "Add feature"'`,
+				`bb alias set ship 'pr create --repo workspace-slug/repo-slug --title "Add feature"'`,
 			},
 			Notes: []string{
 				"If the alias is no longer needed:",
@@ -69,8 +69,8 @@ func recoveryDocEntries() []recoveryDocEntry {
 			Title:          "Repository Without Bitbucket Issue Tracking",
 			TypicalFailure: "this repository does not have Bitbucket issue tracking enabled",
 			Recovery: []string{
-				"bb repo view --repo OhBizzle/bb-cli-integration-issues",
-				"bb issue list --repo OhBizzle/bb-cli-integration-issues",
+				"bb repo view --repo workspace-slug/issues-repo-slug",
+				"bb issue list --repo workspace-slug/issues-repo-slug",
 			},
 			Notes: []string{
 				"Use a repository with Bitbucket issue tracking enabled, or enable issue tracking in the repository settings.",
@@ -80,9 +80,9 @@ func recoveryDocEntries() []recoveryDocEntry {
 			Title:          "Bounded Cross-Repository Status Output",
 			TypicalFailure: "Notes\n  Some workspaces hit --repo-limit.\n  Some repositories do not have issue tracking enabled.",
 			Recovery: []string{
-				"bb status --workspace OhBizzle --repo-limit 200 --limit 50",
-				"bb pr list --repo OhBizzle/bb-cli-integration-primary",
-				"bb issue list --repo OhBizzle/bb-cli-integration-issues",
+				"bb status --workspace workspace-slug --repo-limit 200 --limit 50",
+				"bb pr list --repo workspace-slug/repo-slug",
+				"bb issue list --repo workspace-slug/issues-repo-slug",
 			},
 			Notes: []string{
 				"Use narrower workspace scans or explicit repository commands when you need complete detail.",

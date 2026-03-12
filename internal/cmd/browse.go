@@ -71,11 +71,11 @@ func newBrowseCmd() *cobra.Command {
 		Use:   "browse [target]",
 		Short: "Open or print Bitbucket web URLs",
 		Long:  "Open Bitbucket repository, pull request, issue, commit, settings, pipelines, and source URLs. Default behavior opens the browser; use --no-browser to print the URL instead.",
-		Example: "  bb browse --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb browse README.md:12 --repo OhBizzle/bb-cli-integration-primary --no-browser\n" +
-			"  bb browse --pr 1 --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb browse --pipelines --repo OhBizzle/bb-cli-integration-primary --json '*'\n" +
-			"  bb browse a1b2c3d --repo OhBizzle/bb-cli-integration-primary --no-browser",
+		Example: "  bb browse --repo workspace-slug/repo-slug\n" +
+			"  bb browse README.md:12 --repo workspace-slug/repo-slug --no-browser\n" +
+			"  bb browse --pr 1 --repo workspace-slug/repo-slug\n" +
+			"  bb browse --pipelines --repo workspace-slug/repo-slug --json '*'\n" +
+			"  bb browse a1b2c3d --repo workspace-slug/repo-slug --no-browser",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			formatOptions, err := flags.options()

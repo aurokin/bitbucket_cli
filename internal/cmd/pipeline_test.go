@@ -51,7 +51,7 @@ func TestWritePipelineListTable(t *testing.T) {
 			BuildNumber: 12,
 			State:       bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "FAILED"}},
 			Target:      bitbucket.PipelineTarget{RefType: "branch", RefName: "feature/some-super-long-branch-name"},
-			Creator:     bitbucket.PipelineActor{DisplayName: "Hunter Sadler With A Long Name"},
+			Creator:     bitbucket.PipelineActor{DisplayName: "Example User With A Long Name"},
 			CreatedOn:   "2026-03-11T12:34:56Z",
 		},
 	}
@@ -134,7 +134,7 @@ func TestWritePipelineViewSummary(t *testing.T) {
 			UUID:        "{pipeline-42}",
 			State:       bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "SUCCESSFUL"}},
 			Target:      bitbucket.PipelineTarget{RefType: "branch", RefName: "main"},
-			Creator:     bitbucket.PipelineActor{DisplayName: "Hunter Sadler"},
+			Creator:     bitbucket.PipelineActor{DisplayName: "Example User"},
 			CreatedOn:   "2026-03-11T00:00:00Z",
 			CompletedOn: "2026-03-11T00:01:05Z",
 			Links:       bitbucket.PipelineLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pipelines/results/42"}},

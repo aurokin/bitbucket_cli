@@ -25,9 +25,9 @@ func newAPICmd() *cobra.Command {
 		Short: "Make an authenticated Bitbucket API request",
 		Long:  "Make an authenticated Bitbucket Cloud API request. Use this for workflows that are not yet covered by a dedicated bb command.",
 		Example: "  bb api /user\n" +
-			"  bb api '/repositories/OhBizzle/bb-cli-integration-primary/pullrequests?state=OPEN'\n" +
+			"  bb api '/repositories/workspace-slug/repo-slug/pullrequests?state=OPEN'\n" +
 			"  bb api /user --jq .display_name\n" +
-			"  printf '{\"name\":\"my-repo\"}' | bb api /repositories/OhBizzle/my-repo -X POST --input -",
+			"  printf '{\"name\":\"my-repo\"}' | bb api /repositories/workspace-slug/my-repo -X POST --input -",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, client, err := resolveAuthenticatedClient(host)

@@ -78,11 +78,11 @@ func TestConfirmExactMatch(t *testing.T) {
 	t.Parallel()
 
 	cmd := &cobra.Command{}
-	cmd.SetIn(bytes.NewBufferString("OhBizzle/widgets\n"))
+	cmd.SetIn(bytes.NewBufferString("acme/widgets\n"))
 	var out bytes.Buffer
 	cmd.SetOut(&out)
 
-	if err := confirmExactMatch(cmd, "OhBizzle/widgets"); err != nil {
+	if err := confirmExactMatch(cmd, "acme/widgets"); err != nil {
 		t.Fatalf("confirmExactMatch returned error: %v", err)
 	}
 }
@@ -95,8 +95,8 @@ func TestConfirmExactMatchRejectsMismatch(t *testing.T) {
 	var out bytes.Buffer
 	cmd.SetOut(&out)
 
-	err := confirmExactMatch(cmd, "OhBizzle/widgets")
-	if err == nil || err.Error() != "confirmation did not match OhBizzle/widgets" {
+	err := confirmExactMatch(cmd, "acme/widgets")
+	if err == nil || err.Error() != "confirmation did not match acme/widgets" {
 		t.Fatalf("expected mismatch error, got %v", err)
 	}
 }

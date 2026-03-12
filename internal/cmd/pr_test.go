@@ -112,12 +112,12 @@ func TestBuildPRStatusPayload(t *testing.T) {
 
 	target := resolvedRepoTarget{
 		Host:      "bitbucket.org",
-		Workspace: "OhBizzle",
+		Workspace: "acme",
 		Repo:      "widgets",
 	}
 	user := bitbucket.CurrentUser{
 		AccountID:   "user-1",
-		DisplayName: "Hunter Sadler",
+		DisplayName: "Example User",
 	}
 
 	prs := []bitbucket.PullRequest{
@@ -173,7 +173,7 @@ func TestBuildPRStatusPayloadPreservesCurrentBranchError(t *testing.T) {
 
 	payload := buildPRStatusPayload(resolvedRepoTarget{
 		Host:      "bitbucket.org",
-		Workspace: "OhBizzle",
+		Workspace: "acme",
 		Repo:      "widgets",
 	}, bitbucket.CurrentUser{}, "", "branch lookup failed", nil)
 
@@ -187,7 +187,7 @@ func TestBuildPRStatusPayloadPreservesTargetWarnings(t *testing.T) {
 
 	payload := buildPRStatusPayload(resolvedRepoTarget{
 		Host:      "bitbucket.org",
-		Workspace: "OhBizzle",
+		Workspace: "acme",
 		Repo:      "widgets",
 		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
 	}, bitbucket.CurrentUser{}, "", "", nil)
@@ -262,7 +262,7 @@ func TestWritePRListTableCompactsWideFields(t *testing.T) {
 			State:     "OPEN",
 			UpdatedOn: "2026-03-10T12:34:56Z",
 			Author: bitbucket.PullRequestActor{
-				DisplayName: "Hunter Sadler With A Long Name",
+				DisplayName: "Example User With A Long Name",
 			},
 			Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/some-super-long-branch-name-for-testing"}},
 			Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
@@ -333,7 +333,7 @@ func TestWritePRListTableWithRepositoryHeader(t *testing.T) {
 			Title:     "Fixture PR",
 			State:     "OPEN",
 			UpdatedOn: "2026-03-10T12:34:56Z",
-			Author:    bitbucket.PullRequestActor{DisplayName: "Hunter Sadler"},
+			Author:    bitbucket.PullRequestActor{DisplayName: "Example User"},
 			Source:    bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/test"}},
 			Destination: bitbucket.PullRequestRef{
 				Branch: bitbucket.PullRequestBranch{Name: "main"},
@@ -367,7 +367,7 @@ func TestWritePullRequestSummaryTableIncludesOptionalFields(t *testing.T) {
 		State:       "MERGED",
 		UpdatedOn:   "2026-03-10T12:34:56Z",
 		Description: "Ready to land",
-		Author:      bitbucket.PullRequestActor{DisplayName: "Hunter Sadler"},
+		Author:      bitbucket.PullRequestActor{DisplayName: "Example User"},
 		Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/ship"}},
 		Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
 		Links:       bitbucket.PullRequestLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pull-requests/9"}},

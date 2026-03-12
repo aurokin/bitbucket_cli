@@ -21,8 +21,8 @@ func newPRCheckoutCmd() *cobra.Command {
 		Short: "Check out a pull request locally",
 		Long:  "Fetch the pull request source branch from the current repository's remote and switch to it locally.",
 		Example: "  bb pr checkout 1\n" +
-			"  bb pr checkout 1 --repo OhBizzle/bb-cli-integration-primary\n" +
-			"  bb pr checkout https://bitbucket.org/OhBizzle/bb-cli-integration-primary/pull-requests/1",
+			"  bb pr checkout 1 --repo workspace-slug/repo-slug\n" +
+			"  bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repoContext, err := resolveLocalRepoContext(context.Background())
@@ -103,7 +103,7 @@ func newPRMergeCmd() *cobra.Command {
 		Short: "Merge a pull request",
 		Long:  "Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request.",
 		Example: "  bb pr merge 7\n" +
-			"  bb pr merge 7 --repo OhBizzle/bb-cli-integration-primary\n" +
+			"  bb pr merge 7 --repo workspace-slug/repo-slug\n" +
 			"  bb pr merge 7 --strategy merge_commit\n" +
 			"  bb pr merge 7 --message 'Ship feature' --close-source-branch --json",
 		Args: cobra.ExactArgs(1),

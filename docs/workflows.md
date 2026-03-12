@@ -40,26 +40,26 @@ bb pr list
 Outside a checkout, prefer an explicit target:
 
 ```bash
-bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser
-bb repo view --repo OhBizzle/bb-cli-integration-primary
-bb repo clone OhBizzle/bb-cli-integration-primary
+bb browse --repo workspace-slug/repo-slug --no-browser
+bb repo view --repo workspace-slug/repo-slug
+bb repo clone workspace-slug/repo-slug
 ```
 
 ## Inspect Pipelines
 
 ```bash
-bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
-bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines
-bb pipeline log 1 --repo OhBizzle/bb-cli-integration-pipelines --step '{step-uuid}'
+bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug
+bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 ```
 
 ## Review A Pull Request
 
 ```bash
-bb pr list --repo OhBizzle/bb-cli-integration-primary
-bb pr view 1 --repo OhBizzle/bb-cli-integration-primary
-bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --stat
-bb pr comment 1 --repo OhBizzle/bb-cli-integration-primary --body "Looks good overall. Please tighten the error handling."
+bb pr list --repo workspace-slug/repo-slug
+bb pr view 1 --repo workspace-slug/repo-slug
+bb pr diff 1 --repo workspace-slug/repo-slug --stat
+bb pr comment 1 --repo workspace-slug/repo-slug --body "Looks good overall. Please tighten the error handling."
 ```
 
 ## Create And Land A Pull Request
@@ -69,14 +69,14 @@ From a local checkout:
 ```bash
 bb pr create --source feature --destination main --title "Add feature"
 bb pr view 2
-bb pr merge 2 --repo OhBizzle/bb-cli-integration-primary
+bb pr merge 2 --repo workspace-slug/repo-slug
 ```
 
 For a deterministic non-interactive flow:
 
 ```bash
 bb --no-prompt pr create \
-  --repo OhBizzle/bb-cli-integration-primary \
+  --repo workspace-slug/repo-slug \
   --source feature \
   --destination main \
   --title "Add feature"
@@ -85,20 +85,20 @@ bb --no-prompt pr create \
 ## Triage Issues
 
 ```bash
-bb issue list --repo OhBizzle/bb-cli-integration-issues
-bb issue create --repo OhBizzle/bb-cli-integration-issues --title "Broken flow" --body "Needs investigation."
-bb issue view 1 --repo OhBizzle/bb-cli-integration-issues
-bb issue edit 1 --repo OhBizzle/bb-cli-integration-issues --priority major
-bb issue close 1 --repo OhBizzle/bb-cli-integration-issues --message "Fixed in main."
+bb issue list --repo workspace-slug/issues-repo-slug
+bb issue create --repo workspace-slug/issues-repo-slug --title "Broken flow" --body "Needs investigation."
+bb issue view 1 --repo workspace-slug/issues-repo-slug
+bb issue edit 1 --repo workspace-slug/issues-repo-slug --priority major
+bb issue close 1 --repo workspace-slug/issues-repo-slug --message "Fixed in main."
 ```
 
 ## Search For Work
 
 ```bash
-bb search repos bb-cli --workspace OhBizzle
-bb search prs fixture --repo OhBizzle/bb-cli-integration-primary
-bb search issues broken --repo OhBizzle/bb-cli-integration-issues
-bb status --workspace OhBizzle --limit 10
+bb search repos bb-cli --workspace workspace-slug
+bb search prs fixture --repo workspace-slug/repo-slug
+bb search issues broken --repo workspace-slug/issues-repo-slug
+bb status --workspace workspace-slug --limit 10
 ```
 
 ## Reuse Fixtures Safely

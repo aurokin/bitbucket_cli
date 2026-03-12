@@ -127,9 +127,9 @@ func TestRootHelpHighlightsHumanAndAgentPaths(t *testing.T) {
 	output := renderHelp(t, "--help")
 	for _, fragment := range []string{
 		"Prefer --repo <workspace>/<repo> for explicit targeting.",
-		"bb browse --repo OhBizzle/bb-cli-integration-primary --no-browser",
-		"bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines",
-		"bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'",
+		"bb browse --repo workspace-slug/repo-slug --no-browser",
+		"bb pipeline list --repo workspace-slug/pipelines-repo-slug",
+		"bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'",
 		"bb status --json authored_prs,review_requested_prs,your_issues",
 		"--no-prompt",
 	} {
@@ -144,7 +144,7 @@ func TestPipelineHelpShowsExplicitRepoExamples(t *testing.T) {
 
 	output := renderHelp(t, "pipeline", "list", "--help")
 	for _, fragment := range []string{
-		"bb pipeline list --repo OhBizzle/bb-cli-integration-primary",
+		"bb pipeline list --repo workspace-slug/repo-slug",
 		"--repo string",
 		"--json string",
 	} {
@@ -159,7 +159,7 @@ func TestBrowseHelpShowsExplicitRepoExamples(t *testing.T) {
 
 	output := renderHelp(t, "browse", "--help")
 	for _, fragment := range []string{
-		"bb browse --repo OhBizzle/bb-cli-integration-primary",
+		"bb browse --repo workspace-slug/repo-slug",
 		"--no-browser",
 		"--pr int",
 		"--issue int",
@@ -175,7 +175,7 @@ func TestIssueCreateHelpShowsExplicitRepoExamples(t *testing.T) {
 
 	output := renderHelp(t, "issue", "create", "--help")
 	for _, fragment := range []string{
-		"bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'",
+		"bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'",
 		"--repo string",
 		"--no-prompt",
 	} {
@@ -190,7 +190,7 @@ func TestStatusHelpShowsBoundedExamples(t *testing.T) {
 
 	output := renderHelp(t, "status", "--help")
 	for _, fragment := range []string{
-		"bb status --workspace OhBizzle --limit 10",
+		"bb status --workspace workspace-slug --limit 10",
 		"--repo-limit int",
 		"Maximum items to return per status section",
 	} {

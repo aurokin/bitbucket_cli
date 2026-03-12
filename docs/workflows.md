@@ -20,6 +20,20 @@ go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
 bb version
 ```
 
+## Update
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
+bb version
+```
+
+If you want a specific tagged release:
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@v0.1.0
+bb version
+```
+
 ## Authenticate
 
 ```bash

@@ -14,6 +14,20 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
 - Users: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 
+## Install And Update
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
+bb version
+```
+
+Pin automation to a specific release when you need reproducibility:
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@v0.1.0
+bb version
+```
+
 ## Rules
 
 - Prefer `--repo <workspace>/<repo>` over local inference.

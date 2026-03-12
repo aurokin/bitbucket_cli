@@ -18,11 +18,33 @@ go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
 bb version
 ```
 
+Update an existing install:
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
+bb version
+```
+
+If you want a specific tagged release instead of the latest published version:
+
+```bash
+go install github.com/aurokin/bitbucket_cli/cmd/bb@v0.1.0
+bb version
+```
+
 If you are working from a local checkout instead:
 
 ```bash
 go build ./cmd/bb
 ./bb version
+```
+
+Update a local checkout install:
+
+```bash
+git pull --ff-only
+go install ./cmd/bb
+bb version
 ```
 
 ## Implementation

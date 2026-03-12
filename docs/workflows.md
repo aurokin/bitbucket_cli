@@ -13,6 +13,13 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 - Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
 
+## Install
+
+```bash
+go install github.com/auro/bitbucket_cli/cmd/bb@latest
+bb version
+```
+
 ## Authenticate
 
 ```bash

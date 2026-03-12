@@ -2,6 +2,29 @@
 
 `bb` is a Bitbucket Cloud CLI aimed at both humans and agents.
 
+## Install
+
+`bb` is currently installed with Go. There are no packaged release binaries yet.
+
+Requirements:
+
+- Go `1.25+`
+- a `PATH` entry that includes `$(go env GOPATH)/bin` or your configured `GOBIN`
+
+Fresh-machine install:
+
+```bash
+go install github.com/auro/bitbucket_cli/cmd/bb@latest
+bb version
+```
+
+If you are working from a local checkout instead:
+
+```bash
+go build ./cmd/bb
+./bb version
+```
+
 ## Implementation
 
 `bb` is implemented against the official Bitbucket Cloud REST API and stays aligned with documented Bitbucket Cloud behavior instead of inventing `gh` parity where the platform does not support it.

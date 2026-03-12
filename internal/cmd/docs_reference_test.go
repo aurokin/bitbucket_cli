@@ -127,12 +127,28 @@ func TestRootHelpHighlightsHumanAndAgentPaths(t *testing.T) {
 	output := renderHelp(t, "--help")
 	for _, fragment := range []string{
 		"Prefer --repo <workspace>/<repo> for explicit targeting.",
+		"bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines",
 		"bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'",
 		"bb status --json authored_prs,review_requested_prs,your_issues",
 		"--no-prompt",
 	} {
 		if !strings.Contains(output, fragment) {
 			t.Fatalf("root help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineHelpShowsExplicitRepoExamples(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "list", "--help")
+	for _, fragment := range []string{
+		"bb pipeline list --repo OhBizzle/bb-cli-integration-primary",
+		"--repo string",
+		"--json string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline list help missing %q\n%s", fragment, output)
 		}
 	}
 }

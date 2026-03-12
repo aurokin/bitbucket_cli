@@ -73,6 +73,114 @@ Representative shapes:
 }
 ```
 
+## Pipeline List And View
+
+Representative shape for pipeline list items and the pipeline view payload.
+
+Commands:
+
+```bash
+bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json '*'
+bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "build_number": 1,
+  "completed_on": "\u003ccompleted-on\u003e",
+  "created_on": "2026-03-11T00:00:00Z",
+  "creator": {
+    "account_id": "account-id",
+    "display_name": "Example User",
+    "nickname": "example-user"
+  },
+  "links": {
+    "html": {
+      "href": "https://bitbucket.org/workspace-slug/repo-slug"
+    }
+  },
+  "state": {
+    "name": "Example Name",
+    "result": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "stage": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "type": "commit_file"
+  },
+  "target": {
+    "commit": {
+      "hash": "abc123def456"
+    },
+    "ref_name": "\u003cref-name\u003e",
+    "ref_type": "\u003cref-type\u003e",
+    "selector": {
+      "pattern": "\u003cpattern\u003e",
+      "type": "commit_file"
+    },
+    "type": "commit_file"
+  },
+  "uuid": "{uuid}"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "pipeline": {
+    "build_number": 1,
+    "completed_on": "\u003ccompleted-on\u003e",
+    "created_on": "2026-03-11T00:00:00Z",
+    "creator": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    },
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "state": {
+      "name": "Example Name",
+      "result": {
+        "name": "Example Name"
+      },
+      "stage": {
+        "name": "Example Name"
+      },
+      "type": "commit_file"
+    },
+    "target": {
+      "commit": {},
+      "ref_name": "\u003cref-name\u003e",
+      "ref_type": "\u003cref-type\u003e",
+      "selector": {},
+      "type": "commit_file"
+    },
+    "uuid": "{uuid}"
+  },
+  "repo": "repo-slug",
+  "steps": [
+    {
+      "completed_on": "\u003ccompleted-on\u003e",
+      "name": "Example Name",
+      "started_on": "\u003cstarted-on\u003e",
+      "state": {
+        "name": "Example Name"
+      },
+      "uuid": "{uuid}"
+    }
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
 ## Pull Request List And View
 
 Representative shape for pull request list items and the pull request view payload.

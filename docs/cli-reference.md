@@ -32,6 +32,9 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb issue list`
   - `bb issue reopen`
   - `bb issue view`
+- `bb pipeline`
+  - `bb pipeline list`
+  - `bb pipeline view`
 - `bb pr`
   - `bb pr checkout`
   - `bb pr close`
@@ -629,6 +632,85 @@ Examples:
 ```bash
 bb issue view 1 --repo OhBizzle/bb-cli-integration-issues
 bb issue view 1 --repo OhBizzle/bb-cli-integration-primary --json
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline`
+
+Work with Bitbucket Pipelines runs
+
+List and inspect Bitbucket Pipelines runs for one repository.
+
+Aliases: `pipelines`
+
+Usage:
+
+```text
+bb pipeline
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pipeline list`: List pipeline runs for a repository
+- `bb pipeline view`: View one pipeline run
+
+## `bb pipeline list`
+
+List pipeline runs for a repository
+
+Usage:
+
+```text
+bb pipeline list [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline list --repo OhBizzle/bb-cli-integration-primary
+bb pipeline list --repo OhBizzle/bb-cli-integration-primary --state COMPLETED --json build_number,state,target
+bb pipeline list --limit 5
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of pipelines to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--state`: Filter pipelines by pipeline state name
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline view`
+
+View one pipeline run
+
+Usage:
+
+```text
+bb pipeline view <number-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline view 42 --repo OhBizzle/bb-cli-integration-primary
+bb pipeline view '{uuid}' --repo OhBizzle/bb-cli-integration-primary --json '*'
+bb pipeline view 42
 ```
 
 Flags:

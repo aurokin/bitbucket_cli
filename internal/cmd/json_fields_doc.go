@@ -19,6 +19,8 @@ func GenerateJSONFieldsDoc() (string, error) {
 		{Command: "bb repo view", Type: repoViewPayload{}},
 		{Command: "bb repo clone", Type: repoClonePayload{}},
 		{Command: "bb repo delete", Type: repoDeletePayload{}},
+		{Command: "bb pipeline list", Type: bitbucket.Pipeline{}},
+		{Command: "bb pipeline view", Type: pipelineViewPayload{}},
 		{Command: "bb pr list", Type: bitbucket.PullRequest{}},
 		{Command: "bb pr view", Type: bitbucket.PullRequest{}},
 		{Command: "bb pr status", Type: prStatusPayload{}},

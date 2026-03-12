@@ -15,7 +15,7 @@ func NewRootCmd() *cobra.Command {
 		Use:           "bb",
 		Short:         "Bitbucket CLI",
 		Long:          "bb is a Bitbucket Cloud CLI for humans and automation. Prefer --repo <workspace>/<repo> for explicit targeting. Use --json and --jq for structured output, and --no-prompt for deterministic non-interactive runs.",
-		Example:       "  bb auth login --username you@example.com --with-token\n  bb repo view --repo OhBizzle/bb-cli-integration-primary\n  bb pr list --repo OhBizzle/bb-cli-integration-primary\n  bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'\n  bb --no-prompt pr create --repo OhBizzle/bb-cli-integration-primary --source feature --destination main --title 'Add feature' --json id,title,state\n  bb status --json authored_prs,review_requested_prs,your_issues",
+		Example:       "  bb auth login --username you@example.com --with-token\n  bb repo view --repo OhBizzle/bb-cli-integration-primary\n  bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines\n  bb pr list --repo OhBizzle/bb-cli-integration-primary\n  bb issue create --repo OhBizzle/bb-cli-integration-issues --title 'Broken flow'\n  bb --no-prompt pr create --repo OhBizzle/bb-cli-integration-primary --source feature --destination main --title 'Add feature' --json id,title,state\n  bb status --json authored_prs,review_requested_prs,your_issues",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
@@ -29,6 +29,7 @@ func NewRootCmd() *cobra.Command {
 		newSearchCmd(),
 		newStatusCmd(),
 		newIssueCmd(),
+		newPipelineCmd(),
 		newRepoCmd(),
 		newAuthCmd(),
 		newPRCmd(),

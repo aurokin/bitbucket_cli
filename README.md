@@ -15,6 +15,7 @@ Prefer explicit repository targets when you are outside a checkout or writing au
 
 ```bash
 bb repo view --repo OhBizzle/bb-cli-integration-primary
+bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
 bb pr list --repo OhBizzle/bb-cli-integration-primary
 bb issue list --repo OhBizzle/bb-cli-integration-issues
 ```
@@ -25,6 +26,7 @@ Humans can lean on local git inference and the default header-first output:
 
 ```bash
 bb repo view
+bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
 bb pr list
 bb pr view 1
 bb pr diff 1 --stat
@@ -51,6 +53,7 @@ bb --no-prompt pr create \
   --json id,title,state,links
 
 bb pr diff 1 --repo OhBizzle/bb-cli-integration-primary --json patch,stats
+bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json pipeline,steps
 bb status --json authored_prs,review_requested_prs,your_issues
 bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --jq '.[] | .id'
 ```
@@ -96,6 +99,8 @@ Automation conventions:
 - `bb repo create`
 - `bb repo clone`
 - `bb repo delete`
+- `bb pipeline list`
+- `bb pipeline view`
 - `bb pr list`
 - `bb pr status`
 - `bb pr view`
@@ -137,6 +142,7 @@ Automation conventions:
 
 - Authenticated API access through `gh api` / `bb api`
 - Repository inspection, creation, cloning, and deletion
+- Pipeline run listing and inspection
 - Pull request listing, status, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
 - Cross-repository status summaries
@@ -155,7 +161,7 @@ Automation conventions:
 
 - Browser login and broader auth account management
 - `browse`
-- Issues, releases, and CI/workflow commands
+- Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
 - Richer repository administration such as list, edit, rename, fork, archive, and sync
 - Additional pull request flows such as review, checks, edit, ready, update-branch, and revert
 - Pull request reopen on platforms that actually support it

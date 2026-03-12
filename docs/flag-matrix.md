@@ -27,6 +27,8 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb issue list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb issue reopen` | yes | yes | yes | yes | yes | yes | `--message`, `--state` |
 | `bb issue view` | yes | yes | yes | yes | yes | yes |  |
+| `bb pipeline list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
+| `bb pipeline view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr checkout` |  |  | yes | yes | yes | yes |  |
 | `bb pr close` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr comment` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body` |

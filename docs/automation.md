@@ -29,6 +29,13 @@ bb repo clone OhBizzle/bb-cli-integration-primary /tmp/bb-cli-integration-primar
 bb --no-prompt repo delete OhBizzle/example-repo --yes --json workspace,repo,deleted
 ```
 
+## Pipeline Commands
+
+```bash
+bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json build_number,state,target,created_on
+bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json host,workspace,repo,pipeline,steps
+```
+
 ## Pull Request Commands
 
 ```bash

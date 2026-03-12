@@ -40,6 +40,15 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: []any{repoClonePayload{}, repoDeletePayload{}},
 		},
 		{
+			Title:       "Pipeline List And View",
+			Description: "Representative shape for pipeline list items and the pipeline view payload.",
+			Commands: []string{
+				"bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines --json '*'",
+				"bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines --json '*'",
+			},
+			Type: []any{bitbucket.Pipeline{}, pipelineViewPayload{}},
+		},
+		{
 			Title:       "Pull Request List And View",
 			Description: "Representative shape for pull request list items and the pull request view payload.",
 			Commands: []string{

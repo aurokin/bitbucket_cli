@@ -27,6 +27,13 @@ bb repo view --repo OhBizzle/bb-cli-integration-primary
 bb repo clone OhBizzle/bb-cli-integration-primary
 ```
 
+## Inspect Pipelines
+
+```bash
+bb pipeline list --repo OhBizzle/bb-cli-integration-pipelines
+bb pipeline view 1 --repo OhBizzle/bb-cli-integration-pipelines
+```
+
 ## Review A Pull Request
 
 ```bash

@@ -27,6 +27,7 @@ const (
 	fixturePrimaryRepoSlug   = "bb-cli-integration-primary"
 	fixtureSecondaryRepoSlug = "bb-cli-integration-secondary"
 	fixtureIssuesRepoSlug    = "bb-cli-integration-issues"
+	fixturePipelinesRepoSlug = "bb-cli-integration-pipelines"
 	fixtureCreateRepoSlug    = "bb-cli-created-via-command"
 	fixtureDeleteRepoSlug    = "bb-cli-delete-command-target"
 	fixtureFeatureBranch     = "bb-cli-int-feature"
@@ -45,6 +46,13 @@ type integrationFixture struct {
 	PrimaryRepo    repository
 	SecondaryRepo  repository
 	PrimaryPRID    int
+}
+
+type pipelineFixture struct {
+	RepoDir       string
+	Repo          repository
+	Pipeline      bitbucket.Pipeline
+	PipelineSteps []bitbucket.PipelineStep
 }
 
 type workspaceListResponse struct {
@@ -383,6 +391,90 @@ func TestBitbucketCloudIssueFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPipelineList(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "pipeline", "list", "--repo", workspace+"/"+pipelines.Repo.Slug, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline list failed: %v\n%s", err, output)
+	}
+
+	var payload []bitbucket.Pipeline
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline list JSON: %v\n%s", err, output)
+	}
+	if len(payload) == 0 {
+		t.Fatalf("expected at least one pipeline in fixture repo")
+	}
+
+	var found bool
+	for _, pipeline := range payload {
+		if pipeline.UUID == pipelines.Pipeline.UUID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected fixture pipeline %s in pipeline list %+v", pipelines.Pipeline.UUID, payload)
+	}
+}
+
+func TestBitbucketCloudPipelineView(t *testing.T) {
+	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
+		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
+	}
+	if os.Getenv("CI") != "" {
+		t.Skip("manual-only integration test")
+	}
+
+	_, client, hostConfig := loadIntegrationClient(t)
+	workspace := resolveWorkspace(t, client)
+	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
+	binary := buildBinary(t)
+
+	cmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelines.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelines.Repo.Slug, "--json", "*")
+	cmd.Env = os.Environ()
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline view failed: %v\n%s", err, output)
+	}
+
+	var payload struct {
+		Host      string                   `json:"host"`
+		Workspace string                   `json:"workspace"`
+		Repo      string                   `json:"repo"`
+		Pipeline  bitbucket.Pipeline       `json:"pipeline"`
+		Steps     []bitbucket.PipelineStep `json:"steps"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline view JSON: %v\n%s", err, output)
+	}
+
+	if payload.Workspace != workspace || payload.Repo != pipelines.Repo.Slug {
+		t.Fatalf("unexpected pipeline view identity %+v", payload)
+	}
+	if payload.Pipeline.UUID != pipelines.Pipeline.UUID || payload.Pipeline.BuildNumber != pipelines.Pipeline.BuildNumber {
+		t.Fatalf("unexpected pipeline payload %+v", payload.Pipeline)
+	}
+	if len(payload.Steps) == 0 {
+		t.Fatalf("expected pipeline steps in payload %+v", payload)
+	}
+}
+
 func TestBitbucketCloudStatus(t *testing.T) {
 	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
 		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
@@ -649,6 +741,7 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	workspace := resolveWorkspace(t, client)
 	fixture := ensureFixture(t, client, hostConfig, workspace)
 	issueRepo := ensureIssueRepository(t, client, workspace)
+	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
 	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
 	binary := buildBinary(t)
 
@@ -708,6 +801,35 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	}
 	if !strings.Contains(string(repoDeleteOutput), "Next: bb repo create "+workspace+"/"+fixtureDeleteRepoSlug) {
 		t.Fatalf("expected repo delete next step:\n%s", repoDeleteOutput)
+	}
+
+	pipelineListCmd := exec.Command(binary, "pipeline", "list", "--repo", workspace+"/"+pipelineRepo.Repo.Slug)
+	pipelineListCmd.Env = os.Environ()
+	pipelineListOutput, err := pipelineListCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline list human output failed: %v\n%s", err, pipelineListOutput)
+	}
+	if !strings.Contains(string(pipelineListOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+		t.Fatalf("expected repo header in pipeline list output:\n%s", pipelineListOutput)
+	}
+	if !strings.Contains(string(pipelineListOutput), fmt.Sprintf("Next: bb pipeline view %d --repo %s/%s", pipelineRepo.Pipeline.BuildNumber, workspace, pipelineRepo.Repo.Slug)) {
+		t.Fatalf("expected pipeline list next step:\n%s", pipelineListOutput)
+	}
+
+	pipelineViewCmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug)
+	pipelineViewCmd.Env = os.Environ()
+	pipelineViewOutput, err := pipelineViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline view human output failed: %v\n%s", err, pipelineViewOutput)
+	}
+	if !strings.Contains(string(pipelineViewOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+		t.Fatalf("expected repo header in pipeline view output:\n%s", pipelineViewOutput)
+	}
+	if !strings.Contains(string(pipelineViewOutput), fmt.Sprintf("Pipeline: #%d", pipelineRepo.Pipeline.BuildNumber)) {
+		t.Fatalf("expected pipeline number in pipeline view output:\n%s", pipelineViewOutput)
+	}
+	if len(pipelineRepo.PipelineSteps) > 0 && !strings.Contains(string(pipelineViewOutput), "Steps:") {
+		t.Fatalf("expected steps section in pipeline view output:\n%s", pipelineViewOutput)
 	}
 
 	prListCmd := exec.Command(binary, "pr", "list", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
@@ -782,6 +904,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	workspace := resolveWorkspace(t, client)
 	fixture := ensureFixture(t, client, hostConfig, workspace)
 	issueRepo := ensureIssueRepository(t, client, workspace)
+	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
 	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
 	binary := buildBinary(t)
 
@@ -822,6 +945,26 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if repoView.Workspace != workspace || repoView.Repo != fixture.PrimaryRepo.Slug || repoView.Name == "" {
 		t.Fatalf("unexpected repo view payload %+v", repoView)
+	}
+
+	pipelineViewCmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--json", "host,workspace,repo,pipeline,steps")
+	pipelineViewCmd.Env = os.Environ()
+	pipelineViewOutput, err := pipelineViewCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bb pipeline view generated-docs smoke failed: %v\n%s", err, pipelineViewOutput)
+	}
+	var pipelineView struct {
+		Host      string                   `json:"host"`
+		Workspace string                   `json:"workspace"`
+		Repo      string                   `json:"repo"`
+		Pipeline  bitbucket.Pipeline       `json:"pipeline"`
+		Steps     []bitbucket.PipelineStep `json:"steps"`
+	}
+	if err := json.Unmarshal(pipelineViewOutput, &pipelineView); err != nil {
+		t.Fatalf("parse pipeline view JSON: %v\n%s", err, pipelineViewOutput)
+	}
+	if pipelineView.Workspace != workspace || pipelineView.Repo != pipelineRepo.Repo.Slug || pipelineView.Pipeline.BuildNumber == 0 {
+		t.Fatalf("unexpected pipeline view payload %+v", pipelineView)
 	}
 
 	prStatusCmd := exec.Command(binary, "pr", "status", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "workspace,repo,current_branch_name,created,review_requested")
@@ -1166,6 +1309,28 @@ func ensureIssueRepository(t *testing.T, client *bitbucket.Client, workspace str
 	return repo
 }
 
+func ensurePipelineFixture(t *testing.T, client *bitbucket.Client, hostConfig config.HostConfig, workspace string) pipelineFixture {
+	t.Helper()
+
+	ensureProject(t, client, workspace)
+	repo := ensureRepository(t, client, workspace, fixturePipelinesRepoSlug)
+
+	baseDir := t.TempDir()
+	repoDir := filepath.Join(baseDir, fixturePipelinesRepoSlug)
+	cloneRepository(t, hostConfig, workspace, repo.Slug, repoDir)
+	ensurePipelineRepoContent(t, repoDir)
+	ensurePipelinesEnabled(t, client, workspace, repo.Slug)
+	pipeline := ensurePipelineRun(t, client, repoDir, workspace, repo.Slug)
+	steps := waitForPipelineSteps(t, client, workspace, repo.Slug, pipeline.UUID)
+
+	return pipelineFixture{
+		RepoDir:       repoDir,
+		Repo:          repo,
+		Pipeline:      pipeline,
+		PipelineSteps: steps,
+	}
+}
+
 func ensureOpenIssue(t *testing.T, client *bitbucket.Client, workspace, repoSlug string) int {
 	t.Helper()
 
@@ -1195,6 +1360,120 @@ func ensureOpenIssue(t *testing.T, client *bitbucket.Client, workspace, repoSlug
 		t.Fatalf("create issue fixture: %v", err)
 	}
 	return issue.ID
+}
+
+func ensurePipelineRepoContent(t *testing.T, repoDir string) {
+	t.Helper()
+
+	configureGitIdentity(t, repoDir)
+
+	if hasCommit(t, repoDir) {
+		runGitAllowFailure(t, repoDir, "switch", "main")
+		runGitAllowFailure(t, repoDir, "pull", "--ff-only", "origin", "main")
+	} else {
+		runGit(t, repoDir, "switch", "--orphan", "main")
+	}
+
+	writeFile(t, filepath.Join(repoDir, "README.md"), "# pipelines fixture repo\n")
+	writeFile(t, filepath.Join(repoDir, "bitbucket-pipelines.yml"), "pipelines:\n  default:\n    - step:\n        name: fixture-step\n        script:\n          - echo 'bb pipeline fixture'\n")
+	runGit(t, repoDir, "add", "README.md", "bitbucket-pipelines.yml")
+
+	if workingTreeClean(t, repoDir) {
+		if !remoteBranchExists(t, repoDir, "main") {
+			runGit(t, repoDir, "push", "-u", "origin", "main")
+		}
+		return
+	}
+
+	runGit(t, repoDir, "commit", "-m", "Seed pipelines integration repo")
+	runGit(t, repoDir, "push", "-u", "origin", "main")
+}
+
+func ensurePipelinesEnabled(t *testing.T, client *bitbucket.Client, workspace, repoSlug string) {
+	t.Helper()
+
+	cfg, err := client.GetPipelineConfig(context.Background(), workspace, repoSlug)
+	if err == nil {
+		if cfg.Enabled {
+			return
+		}
+		cfg.Enabled = true
+		if _, err := client.UpdatePipelineConfig(context.Background(), workspace, repoSlug, cfg); err != nil {
+			t.Fatalf("enable pipelines: %v", err)
+		}
+		return
+	}
+
+	if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == http.StatusNotFound {
+		if _, err := client.UpdatePipelineConfig(context.Background(), workspace, repoSlug, bitbucket.PipelineConfig{Enabled: true}); err != nil {
+			t.Fatalf("create pipeline config: %v", err)
+		}
+		return
+	}
+
+	t.Fatalf("get pipeline config: %v", err)
+}
+
+func ensurePipelineRun(t *testing.T, client *bitbucket.Client, repoDir, workspace, repoSlug string) bitbucket.Pipeline {
+	t.Helper()
+
+	pipelines, err := client.ListPipelines(context.Background(), workspace, repoSlug, bitbucket.ListPipelinesOptions{
+		Sort:  "-created_on",
+		Limit: 5,
+	})
+	if err != nil {
+		t.Fatalf("list pipeline fixtures: %v", err)
+	}
+	if len(pipelines) > 0 {
+		return pipelines[0]
+	}
+
+	configureGitIdentity(t, repoDir)
+	runGitAllowFailure(t, repoDir, "switch", "main")
+	writeFile(t, filepath.Join(repoDir, "pipeline-trigger.txt"), fmt.Sprintf("triggered at %s\n", time.Now().UTC().Format(time.RFC3339Nano)))
+	runGit(t, repoDir, "add", "pipeline-trigger.txt")
+	if !workingTreeClean(t, repoDir) {
+		runGit(t, repoDir, "commit", "-m", "Trigger pipelines integration fixture")
+		runGit(t, repoDir, "push", "-u", "origin", "main")
+	}
+
+	for attempt := 0; attempt < 24; attempt++ {
+		pipelines, err = client.ListPipelines(context.Background(), workspace, repoSlug, bitbucket.ListPipelinesOptions{
+			Sort:  "-created_on",
+			Limit: 5,
+		})
+		if err == nil && len(pipelines) > 0 {
+			return pipelines[0]
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	triggered, err := client.TriggerPipeline(context.Background(), workspace, repoSlug, bitbucket.TriggerPipelineOptions{
+		RefType: "branch",
+		RefName: "main",
+	})
+	if err != nil {
+		t.Fatalf("trigger pipeline fixture: %v", err)
+	}
+	return triggered
+}
+
+func waitForPipelineSteps(t *testing.T, client *bitbucket.Client, workspace, repoSlug, pipelineUUID string) []bitbucket.PipelineStep {
+	t.Helper()
+
+	for attempt := 0; attempt < 24; attempt++ {
+		steps, err := client.ListPipelineSteps(context.Background(), workspace, repoSlug, pipelineUUID)
+		if err == nil && len(steps) > 0 {
+			return steps
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	steps, err := client.ListPipelineSteps(context.Background(), workspace, repoSlug, pipelineUUID)
+	if err != nil {
+		t.Fatalf("list pipeline steps: %v", err)
+	}
+	return steps
 }
 
 func repositoryExists(t *testing.T, client *bitbucket.Client, workspace, slug string) bool {

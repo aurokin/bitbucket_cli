@@ -337,34 +337,19 @@ func TestBitbucketCloudPipelineView(t *testing.T) {
 }
 
 func TestBitbucketCloudPipelineLog(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
-	if !pipelineLogAvailable(t, client, workspace, pipelines.Repo.Slug, pipelines.Pipeline.UUID, pipelines.PipelineSteps[0].UUID) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+	if !pipelineLogAvailable(t, session.Client, session.Workspace, pipelines.Repo.Slug, pipelines.Pipeline.UUID, pipelines.PipelineSteps[0].UUID) {
 		t.Skip("Bitbucket did not expose a raw step log for the pipeline fixture")
 	}
-	binary := buildBinary(t)
-
-	cmd := exec.Command(
-		binary,
+	output := session.Run(
+		t,
+		"",
 		"pipeline", "log", fmt.Sprintf("%d", pipelines.Pipeline.BuildNumber),
-		"--repo", workspace+"/"+pipelines.Repo.Slug,
+		"--repo", session.Workspace+"/"+pipelines.Repo.Slug,
 		"--step", pipelines.PipelineSteps[0].UUID,
 		"--json", "*",
 	)
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pipeline log failed: %v\n%s", err, output)
-	}
 
 	var payload struct {
 		Workspace string                 `json:"workspace"`
@@ -377,7 +362,7 @@ func TestBitbucketCloudPipelineLog(t *testing.T) {
 		t.Fatalf("parse pipeline log JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != pipelines.Repo.Slug {
+	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug {
 		t.Fatalf("unexpected pipeline log identity %+v", payload)
 	}
 	if payload.Pipeline.UUID != pipelines.Pipeline.UUID || payload.Step.UUID != pipelines.PipelineSteps[0].UUID {
@@ -389,20 +374,11 @@ func TestBitbucketCloudPipelineLog(t *testing.T) {
 }
 
 func TestBitbucketCloudPipelineStop(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+	running := ensureRunningPipeline(t, session.Client, pipelines.RepoDir, session.Workspace, pipelines.Repo.Slug)
 
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	pipelines := ensurePipelineFixture(t, client, hostConfig, workspace)
-	running := ensureRunningPipeline(t, client, pipelines.RepoDir, workspace, pipelines.Repo.Slug)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
+	cmd := exec.Command(session.Binary, "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
 	cmd.Env = os.Environ()
 
 	output, err := cmd.CombinedOutput()
@@ -426,38 +402,22 @@ func TestBitbucketCloudPipelineStop(t *testing.T) {
 		t.Fatalf("parse pipeline stop JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != pipelines.Repo.Slug || !payload.Stopped {
+	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug || !payload.Stopped {
 		t.Fatalf("unexpected pipeline stop payload %+v", payload)
 	}
 
-	stopped := waitForPipelineState(t, client, workspace, pipelines.Repo.Slug, running.UUID, 36, 5*time.Second)
+	stopped := waitForPipelineState(t, session.Client, session.Workspace, pipelines.Repo.Slug, running.UUID, 36, 5*time.Second)
 	if !strings.EqualFold(pipelineStateName(stopped), "STOPPED") {
 		t.Fatalf("expected stopped pipeline state, got %+v", stopped)
 	}
 }
 
 func TestBitbucketCloudStatus(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	issueRepo := ensureIssueRepository(t, client, workspace)
-	ensureOpenIssue(t, client, workspace, issueRepo.Slug)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "status", "--workspace", workspace, "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb status failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+	ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
+	output := session.Run(t, "", "status", "--workspace", session.Workspace, "--json", "*")
 
 	var payload struct {
 		Workspaces   []string `json:"workspaces"`
@@ -482,7 +442,7 @@ func TestBitbucketCloudStatus(t *testing.T) {
 		t.Fatalf("parse status JSON: %v\n%s", err, output)
 	}
 
-	if len(payload.Workspaces) != 1 || payload.Workspaces[0] != workspace {
+	if len(payload.Workspaces) != 1 || payload.Workspaces[0] != session.Workspace {
 		t.Fatalf("unexpected status workspaces %+v", payload.Workspaces)
 	}
 	if payload.Repositories == 0 {
@@ -491,7 +451,7 @@ func TestBitbucketCloudStatus(t *testing.T) {
 
 	var foundPR bool
 	for _, pr := range payload.AuthoredPRs {
-		if pr.Workspace == workspace && pr.Repo == fixture.PrimaryRepo.Slug {
+		if pr.Workspace == session.Workspace && pr.Repo == fixture.PrimaryRepo.Slug {
 			foundPR = true
 			break
 		}
@@ -502,7 +462,7 @@ func TestBitbucketCloudStatus(t *testing.T) {
 
 	var foundIssue bool
 	for _, issue := range payload.YourIssues {
-		if issue.Workspace == workspace && issue.Repo == issueRepo.Slug {
+		if issue.Workspace == session.Workspace && issue.Repo == issueRepo.Slug {
 			foundIssue = true
 			break
 		}
@@ -513,25 +473,9 @@ func TestBitbucketCloudStatus(t *testing.T) {
 }
 
 func TestBitbucketCloudRepoCreate(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	_ = ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "repo", "create", fixtureCreateRepoSlug, "--workspace", workspace, "--project-key", fixtureProjectKey, "--reuse-existing", "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo create failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	_ = session.Fixture(t)
+	output := session.Run(t, "", "repo", "create", fixtureCreateRepoSlug, "--workspace", session.Workspace, "--project-key", fixtureProjectKey, "--reuse-existing", "--json", "*")
 
 	var repo bitbucket.Repository
 	if err := json.Unmarshal(output, &repo); err != nil {
@@ -544,26 +488,9 @@ func TestBitbucketCloudRepoCreate(t *testing.T) {
 }
 
 func TestBitbucketCloudRepoView(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "repo", "view", "--json", "*")
-	cmd.Dir = fixture.PrimaryRepoDir
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo view failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	output := session.Run(t, fixture.PrimaryRepoDir, "repo", "view", "--json", "*")
 
 	var payload struct {
 		Workspace  string `json:"workspace"`
@@ -582,7 +509,7 @@ func TestBitbucketCloudRepoView(t *testing.T) {
 		t.Fatalf("parse repo view JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug {
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug {
 		t.Fatalf("unexpected repo identity %+v", payload)
 	}
 	if payload.ProjectKey != fixtureProjectKey || payload.MainBranch != "main" || payload.Remote != "origin" {
@@ -594,25 +521,9 @@ func TestBitbucketCloudRepoView(t *testing.T) {
 }
 
 func TestBitbucketCloudBrowse(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb browse failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	output := session.Run(t, "", "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "*")
 
 	var payload struct {
 		Workspace string `json:"workspace"`
@@ -626,35 +537,20 @@ func TestBitbucketCloudBrowse(t *testing.T) {
 		t.Fatalf("parse browse JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.Type != "pull-request" || payload.PR != fixture.PrimaryPRID || payload.Opened {
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.Type != "pull-request" || payload.PR != fixture.PrimaryPRID || payload.Opened {
 		t.Fatalf("unexpected browse payload %+v", payload)
 	}
-	if !strings.Contains(payload.URL, fmt.Sprintf("/%s/%s/pull-requests/%d", workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)) {
+	if !strings.Contains(payload.URL, fmt.Sprintf("/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)) {
 		t.Fatalf("unexpected browse URL %q", payload.URL)
 	}
 }
 
 func TestBitbucketCloudRepoClone(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
 
 	cloneDir := filepath.Join(t.TempDir(), fixture.PrimaryRepo.Slug+"-clone")
-	cmd := exec.Command(binary, "repo", "clone", workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir, "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo clone failed: %v\n%s", err, output)
-	}
+	output := session.Run(t, "", "repo", "clone", session.Workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir, "--json", "*")
 
 	var payload struct {
 		Workspace string `json:"workspace"`
@@ -666,7 +562,7 @@ func TestBitbucketCloudRepoClone(t *testing.T) {
 		t.Fatalf("parse repo clone JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != fixture.PrimaryRepo.Slug {
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug {
 		t.Fatalf("unexpected repo clone payload %+v", payload)
 	}
 
@@ -683,7 +579,7 @@ func TestBitbucketCloudRepoClone(t *testing.T) {
 	}
 
 	originURL := gitOutput(t, cloneDir, "remote", "get-url", "origin")
-	if strings.Contains(originURL, hostConfig.Token) {
+	if strings.Contains(originURL, session.HostConfig.Token) {
 		t.Fatalf("origin remote should not contain the API token: %s", originURL)
 	}
 	if !strings.Contains(originURL, "x-bitbucket-api-token-auth@") {
@@ -692,26 +588,10 @@ func TestBitbucketCloudRepoClone(t *testing.T) {
 }
 
 func TestBitbucketCloudRepoDelete(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	ensureFixture(t, client, hostConfig, workspace)
-	_ = ensureRepository(t, client, workspace, fixtureDeleteRepoSlug)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "repo", "delete", workspace+"/"+fixtureDeleteRepoSlug, "--yes", "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo delete failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	ensureFixture(t, session.Client, session.HostConfig, session.Workspace)
+	_ = ensureRepository(t, session.Client, session.Workspace, fixtureDeleteRepoSlug)
+	output := session.Run(t, "", "repo", "delete", session.Workspace+"/"+fixtureDeleteRepoSlug, "--yes", "--json", "*")
 
 	var payload struct {
 		Workspace string `json:"workspace"`
@@ -722,53 +602,33 @@ func TestBitbucketCloudRepoDelete(t *testing.T) {
 		t.Fatalf("parse repo delete JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != workspace || payload.Repo != fixtureDeleteRepoSlug || !payload.Deleted {
+	if payload.Workspace != session.Workspace || payload.Repo != fixtureDeleteRepoSlug || !payload.Deleted {
 		t.Fatalf("unexpected repo delete payload %+v", payload)
 	}
 
-	if repositoryExists(t, client, workspace, fixtureDeleteRepoSlug) {
-		t.Fatalf("expected repository %s/%s to be deleted", workspace, fixtureDeleteRepoSlug)
+	if repositoryExists(t, session.Client, session.Workspace, fixtureDeleteRepoSlug) {
+		t.Fatalf("expected repository %s/%s to be deleted", session.Workspace, fixtureDeleteRepoSlug)
 	}
 }
 
 func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+	pipelineRepo := session.PipelineFixture(t)
+	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
 
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	issueRepo := ensureIssueRepository(t, client, workspace)
-	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
-	canReadPipelineLog := pipelineLogAvailable(t, client, workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
-	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
-	binary := buildBinary(t)
-
-	repoViewCmd := exec.Command(binary, "repo", "view")
-	repoViewCmd.Dir = fixture.PrimaryRepoDir
-	repoViewCmd.Env = os.Environ()
-	repoViewOutput, err := repoViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo view human output failed: %v\n%s", err, repoViewOutput)
-	}
-	if !strings.Contains(string(repoViewOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	repoViewOutput := session.Run(t, fixture.PrimaryRepoDir, "repo", "view")
+	if !strings.Contains(string(repoViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in repo view output:\n%s", repoViewOutput)
 	}
-	if !strings.Contains(string(repoViewOutput), "Next: bb pr list --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	if !strings.Contains(string(repoViewOutput), "Next: bb pr list --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo view next step:\n%s", repoViewOutput)
 	}
 
-	browseCmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser")
-	browseCmd.Env = os.Environ()
-	browseOutput, err := browseCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb browse human output failed: %v\n%s", err, browseOutput)
-	}
-	if !strings.Contains(string(browseOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	browseOutput := session.Run(t, "", "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser")
+	if !strings.Contains(string(browseOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in browse output:\n%s", browseOutput)
 	}
 	if !strings.Contains(string(browseOutput), "Type: pull-request") {
@@ -778,70 +638,45 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected browse printed status in output:\n%s", browseOutput)
 	}
 
-	repoCreateCmd := exec.Command(binary, "repo", "create", fixtureCreateRepoSlug, "--workspace", workspace, "--project-key", fixtureProjectKey, "--reuse-existing")
-	repoCreateCmd.Env = os.Environ()
-	repoCreateOutput, err := repoCreateCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo create human output failed: %v\n%s", err, repoCreateOutput)
-	}
-	if !strings.Contains(string(repoCreateOutput), "Repository: "+workspace+"/"+fixtureCreateRepoSlug) {
+	repoCreateOutput := session.Run(t, "", "repo", "create", fixtureCreateRepoSlug, "--workspace", session.Workspace, "--project-key", fixtureProjectKey, "--reuse-existing")
+	if !strings.Contains(string(repoCreateOutput), "Repository: "+session.Workspace+"/"+fixtureCreateRepoSlug) {
 		t.Fatalf("expected repo header in repo create output:\n%s", repoCreateOutput)
 	}
-	if !strings.Contains(string(repoCreateOutput), "Next: bb repo clone "+workspace+"/"+fixtureCreateRepoSlug) {
+	if !strings.Contains(string(repoCreateOutput), "Next: bb repo clone "+session.Workspace+"/"+fixtureCreateRepoSlug) {
 		t.Fatalf("expected repo create next step:\n%s", repoCreateOutput)
 	}
 
 	cloneDir := filepath.Join(t.TempDir(), fixture.PrimaryRepo.Slug+"-human-clone")
-	repoCloneCmd := exec.Command(binary, "repo", "clone", workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir)
-	repoCloneCmd.Env = os.Environ()
-	repoCloneOutput, err := repoCloneCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo clone human output failed: %v\n%s", err, repoCloneOutput)
-	}
-	if !strings.Contains(string(repoCloneOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	repoCloneOutput := session.Run(t, "", "repo", "clone", session.Workspace+"/"+fixture.PrimaryRepo.Slug, cloneDir)
+	if !strings.Contains(string(repoCloneOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in repo clone output:\n%s", repoCloneOutput)
 	}
-	if !strings.Contains(string(repoCloneOutput), "Next: bb repo view --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	if !strings.Contains(string(repoCloneOutput), "Next: bb repo view --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo clone next step:\n%s", repoCloneOutput)
 	}
 
-	_ = ensureRepository(t, client, workspace, fixtureDeleteRepoSlug)
-	repoDeleteCmd := exec.Command(binary, "repo", "delete", workspace+"/"+fixtureDeleteRepoSlug, "--yes")
-	repoDeleteCmd.Env = os.Environ()
-	repoDeleteOutput, err := repoDeleteCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo delete human output failed: %v\n%s", err, repoDeleteOutput)
-	}
-	if !strings.Contains(string(repoDeleteOutput), "Repository: "+workspace+"/"+fixtureDeleteRepoSlug) {
+	_ = ensureRepository(t, session.Client, session.Workspace, fixtureDeleteRepoSlug)
+	repoDeleteOutput := session.Run(t, "", "repo", "delete", session.Workspace+"/"+fixtureDeleteRepoSlug, "--yes")
+	if !strings.Contains(string(repoDeleteOutput), "Repository: "+session.Workspace+"/"+fixtureDeleteRepoSlug) {
 		t.Fatalf("expected repo header in repo delete output:\n%s", repoDeleteOutput)
 	}
 	if !strings.Contains(string(repoDeleteOutput), "Status: deleted") {
 		t.Fatalf("expected deleted status in repo delete output:\n%s", repoDeleteOutput)
 	}
-	if !strings.Contains(string(repoDeleteOutput), "Next: bb repo create "+workspace+"/"+fixtureDeleteRepoSlug) {
+	if !strings.Contains(string(repoDeleteOutput), "Next: bb repo create "+session.Workspace+"/"+fixtureDeleteRepoSlug) {
 		t.Fatalf("expected repo delete next step:\n%s", repoDeleteOutput)
 	}
 
-	pipelineListCmd := exec.Command(binary, "pipeline", "list", "--repo", workspace+"/"+pipelineRepo.Repo.Slug)
-	pipelineListCmd.Env = os.Environ()
-	pipelineListOutput, err := pipelineListCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pipeline list human output failed: %v\n%s", err, pipelineListOutput)
-	}
-	if !strings.Contains(string(pipelineListOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+	pipelineListOutput := session.Run(t, "", "pipeline", "list", "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug)
+	if !strings.Contains(string(pipelineListOutput), "Repository: "+session.Workspace+"/"+pipelineRepo.Repo.Slug) {
 		t.Fatalf("expected repo header in pipeline list output:\n%s", pipelineListOutput)
 	}
-	if !strings.Contains(string(pipelineListOutput), fmt.Sprintf("Next: bb pipeline view %d --repo %s/%s", pipelineRepo.Pipeline.BuildNumber, workspace, pipelineRepo.Repo.Slug)) {
+	if !strings.Contains(string(pipelineListOutput), fmt.Sprintf("Next: bb pipeline view %d --repo %s/%s", pipelineRepo.Pipeline.BuildNumber, session.Workspace, pipelineRepo.Repo.Slug)) {
 		t.Fatalf("expected pipeline list next step:\n%s", pipelineListOutput)
 	}
 
-	pipelineViewCmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug)
-	pipelineViewCmd.Env = os.Environ()
-	pipelineViewOutput, err := pipelineViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pipeline view human output failed: %v\n%s", err, pipelineViewOutput)
-	}
-	if !strings.Contains(string(pipelineViewOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+	pipelineViewOutput := session.Run(t, "", "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug)
+	if !strings.Contains(string(pipelineViewOutput), "Repository: "+session.Workspace+"/"+pipelineRepo.Repo.Slug) {
 		t.Fatalf("expected repo header in pipeline view output:\n%s", pipelineViewOutput)
 	}
 	if !strings.Contains(string(pipelineViewOutput), fmt.Sprintf("Pipeline: #%d", pipelineRepo.Pipeline.BuildNumber)) {
@@ -852,13 +687,8 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	}
 
 	if canReadPipelineLog {
-		pipelineLogCmd := exec.Command(binary, "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID)
-		pipelineLogCmd.Env = os.Environ()
-		pipelineLogOutput, err := pipelineLogCmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("bb pipeline log human output failed: %v\n%s", err, pipelineLogOutput)
-		}
-		if !strings.Contains(string(pipelineLogOutput), "Repository: "+workspace+"/"+pipelineRepo.Repo.Slug) {
+		pipelineLogOutput := session.Run(t, "", "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID)
+		if !strings.Contains(string(pipelineLogOutput), "Repository: "+session.Workspace+"/"+pipelineRepo.Repo.Slug) {
 			t.Fatalf("expected repo header in pipeline log output:\n%s", pipelineLogOutput)
 		}
 		if !strings.Contains(string(pipelineLogOutput), "Step:") {
@@ -866,59 +696,34 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		}
 	}
 
-	prListCmd := exec.Command(binary, "pr", "list", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
-	prListCmd.Env = os.Environ()
-	prListOutput, err := prListCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr list human output failed: %v\n%s", err, prListOutput)
-	}
-	if !strings.Contains(string(prListOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	prListOutput := session.Run(t, "", "pr", "list", "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug)
+	if !strings.Contains(string(prListOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in pr list output:\n%s", prListOutput)
 	}
 
-	prViewCmd := exec.Command(binary, "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
-	prViewCmd.Env = os.Environ()
-	prViewOutput, err := prViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr view human output failed: %v\n%s", err, prViewOutput)
-	}
-	if !strings.Contains(string(prViewOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	prViewOutput := session.Run(t, "", "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug)
+	if !strings.Contains(string(prViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in pr view output:\n%s", prViewOutput)
 	}
-	if !strings.Contains(string(prViewOutput), "Next: bb pr diff "+fmt.Sprintf("%d", fixture.PrimaryPRID)+" --repo "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	if !strings.Contains(string(prViewOutput), "Next: bb pr diff "+fmt.Sprintf("%d", fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected pr view next step:\n%s", prViewOutput)
 	}
 
-	issueViewCmd := exec.Command(binary, "issue", "view", fmt.Sprintf("%d", issueID), "--repo", workspace+"/"+issueRepo.Slug)
-	issueViewCmd.Env = os.Environ()
-	issueViewOutput, err := issueViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb issue view human output failed: %v\n%s", err, issueViewOutput)
-	}
-	if !strings.Contains(string(issueViewOutput), "Repository: "+workspace+"/"+issueRepo.Slug) {
+	issueViewOutput := session.Run(t, "", "issue", "view", fmt.Sprintf("%d", issueID), "--repo", session.Workspace+"/"+issueRepo.Slug)
+	if !strings.Contains(string(issueViewOutput), "Repository: "+session.Workspace+"/"+issueRepo.Slug) {
 		t.Fatalf("expected repo header in issue view output:\n%s", issueViewOutput)
 	}
-	if !strings.Contains(string(issueViewOutput), "Next: bb issue edit "+fmt.Sprintf("%d", issueID)+" --repo "+workspace+"/"+issueRepo.Slug) {
+	if !strings.Contains(string(issueViewOutput), "Next: bb issue edit "+fmt.Sprintf("%d", issueID)+" --repo "+session.Workspace+"/"+issueRepo.Slug) {
 		t.Fatalf("expected issue view next step:\n%s", issueViewOutput)
 	}
 
-	issueListCmd := exec.Command(binary, "issue", "list", "--repo", workspace+"/"+issueRepo.Slug)
-	issueListCmd.Env = os.Environ()
-	issueListOutput, err := issueListCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb issue list human output failed: %v\n%s", err, issueListOutput)
-	}
-	if !strings.Contains(string(issueListOutput), "Repository: "+workspace+"/"+issueRepo.Slug) {
+	issueListOutput := session.Run(t, "", "issue", "list", "--repo", session.Workspace+"/"+issueRepo.Slug)
+	if !strings.Contains(string(issueListOutput), "Repository: "+session.Workspace+"/"+issueRepo.Slug) {
 		t.Fatalf("expected repo header in issue list output:\n%s", issueListOutput)
 	}
 
-	searchPRsCmd := exec.Command(binary, "search", "prs", "fixture", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug)
-	searchPRsCmd.Env = os.Environ()
-	searchPRsOutput, err := searchPRsCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb search prs human output failed: %v\n%s", err, searchPRsOutput)
-	}
-	if !strings.Contains(string(searchPRsOutput), "Repository: "+workspace+"/"+fixture.PrimaryRepo.Slug) {
+	searchPRsOutput := session.Run(t, "", "search", "prs", "fixture", "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug)
+	if !strings.Contains(string(searchPRsOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in search prs output:\n%s", searchPRsOutput)
 	}
 	if !strings.Contains(string(searchPRsOutput), "Query: fixture") {
@@ -927,28 +732,14 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 }
 
 func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+	pipelineRepo := session.PipelineFixture(t)
+	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
 
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	issueRepo := ensureIssueRepository(t, client, workspace)
-	pipelineRepo := ensurePipelineFixture(t, client, hostConfig, workspace)
-	canReadPipelineLog := pipelineLogAvailable(t, client, workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
-	issueID := ensureOpenIssue(t, client, workspace, issueRepo.Slug)
-	binary := buildBinary(t)
-
-	authStatusCmd := exec.Command(binary, "auth", "status", "--check", "--json", "default_host,hosts")
-	authStatusCmd.Env = os.Environ()
-	authStatusOutput, err := authStatusCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb auth status generated-docs smoke failed: %v\n%s", err, authStatusOutput)
-	}
+	authStatusOutput := session.Run(t, "", "auth", "status", "--check", "--json", "default_host,hosts")
 	var authStatus struct {
 		DefaultHost string `json:"default_host"`
 		Hosts       []struct {
@@ -963,12 +754,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 		t.Fatalf("unexpected auth status payload %+v", authStatus)
 	}
 
-	repoViewCmd := exec.Command(binary, "repo", "view", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "host,workspace,repo,name")
-	repoViewCmd.Env = os.Environ()
-	repoViewOutput, err := repoViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb repo view generated-docs smoke failed: %v\n%s", err, repoViewOutput)
-	}
+	repoViewOutput := session.Run(t, "", "repo", "view", "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "host,workspace,repo,name")
 	var repoView struct {
 		Host      string `json:"host"`
 		Workspace string `json:"workspace"`
@@ -978,16 +764,11 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	if err := json.Unmarshal(repoViewOutput, &repoView); err != nil {
 		t.Fatalf("parse repo view JSON: %v\n%s", err, repoViewOutput)
 	}
-	if repoView.Workspace != workspace || repoView.Repo != fixture.PrimaryRepo.Slug || repoView.Name == "" {
+	if repoView.Workspace != session.Workspace || repoView.Repo != fixture.PrimaryRepo.Slug || repoView.Name == "" {
 		t.Fatalf("unexpected repo view payload %+v", repoView)
 	}
 
-	browseCmd := exec.Command(binary, "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "url,type,pr")
-	browseCmd.Env = os.Environ()
-	browseOutput, err := browseCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb browse generated-docs smoke failed: %v\n%s", err, browseOutput)
-	}
+	browseOutput := session.Run(t, "", "browse", "--pr", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug, "--no-browser", "--json", "url,type,pr")
 	var browse struct {
 		URL  string `json:"url"`
 		Type string `json:"type"`
@@ -1000,12 +781,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 		t.Fatalf("unexpected browse payload %+v", browse)
 	}
 
-	pipelineViewCmd := exec.Command(binary, "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--json", "host,workspace,repo,pipeline,steps")
-	pipelineViewCmd.Env = os.Environ()
-	pipelineViewOutput, err := pipelineViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pipeline view generated-docs smoke failed: %v\n%s", err, pipelineViewOutput)
-	}
+	pipelineViewOutput := session.Run(t, "", "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug, "--json", "host,workspace,repo,pipeline,steps")
 	var pipelineView struct {
 		Host      string                   `json:"host"`
 		Workspace string                   `json:"workspace"`
@@ -1016,17 +792,12 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	if err := json.Unmarshal(pipelineViewOutput, &pipelineView); err != nil {
 		t.Fatalf("parse pipeline view JSON: %v\n%s", err, pipelineViewOutput)
 	}
-	if pipelineView.Workspace != workspace || pipelineView.Repo != pipelineRepo.Repo.Slug || pipelineView.Pipeline.BuildNumber == 0 {
+	if pipelineView.Workspace != session.Workspace || pipelineView.Repo != pipelineRepo.Repo.Slug || pipelineView.Pipeline.BuildNumber == 0 {
 		t.Fatalf("unexpected pipeline view payload %+v", pipelineView)
 	}
 
 	if canReadPipelineLog {
-		pipelineLogCmd := exec.Command(binary, "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID, "--json", "pipeline,step,log")
-		pipelineLogCmd.Env = os.Environ()
-		pipelineLogOutput, err := pipelineLogCmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("bb pipeline log generated-docs smoke failed: %v\n%s", err, pipelineLogOutput)
-		}
+		pipelineLogOutput := session.Run(t, "", "pipeline", "log", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug, "--step", pipelineRepo.PipelineSteps[0].UUID, "--json", "pipeline,step,log")
 		var pipelineLog struct {
 			Pipeline bitbucket.Pipeline     `json:"pipeline"`
 			Step     bitbucket.PipelineStep `json:"step"`
@@ -1040,13 +811,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 		}
 	}
 
-	prStatusCmd := exec.Command(binary, "pr", "status", "--repo", workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "workspace,repo,current_branch_name,created,review_requested")
-	prStatusCmd.Dir = fixture.PrimaryRepoDir
-	prStatusCmd.Env = os.Environ()
-	prStatusOutput, err := prStatusCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr status generated-docs smoke failed: %v\n%s", err, prStatusOutput)
-	}
+	prStatusOutput := session.Run(t, fixture.PrimaryRepoDir, "pr", "status", "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug, "--json", "workspace,repo,current_branch_name,created,review_requested")
 	var prStatus struct {
 		Workspace         string                  `json:"workspace"`
 		Repo              string                  `json:"repo"`
@@ -1056,16 +821,11 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	if err := json.Unmarshal(prStatusOutput, &prStatus); err != nil {
 		t.Fatalf("parse pr status JSON: %v\n%s", err, prStatusOutput)
 	}
-	if prStatus.Workspace != workspace || prStatus.Repo != fixture.PrimaryRepo.Slug {
+	if prStatus.Workspace != session.Workspace || prStatus.Repo != fixture.PrimaryRepo.Slug {
 		t.Fatalf("unexpected pr status payload %+v", prStatus)
 	}
 
-	issueViewCmd := exec.Command(binary, "issue", "view", fmt.Sprintf("%d", issueID), "--repo", workspace+"/"+issueRepo.Slug, "--json", "id,title,state")
-	issueViewCmd.Env = os.Environ()
-	issueViewOutput, err := issueViewCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb issue view generated-docs smoke failed: %v\n%s", err, issueViewOutput)
-	}
+	issueViewOutput := session.Run(t, "", "issue", "view", fmt.Sprintf("%d", issueID), "--repo", session.Workspace+"/"+issueRepo.Slug, "--json", "id,title,state")
 	var issueView struct {
 		ID    int    `json:"id"`
 		Title string `json:"title"`
@@ -1078,12 +838,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 		t.Fatalf("unexpected issue view payload %+v", issueView)
 	}
 
-	statusCmd := exec.Command(binary, "status", "--workspace", workspace, "--json", "user,workspaces,warnings")
-	statusCmd.Env = os.Environ()
-	statusOutput, err := statusCmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb status generated-docs smoke failed: %v\n%s", err, statusOutput)
-	}
+	statusOutput := session.Run(t, "", "status", "--workspace", session.Workspace, "--json", "user,workspaces,warnings")
 	var statusPayload struct {
 		User       string   `json:"user"`
 		Workspaces []string `json:"workspaces"`
@@ -1092,31 +847,15 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	if err := json.Unmarshal(statusOutput, &statusPayload); err != nil {
 		t.Fatalf("parse status JSON: %v\n%s", err, statusOutput)
 	}
-	if statusPayload.User == "" || len(statusPayload.Workspaces) == 0 || statusPayload.Workspaces[0] != workspace {
+	if statusPayload.User == "" || len(statusPayload.Workspaces) == 0 || statusPayload.Workspaces[0] != session.Workspace {
 		t.Fatalf("unexpected status payload %+v", statusPayload)
 	}
 }
 
 func TestBitbucketCloudPRView(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--workspace", workspace, "--repo", fixture.PrimaryRepo.Slug, "--json", "*")
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr view failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	output := session.Run(t, "", "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--workspace", session.Workspace, "--repo", fixture.PrimaryRepo.Slug, "--json", "*")
 
 	var pr bitbucket.PullRequest
 	if err := json.Unmarshal(output, &pr); err != nil {
@@ -1129,22 +868,14 @@ func TestBitbucketCloudPRView(t *testing.T) {
 }
 
 func TestBitbucketCloudPRCreate(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
 
 	ensureBranchCommit(t, fixture.PrimaryRepoDir, fixtureCreatePRBranch, "fixture-create-command.txt", "created by pr create integration\n")
 
-	cmd := exec.Command(
-		binary,
+	output := session.Run(
+		t,
+		fixture.PrimaryRepoDir,
 		"pr", "create",
 		"--title", fixtureCreatePRTitle,
 		"--description", "Fixture pull request created by the bb pr create command.",
@@ -1153,13 +884,6 @@ func TestBitbucketCloudPRCreate(t *testing.T) {
 		"--reuse-existing",
 		"--json", "*",
 	)
-	cmd.Dir = fixture.PrimaryRepoDir
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr create failed: %v\n%s", err, output)
-	}
 
 	var pr bitbucket.PullRequest
 	if err := json.Unmarshal(output, &pr); err != nil {
@@ -1172,26 +896,9 @@ func TestBitbucketCloudPRCreate(t *testing.T) {
 }
 
 func TestBitbucketCloudPRCheckout(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
-
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	cmd := exec.Command(binary, "pr", "checkout", fmt.Sprintf("%d", fixture.PrimaryPRID))
-	cmd.Dir = fixture.PrimaryRepoDir
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr checkout failed: %v\n%s", err, output)
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	_ = session.Run(t, fixture.PrimaryRepoDir, "pr", "checkout", fmt.Sprintf("%d", fixture.PrimaryPRID))
 
 	branch := currentGitBranch(t, fixture.PrimaryRepoDir)
 	if branch != fixtureFeatureBranch {
@@ -1200,34 +907,19 @@ func TestBitbucketCloudPRCheckout(t *testing.T) {
 }
 
 func TestBitbucketCloudPRMerge(t *testing.T) {
-	if os.Getenv("BB_RUN_INTEGRATION") != "1" {
-		t.Skip("set BB_RUN_INTEGRATION=1 to run Bitbucket Cloud integration tests")
-	}
-	if os.Getenv("CI") != "" {
-		t.Skip("manual-only integration test")
-	}
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	prID := ensureMergePullRequest(t, session.Client, fixture.PrimaryRepoDir, session.Workspace, fixture.PrimaryRepo.Slug)
 
-	_, client, hostConfig := loadIntegrationClient(t)
-	workspace := resolveWorkspace(t, client)
-	fixture := ensureFixture(t, client, hostConfig, workspace)
-	binary := buildBinary(t)
-
-	prID := ensureMergePullRequest(t, client, fixture.PrimaryRepoDir, workspace, fixture.PrimaryRepo.Slug)
-
-	cmd := exec.Command(
-		binary,
+	output := session.Run(
+		t,
+		"",
 		"pr", "merge", fmt.Sprintf("%d", prID),
-		"--workspace", workspace,
+		"--workspace", session.Workspace,
 		"--repo", fixture.PrimaryRepo.Slug,
 		"--message", "Fixture merge executed by bb pr merge integration test.",
 		"--json", "*",
 	)
-	cmd.Env = os.Environ()
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("bb pr merge failed: %v\n%s", err, output)
-	}
 
 	var merged bitbucket.PullRequest
 	if err := json.Unmarshal(output, &merged); err != nil {
@@ -1241,7 +933,7 @@ func TestBitbucketCloudPRMerge(t *testing.T) {
 		t.Fatalf("expected merged pull request to include merge commit %+v", merged)
 	}
 
-	updated := getPullRequest(t, client, workspace, fixture.PrimaryRepo.Slug, prID)
+	updated := getPullRequest(t, session.Client, session.Workspace, fixture.PrimaryRepo.Slug, prID)
 	if updated.State != "MERGED" {
 		t.Fatalf("expected pull request %d to be merged, got %+v", prID, updated)
 	}

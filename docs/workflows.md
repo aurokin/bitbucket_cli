@@ -4,6 +4,15 @@ Task-oriented command recipes for humans using `bb`.
 
 Use the generated [CLI reference](./cli-reference.md) for the full command surface.
 
+`bb` is built on the official Bitbucket Cloud REST API. If you need to understand the underlying platform behavior behind a workflow, start with:
+
+- Overview: https://developer.atlassian.com/cloud/bitbucket/about-bitbucket-cloud-rest-api/
+- REST intro: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+- Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
+- Repositories: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/
+- Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
+- Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+
 ## Authenticate
 
 ```bash

@@ -2,6 +2,32 @@
 
 `bb` is a Bitbucket Cloud CLI aimed at both humans and agents.
 
+## Implementation
+
+`bb` is implemented against the official Bitbucket Cloud REST API and stays aligned with documented Bitbucket Cloud behavior instead of inventing `gh` parity where the platform does not support it.
+
+Implementation rules:
+
+- command behavior is built on the documented `https://api.bitbucket.org/2.0` REST surface
+- the raw `bb api` command maps directly onto Bitbucket Cloud REST paths and URLs
+- unsupported Bitbucket Cloud behaviors are documented explicitly instead of being approximated silently
+- auth is API-token based because that is the clean, supported CLI path we could verify directly
+
+Primary Bitbucket Cloud API references:
+
+- Overview: https://developer.atlassian.com/cloud/bitbucket/about-bitbucket-cloud-rest-api/
+- REST reference intro: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+- Canonical OpenAPI document: https://api.bitbucket.org/swagger.json
+
+Main API groups used by `bb`:
+
+- Repositories and project-linked repository operations: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/
+- Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
+- Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
+- Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Users and current-account validation: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
+- Source browsing and file-oriented repository URLs: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/
+
 ## Quick Start
 
 Authenticate with an Atlassian API token:
@@ -88,6 +114,16 @@ Automation conventions:
 - [JSON shapes](./docs/json-shapes.md)
 - [Failure and recovery](./docs/recovery.md)
 - [CLI reference](./docs/cli-reference.md)
+
+## API Notes
+
+- `bb repo *` uses the repository APIs and, where needed, project-linked repository fields exposed by Bitbucket Cloud.
+- `bb pr *` uses the pull request APIs, including diff, comment, merge, and decline operations where Bitbucket documents them.
+- `bb pipeline *` uses the documented pipeline run, step, log, and stop APIs.
+- `bb issue *` uses the Bitbucket Cloud issue tracker APIs and therefore respects Bitbucket issue-tracker availability limits.
+- `bb browse` prefers deterministic URL building, but its repository and source behavior is still grounded in the documented repository and source API model.
+- `bb auth status --check` validates credentials against the Bitbucket current-user API.
+- `bb api` is the escape hatch for any official REST endpoint that `bb` does not yet wrap directly.
 
 ## Command Families
 

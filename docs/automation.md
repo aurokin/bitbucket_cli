@@ -4,6 +4,16 @@ Deterministic usage patterns for agents, scripts, and CI-adjacent tooling.
 
 Use the generated [CLI reference](./cli-reference.md) for the full command surface.
 
+`bb` automation is built on the official Bitbucket Cloud REST API. When a wrapped command does not exist yet, prefer `bb api` against the documented Bitbucket Cloud endpoints:
+
+- REST intro: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+- OpenAPI document: https://api.bitbucket.org/swagger.json
+- Repositories: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/
+- Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
+- Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
+- Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Users: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
+
 ## Rules
 
 - Prefer `--repo <workspace>/<repo>` over local inference.
@@ -33,6 +43,13 @@ bb config set browser 'firefox --new-window'
 Create or rotate the token at:
 
 - https://id.atlassian.com/manage-profile/security/api-tokens
+- https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/
+
+Validate raw current-user auth behavior with:
+
+```bash
+bb api /user --jq '{display_name, account_id}'
+```
 
 ## Repository Commands
 
@@ -82,6 +99,16 @@ bb search repos bb-cli --workspace OhBizzle --json name,slug,project
 bb search prs fixture --repo OhBizzle/bb-cli-integration-primary --jq '.[] | {id, title, state}'
 bb search issues broken --repo OhBizzle/bb-cli-integration-issues --json id,title,state
 bb status --workspace OhBizzle --limit 10 --json authored_prs,review_requested_prs,your_issues,warnings
+```
+
+## Raw REST Access
+
+Use `bb api` when you need an official endpoint that is not wrapped yet:
+
+```bash
+bb api /user --jq '{display_name, account_id}'
+bb api /2.0/repositories/OhBizzle/bb-cli-integration-primary --jq '{slug, project, mainbranch}'
+bb api /2.0/repositories/OhBizzle/bb-cli-integration-primary/pullrequests --jq '.values[] | {id, title, state}'
 ```
 
 ## Alias And Config

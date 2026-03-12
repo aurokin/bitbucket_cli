@@ -32,6 +32,8 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 ## Documentation
 - Keep `README.md` task-oriented for humans.
 - Keep `AGENTS.md` concise and deterministic for automation.
+- Keep documentation grounded in the official Bitbucket Cloud REST API. Prefer official Atlassian API links over secondary summaries.
+- When documenting implementation behavior, explain which Bitbucket Cloud REST API groups back the command family and link the official docs.
 - When a command has a safe next step, prefer documenting it explicitly in help text and human-readable output.
 - Keep [docs/workflows.md](./docs/workflows.md) task-oriented for humans.
 - Keep [docs/automation.md](./docs/automation.md) deterministic for agents.
@@ -41,6 +43,16 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - Keep [docs/json-shapes.md](./docs/json-shapes.md) generated from the current payload structs and JSON-centric usage.
 - Keep [docs/recovery.md](./docs/recovery.md) generated from the current recovery guidance catalog.
 - Regenerate generated docs with `go run ./cmd/gen-docs` when command help, flags, payload shapes, or recovery guidance change.
+
+## Bitbucket API References
+- Overview: https://developer.atlassian.com/cloud/bitbucket/about-bitbucket-cloud-rest-api/
+- REST intro: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+- OpenAPI document: https://api.bitbucket.org/swagger.json
+- Repositories: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/
+- Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
+- Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
+- Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Users: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 
 ## Local Skills
 - No repo-local skills discovered under `.claude/skills` or `plugins/*/skills`.

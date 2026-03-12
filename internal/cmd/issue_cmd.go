@@ -383,23 +383,12 @@ func newIssueStateTransitionCmd(use, defaultState, short, long string) *cobra.Co
 }
 
 func resolveIssueTarget(host, workspace, repo string) (resolvedRepoTarget, *bitbucket.Client, error) {
-	selector, err := parseRepoSelector(host, workspace, repo)
+	resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 	if err != nil {
 		return resolvedRepoTarget{}, nil, err
 	}
 
-	resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-	if err != nil {
-		return resolvedRepoTarget{}, nil, err
-	}
-
-	selector.Host = resolvedHost
-	target, err := resolveRepoTarget(context.Background(), selector, client, true)
-	if err != nil {
-		return resolvedRepoTarget{}, nil, err
-	}
-
-	return target, client, nil
+	return resolved.Target, resolved.Client, nil
 }
 
 func resolveIssueTargetAndID(host, workspace, repo, rawID string) (resolvedRepoTarget, *bitbucket.Client, int, error) {

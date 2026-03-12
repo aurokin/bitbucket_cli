@@ -82,21 +82,12 @@ func newBrowseCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			payload, err := buildBrowsePayload(context.Background(), client, target, firstArg(args), options)
 			if err != nil {

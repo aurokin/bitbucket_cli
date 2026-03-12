@@ -52,21 +52,12 @@ func newRepoViewCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			repository, err := client.GetRepository(context.Background(), target.Workspace, target.Repo)
 			if err != nil {
@@ -222,24 +213,12 @@ func newRepoCreateCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoTargetInput(host, workspace, repo, firstArg(args))
+			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, firstArg(args), false)
 			if err != nil {
 				return err
 			}
-			if err := requireExplicitRepoTarget(selector); err != nil {
-				return err
-			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, false)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			createdRepo, err := client.CreateRepository(context.Background(), target.Workspace, target.Repo, bitbucket.CreateRepositoryOptions{
 				Name:          name,
@@ -315,26 +294,18 @@ func newRepoCloneCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoTargetInput(host, workspace, repo, repoArg)
+			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, repoArg, false)
 			if err != nil {
 				return err
 			}
-			if err := requireExplicitRepoTarget(selector); err != nil {
-				return err
-			}
+			target := resolved.Target
 
-			resolvedHost, hostConfig, err := resolveAuthenticatedHostConfig(selector.Host)
+			resolvedHost, hostConfig, err := resolveAuthenticatedHostConfig(target.Host)
 			if err != nil {
 				return err
 			}
 
 			client, err := bitbucket.NewClient(resolvedHost, hostConfig)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, false)
 			if err != nil {
 				return err
 			}
@@ -418,24 +389,12 @@ func newRepoDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoTargetInput(host, workspace, repo, firstArg(args))
+			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, firstArg(args), false)
 			if err != nil {
 				return err
 			}
-			if err := requireExplicitRepoTarget(selector); err != nil {
-				return err
-			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, false)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			repository, err := client.GetRepository(context.Background(), target.Workspace, target.Repo)
 			if err != nil {

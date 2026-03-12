@@ -76,21 +76,12 @@ func newPipelineListCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			pipelines, err := client.ListPipelines(context.Background(), target.Workspace, target.Repo, bitbucket.ListPipelinesOptions{
 				State: strings.TrimSpace(state),
@@ -150,21 +141,12 @@ func newPipelineViewCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			pipeline, err := resolvePipelineReference(context.Background(), client, target.Workspace, target.Repo, args[0])
 			if err != nil {
@@ -273,21 +255,12 @@ func newPipelineLogCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			pipeline, err := resolvePipelineReference(context.Background(), client, target.Workspace, target.Repo, args[0])
 			if err != nil {
@@ -379,21 +352,12 @@ func newPipelineStopCmd() *cobra.Command {
 				return err
 			}
 
-			selector, err := parseRepoSelector(host, workspace, repo)
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
 			if err != nil {
 				return err
 			}
-
-			resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
-			if err != nil {
-				return err
-			}
-
-			selector.Host = resolvedHost
-			target, err := resolveRepoTarget(context.Background(), selector, client, true)
-			if err != nil {
-				return err
-			}
+			client := resolved.Client
+			target := resolved.Target
 
 			pipeline, err := resolvePipelineReference(context.Background(), client, target.Workspace, target.Repo, args[0])
 			if err != nil {

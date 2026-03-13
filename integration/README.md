@@ -11,7 +11,7 @@ They do not run in normal `go test ./...` and should not be added to CI.
 - Seed arbitrary git content into the primary and secondary repositories
 - Seed a dedicated pipelines repository with `bitbucket-pipelines.yml` and ensure there is at least one reusable pipeline run
 - Ensure there is an open pull request in the primary repository
-- Run the `bb browse`, `bb repo clone`, `bb repo view`, `bb repo create`, `bb repo delete`, `bb pipeline list`, `bb pipeline run`, `bb pipeline schedule`, `bb pipeline runner`, `bb pipeline cache`, `bb pipeline test-reports`, `bb pipeline variable`, `bb pipeline log`, `bb pipeline stop`, `bb pipeline view`, `bb pr list`, `bb pr status`, `bb pr review`, `bb pr activity`, `bb pr commits`, `bb pr checks`, `bb pr diff`, `bb pr comment`, `bb pr task`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue comment`, `bb issue attachment`, `bb issue milestone`, `bb issue component`, `bb issue view`, `bb issue create`, `bb issue close`, `bb issue reopen`, and `bb status` commands against the seeded repositories
+- Run the `bb browse`, `bb repo list`, `bb repo view`, `bb repo create`, `bb repo edit`, `bb repo fork`, `bb repo clone`, `bb repo delete`, `bb pipeline list`, `bb pipeline run`, `bb pipeline schedule`, `bb pipeline runner`, `bb pipeline cache`, `bb pipeline test-reports`, `bb pipeline variable`, `bb pipeline log`, `bb pipeline stop`, `bb pipeline view`, `bb pr list`, `bb pr status`, `bb pr review`, `bb pr activity`, `bb pr commits`, `bb pr checks`, `bb pr diff`, `bb pr comment`, `bb pr task`, `bb pr close`, `bb pr view`, `bb pr create`, `bb pr checkout`, `bb pr merge`, `bb issue list`, `bb issue comment`, `bb issue attachment`, `bb issue milestone`, `bb issue component`, `bb issue view`, `bb issue create`, `bb issue close`, `bb issue reopen`, and `bb status` commands against the seeded repositories
 - Smoke-test the human-readable output paths for browse, repo, pipeline, pull request, issue, and search commands
 - Smoke-test representative structured-output commands used by the generated docs
 
@@ -28,8 +28,11 @@ They do not run in normal `go test ./...` and should not be added to CI.
 
 ```bash
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoView -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoList -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoClone -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoCreate -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoEdit -v
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoFork -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudRepoDelete -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudBrowse -v
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudPipelineList -v

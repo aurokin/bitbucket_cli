@@ -81,6 +81,51 @@ func TestRepoViewHelpRegression(t *testing.T) {
 	}
 }
 
+func TestRepoListHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "list", "--help")
+	for _, fragment := range []string{
+		"bb repo list workspace-slug",
+		"bb repo list --workspace workspace-slug --limit 50",
+		"--query string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo list help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestRepoEditHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "edit", "--help")
+	for _, fragment := range []string{
+		"bb repo edit workspace-slug/repo-slug --description 'Updated description'",
+		"bb repo edit --repo workspace-slug/repo-slug --visibility public --json '*'",
+		"--visibility string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo edit help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestRepoForkHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "fork", "--help")
+	for _, fragment := range []string{
+		"bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork",
+		"--to-workspace string",
+		"--reuse-existing",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo fork help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

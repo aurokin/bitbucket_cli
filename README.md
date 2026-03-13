@@ -78,7 +78,9 @@ Prefer explicit repository targets when you are outside a checkout or writing au
 
 ```bash
 bb browse --repo workspace-slug/repo-slug --no-browser
+bb repo list workspace-slug
 bb repo view --repo workspace-slug/repo-slug
+bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
@@ -138,6 +140,9 @@ bb status
 For agents and scripts:
 
 ```bash
+bb repo list workspace-slug --json repos
+bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
+bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing --json repository
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
@@ -185,7 +190,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 
 - Authenticated API access through `gh api` / `bb api`
 - Browser navigation through `gh browse` / `bb browse`
-- Repository inspection, creation, cloning, and deletion
+- Repository listing, inspection, creation, editing, forking, cloning, and deletion
 - Pipeline run triggering, listing, inspection, test reports, and repository variable management
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
@@ -207,7 +212,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 
 - Broader auth account management
 - Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
-- Richer repository administration such as list, edit, rename, fork, archive, and sync
+- Richer repository administration such as rename, archive, sync, webhooks, deploy keys, and permissions
 - Additional pull request flows such as edit, ready, update-branch, and revert
 - Pull request reopen on platforms that actually support it
 

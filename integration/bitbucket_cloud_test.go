@@ -29,6 +29,7 @@ const (
 	fixtureIssuesRepoSlug     = "bb-cli-integration-issues"
 	fixturePipelinesRepoSlug  = "bb-cli-integration-pipelines"
 	fixtureCreateRepoSlug     = "bb-cli-created-via-command"
+	fixtureForkRepoName       = "bb-cli-integration-primary-fork"
 	fixtureDeleteRepoSlug     = "bb-cli-delete-command-target"
 	fixturePipelineStopBranch = "bb-cli-pipeline-stop"
 	fixtureFeatureBranch      = "bb-cli-int-feature"
@@ -1262,6 +1263,81 @@ func TestBitbucketCloudRepoView(t *testing.T) {
 	}
 	if payload.Root == "" || payload.HTMLURL == "" || payload.HTTPSClone == "" || payload.LocalClone == "" {
 		t.Fatalf("expected repo view to include local and remote URLs %+v", payload)
+	}
+}
+
+func TestBitbucketCloudRepoList(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	output := session.Run(t, "", "repo", "list", session.Workspace, "--json", "*")
+
+	var payload struct {
+		Workspace string                 `json:"workspace"`
+		Repos     []bitbucket.Repository `json:"repos"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo list JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace {
+		t.Fatalf("unexpected repo list payload %+v", payload)
+	}
+	var found bool
+	for _, repo := range payload.Repos {
+		if repo.Slug == fixture.PrimaryRepo.Slug {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected fixture repository %q in %+v", fixture.PrimaryRepo.Slug, payload.Repos)
+	}
+}
+
+func TestBitbucketCloudRepoEdit(t *testing.T) {
+	session := newIntegrationSession(t)
+	_ = session.Fixture(t)
+	_ = ensureRepository(t, session.Client, session.Workspace, fixtureCreateRepoSlug)
+
+	description := "Updated by bb repo edit integration flow."
+	output := session.Run(t, "", "repo", "edit", fixtureCreateRepoSlug, "--workspace", session.Workspace, "--description", description, "--json", "*")
+
+	var payload struct {
+		Workspace  string               `json:"workspace"`
+		Repo       string               `json:"repo"`
+		Action     string               `json:"action"`
+		Repository bitbucket.Repository `json:"repository"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo edit JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != fixtureCreateRepoSlug || payload.Action != "updated" {
+		t.Fatalf("unexpected repo edit payload %+v", payload)
+	}
+	if payload.Repository.Description != description {
+		t.Fatalf("expected updated description %q, got %+v", description, payload.Repository)
+	}
+}
+
+func TestBitbucketCloudRepoFork(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	output := session.Run(t, "", "repo", "fork", fixture.PrimaryRepo.Slug, "--workspace", session.Workspace, "--to-workspace", session.Workspace, "--name", fixtureForkRepoName, "--reuse-existing", "--json", "*")
+
+	var payload struct {
+		SourceWorkspace string               `json:"source_workspace"`
+		SourceRepo      string               `json:"source_repo"`
+		Action          string               `json:"action"`
+		Repository      bitbucket.Repository `json:"repository"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse repo fork JSON: %v\n%s", err, output)
+	}
+	if payload.SourceWorkspace != session.Workspace || payload.SourceRepo != fixture.PrimaryRepo.Slug || payload.Action != "forked" {
+		t.Fatalf("unexpected repo fork payload %+v", payload)
+	}
+	if payload.Repository.Name != fixtureForkRepoName || payload.Repository.Parent == nil || payload.Repository.Parent.FullName != fixture.PrimaryRepo.FullName {
+		t.Fatalf("unexpected forked repository %+v", payload.Repository)
 	}
 }
 

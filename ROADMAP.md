@@ -3,9 +3,6 @@
 ## Next Commands
 
 1. Repository administration
-   - `bb repo edit`
-   - `bb repo fork`
-   - `bb repo list`
    - `bb repo hooks`
    - `bb repo deploy-key`
    - `bb repo permissions`

@@ -70,7 +70,10 @@ bb api /user --jq '{display_name, account_id}'
 Use the generated [flag matrix](./flag-matrix.md), [CLI reference](./cli-reference.md), [JSON fields](./json-fields.md), and [JSON shapes](./json-shapes.md) for exhaustive details. Keep automation examples short and deterministic:
 
 ```bash
+bb repo list workspace-slug --json repos
 bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
+bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
+bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing --json repository
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases

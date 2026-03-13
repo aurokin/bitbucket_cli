@@ -942,6 +942,11 @@ Representative shapes:
     "name": "Example Name"
   },
   "name": "Example Name",
+  "parent": {
+    "full_name": "workspace-slug/repo-slug",
+    "name": "Example Name",
+    "slug": "\u003cslug\u003e"
+  },
   "project": {
     "key": "BBCLI",
     "name": "BBCLI"

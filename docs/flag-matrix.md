@@ -92,6 +92,9 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb repo clone` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo create` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--private`, `--project-key`, `--reuse-existing` |
 | `bb repo delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb repo edit` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--visibility` |
+| `bb repo fork` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--reuse-existing`, `--to-workspace`, `--visibility` |
+| `bb repo list` | yes | yes | yes | yes |  | yes | `--limit`, `--query`, `--sort` |
 | `bb repo view` | yes | yes | yes | yes | yes | yes |  |
 | `bb resolve` | yes | yes | yes |  |  |  |  |
 | `bb search issues` | yes | yes | yes | yes | yes | yes | `--limit` |

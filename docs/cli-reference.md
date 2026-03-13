@@ -111,6 +111,9 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb repo clone`
   - `bb repo create`
   - `bb repo delete`
+  - `bb repo edit`
+  - `bb repo fork`
+  - `bb repo list`
   - `bb repo view`
 - `bb resolve`
 - `bb search`
@@ -2922,6 +2925,9 @@ Subcommands:
 - `bb repo clone`: Clone a Bitbucket repository locally
 - `bb repo create`: Create a repository in Bitbucket Cloud
 - `bb repo delete`: Delete a Bitbucket repository
+- `bb repo edit`: Edit repository metadata
+- `bb repo fork`: Fork a repository
+- `bb repo list`: List repositories in a workspace
 - `bb repo view`: Show repository information
 
 ## `bb repo clone`
@@ -3019,6 +3025,103 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 - `--yes`: Skip the confirmation prompt
+
+## `bb repo edit`
+
+Edit repository metadata
+
+Edit a Bitbucket repository's name, description, or visibility. Use --repo <workspace>/<repo> for deterministic targeting.
+
+Usage:
+
+```text
+bb repo edit [repository] [flags]
+```
+
+Examples:
+
+```bash
+bb repo edit workspace-slug/repo-slug --description 'Updated description'
+bb repo edit --repo workspace-slug/repo-slug --visibility public --json '*'
+bb repo edit repo-slug --workspace workspace-slug --name 'Renamed repo'
+```
+
+Flags:
+
+- `--description`: New repository description
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--name`: New repository display name
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--visibility`: New repository visibility: private or public
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo fork`
+
+Fork a repository
+
+Fork a Bitbucket repository. When forking into the same workspace, Bitbucket requires a new fork name because the slug is derived from the name.
+
+Usage:
+
+```text
+bb repo fork [repository] [flags]
+```
+
+Examples:
+
+```bash
+bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork
+bb repo fork --repo workspace-slug/repo-slug --to-workspace other-workspace --reuse-existing --json '*'
+bb repo fork repo-slug --workspace workspace-slug --to-workspace workspace-slug --name repo-slug-fork
+```
+
+Flags:
+
+- `--description`: Fork description override
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--name`: Fork display name; required when forking into the same workspace
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--reuse-existing`: Return an existing matching fork instead of failing
+- `--to-workspace`: Workspace to create the fork in; defaults to the source workspace
+- `--visibility`: Fork visibility override: private or public
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo list`
+
+List repositories in a workspace
+
+List Bitbucket repositories in one workspace. If you have access to exactly one workspace, the workspace can be omitted.
+
+Usage:
+
+```text
+bb repo list [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb repo list workspace-slug
+bb repo list --workspace workspace-slug --limit 50
+bb repo list workspace-slug --query 'name ~ "bb"' --json repos
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of repositories to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket repository query filter
+- `--sort`: Bitbucket repository sort expression
+- `--workspace`: Workspace slug to list repositories from
 
 ## `bb repo view`
 

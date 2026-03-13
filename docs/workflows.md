@@ -61,8 +61,11 @@ bb pr list
 Outside a checkout, prefer an explicit target:
 
 ```bash
+bb repo list workspace-slug
 bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo view --repo workspace-slug/repo-slug
+bb repo edit --repo workspace-slug/repo-slug --description "Updated description"
+bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing
 bb repo clone workspace-slug/repo-slug
 ```
 

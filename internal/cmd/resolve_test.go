@@ -52,6 +52,37 @@ func TestResolveHumanOutputForCommentURL(t *testing.T) {
 	}
 }
 
+func TestResolveHumanOutputCanonicalizesMessyCommentURL(t *testing.T) {
+	t.Parallel()
+
+	entity, err := parseBitbucketEntityURL("https://bitbucket.org/acme/widgets/pull-requests/7/?foo=bar#comment-15")
+	if err != nil {
+		t.Fatalf("parseBitbucketEntityURL returned error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := writeTargetHeader(&buf, "Repository", entity.Workspace, entity.Repo); err != nil {
+		t.Fatalf("writeTargetHeader returned error: %v", err)
+	}
+	if err := writeLabelValue(&buf, "Canonical URL", entity.CanonicalURL); err != nil {
+		t.Fatalf("writeLabelValue returned error: %v", err)
+	}
+	if err := writeNextStep(&buf, nextResolveCommand(entity)); err != nil {
+		t.Fatalf("writeNextStep returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Canonical URL: https://bitbucket.org/acme/widgets/pull-requests/7#comment-15",
+		"Next: bb pr comment view 15 --pr 7 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func TestResolveHumanOutputForSourceURL(t *testing.T) {
 	t.Parallel()
 

@@ -35,8 +35,16 @@ func parseBitbucketEntityURL(raw string) (resolvedEntity, error) {
 		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q is invalid", raw)
 	}
 
-	path := strings.Trim(parsedURL.Path, "/")
-	parts := strings.Split(path, "/")
+	path := strings.Trim(parsedURL.EscapedPath(), "/")
+	rawParts := strings.Split(path, "/")
+	parts := make([]string, 0, len(rawParts))
+	for _, part := range rawParts {
+		decoded, err := url.PathUnescape(part)
+		if err != nil {
+			return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q is invalid", raw)
+		}
+		parts = append(parts, decoded)
+	}
 	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
 		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q must point to a repository-scoped entity", raw)
 	}

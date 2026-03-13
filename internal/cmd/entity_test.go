@@ -24,6 +24,18 @@ func TestParseBitbucketEntityURL(t *testing.T) {
 			},
 		},
 		{
+			name: "repository with git suffix and query",
+			raw:  "https://bitbucket.org/acme/widgets.git/?tab=source",
+			want: resolvedEntity{
+				Host:         "bitbucket.org",
+				Workspace:    "acme",
+				Repo:         "widgets",
+				Type:         "repository",
+				URL:          "https://bitbucket.org/acme/widgets.git/?tab=source",
+				CanonicalURL: "https://bitbucket.org/acme/widgets",
+			},
+		},
+		{
 			name: "pull request",
 			raw:  "https://bitbucket.org/acme/widgets/pull-requests/42",
 			want: resolvedEntity{
@@ -45,6 +57,20 @@ func TestParseBitbucketEntityURL(t *testing.T) {
 				Repo:         "widgets",
 				Type:         "pull-request-comment",
 				URL:          "https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
+				CanonicalURL: "https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
+				PR:           42,
+				Comment:      15,
+			},
+		},
+		{
+			name: "pull request comment with trailing slash and query",
+			raw:  "https://bitbucket.org/acme/widgets/pull-requests/42/?foo=bar#comment-15",
+			want: resolvedEntity{
+				Host:         "bitbucket.org",
+				Workspace:    "acme",
+				Repo:         "widgets",
+				Type:         "pull-request-comment",
+				URL:          "https://bitbucket.org/acme/widgets/pull-requests/42/?foo=bar#comment-15",
 				CanonicalURL: "https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
 				PR:           42,
 				Comment:      15,
@@ -89,6 +115,21 @@ func TestParseBitbucketEntityURL(t *testing.T) {
 				Ref:          "main",
 				Path:         "README.md",
 				Line:         12,
+			},
+		},
+		{
+			name: "source path preserves ref but strips query from canonical url",
+			raw:  "https://bitbucket.org/acme/widgets/src/release%2F1.0/docs/guide.md?at=ignored#lines-8",
+			want: resolvedEntity{
+				Host:         "bitbucket.org",
+				Workspace:    "acme",
+				Repo:         "widgets",
+				Type:         "path",
+				URL:          "https://bitbucket.org/acme/widgets/src/release%2F1.0/docs/guide.md?at=ignored#lines-8",
+				CanonicalURL: "https://bitbucket.org/acme/widgets/src/release%2F1.0/docs/guide.md#lines-8",
+				Ref:          "release/1.0",
+				Path:         "docs/guide.md",
+				Line:         8,
 			},
 		},
 		{

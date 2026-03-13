@@ -122,3 +122,79 @@ func TestWriteIssueTableWithRepositoryHeader(t *testing.T) {
 		t.Fatalf("expected issue row, got %q", got)
 	}
 }
+
+func TestWriteIssueListSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	issues := []bitbucket.Issue{
+		{
+			ID:        1,
+			Title:     "Fixture issue",
+			State:     "new",
+			UpdatedOn: "2026-03-11T00:00:00Z",
+			Reporter:  bitbucket.IssueActor{DisplayName: "Example User"},
+		},
+	}
+
+	if err := writeIssueListSummary(&buf, target, issues); err != nil {
+		t.Fatalf("writeIssueListSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Fixture issue",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWriteIssueViewSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	issue := bitbucket.Issue{
+		ID:        12,
+		Title:     "Fixture issue",
+		State:     "new",
+		Kind:      "bug",
+		Priority:  "major",
+		UpdatedOn: "2026-03-11T00:00:00Z",
+		Reporter:  bitbucket.IssueActor{DisplayName: "Example User"},
+		Links: bitbucket.IssueLinks{
+			HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/issues/12"},
+		},
+		Content: bitbucket.IssueContent{Raw: "Needs investigation"},
+	}
+
+	if err := writeIssueViewSummary(&buf, target, issue); err != nil {
+		t.Fatalf("writeIssueViewSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Title:",
+		"Fixture issue",
+		"Next: bb issue edit 12 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}

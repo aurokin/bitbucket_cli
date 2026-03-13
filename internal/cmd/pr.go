@@ -233,6 +233,7 @@ func newPRDiffCmd() *cobra.Command {
 				Host:      prTarget.RepoTarget.Host,
 				Workspace: prTarget.RepoTarget.Workspace,
 				Repo:      prTarget.RepoTarget.Repo,
+				Warnings:  append([]string(nil), prTarget.RepoTarget.Warnings...),
 				ID:        pr.ID,
 				Title:     pr.Title,
 				Patch:     patch,
@@ -241,13 +242,7 @@ func newPRDiffCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if stat {
-					if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
-						return err
-					}
-					if _, err := fmt.Fprintf(w, "Pull Request: #%d %s\n\n", payload.ID, payload.Title); err != nil {
-						return err
-					}
-					return writePRDiffStatTable(w, stats)
+					return writePRDiffStatSummary(w, payload)
 				}
 				_, err := io.WriteString(w, patch)
 				return err
@@ -368,17 +363,7 @@ func newPRListCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, prs, func(w io.Writer) error {
-				if len(prs) == 0 {
-					if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
-						return err
-					}
-					return writeNextStep(w, fmt.Sprintf("bb pr create --repo %s/%s --title '<title>'", target.Workspace, target.Repo))
-				}
-
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				return writePRListTable(w, prs)
+				return writePRListSummary(w, target, prs)
 			})
 		},
 	}

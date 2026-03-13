@@ -23,7 +23,7 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb pr task view` | `action`, `deleted`, `host`, `pull_request`, `repo`, `task`, `workspace` | `bb pr task view --json action,deleted,host` |
 | `bb pr task resolve` | `action`, `deleted`, `host`, `pull_request`, `repo`, `task`, `workspace` | `bb pr task resolve --json action,deleted,host` |
 | `bb pr status` | `created`, `current_branch`, `current_branch_error`, `current_branch_name`, `current_user`, `host`, `repo`, `review_requested`, `warnings`, `workspace` | `bb pr status --json created,current_branch,current_branch_error` |
-| `bb pr diff` | `host`, `id`, `patch`, `repo`, `stats`, `title`, `workspace` | `bb pr diff --json host,id,patch` |
+| `bb pr diff` | `host`, `id`, `patch`, `repo`, `stats`, `title`, `warnings`, `workspace` | `bb pr diff --json host,id,patch` |
 | `bb issue list` | `assignee`, `content`, `created_on`, `id`, `kind`, `links`, `priority`, `reporter`, `state`, `title`, `updated_on` | `bb issue list --json assignee,content,created_on` |
 | `bb issue view` | `assignee`, `content`, `created_on`, `id`, `kind`, `links`, `priority`, `reporter`, `state`, `title`, `updated_on` | `bb issue view --json assignee,content,created_on` |
 | `bb search repos` | `description`, `full_name`, `is_private`, `links`, `mainbranch`, `name`, `project`, `slug`, `updated_on` | `bb search repos --json description,full_name,is_private` |

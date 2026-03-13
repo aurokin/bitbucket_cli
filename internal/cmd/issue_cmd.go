@@ -65,16 +65,7 @@ func newIssueListCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issues, func(w io.Writer) error {
-				if len(issues) == 0 {
-					if _, err := fmt.Fprintf(w, "No issues found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
-						return err
-					}
-					return writeNextStep(w, issueListEmptyNextStep(target.Workspace, target.Repo))
-				}
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				return writeIssueTable(w, issues)
+				return writeIssueListSummary(w, target, issues)
 			})
 		},
 	}
@@ -118,60 +109,7 @@ func newIssueViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, issue, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "ID:\t%d\n", issue.ID); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(tw, "Title:\t%s\n", issue.Title); err != nil {
-					return err
-				}
-				if issue.State != "" {
-					if _, err := fmt.Fprintf(tw, "State:\t%s\n", issue.State); err != nil {
-						return err
-					}
-				}
-				if issue.Kind != "" {
-					if _, err := fmt.Fprintf(tw, "Kind:\t%s\n", issue.Kind); err != nil {
-						return err
-					}
-				}
-				if issue.Priority != "" {
-					if _, err := fmt.Fprintf(tw, "Priority:\t%s\n", issue.Priority); err != nil {
-						return err
-					}
-				}
-				if issue.Reporter.DisplayName != "" {
-					if _, err := fmt.Fprintf(tw, "Reporter:\t%s\n", issue.Reporter.DisplayName); err != nil {
-						return err
-					}
-				}
-				if issue.Assignee.DisplayName != "" {
-					if _, err := fmt.Fprintf(tw, "Assignee:\t%s\n", issue.Assignee.DisplayName); err != nil {
-						return err
-					}
-				}
-				if issue.UpdatedOn != "" {
-					if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", issue.UpdatedOn); err != nil {
-						return err
-					}
-				}
-				if issue.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", issue.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if issue.Content.Raw != "" {
-					if _, err := fmt.Fprintf(tw, "Body:\t%s\n", issue.Content.Raw); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
-					return err
-				}
-				return writeNextStep(w, issueViewNextStep(target.Workspace, target.Repo, issue.ID))
+				return writeIssueViewSummary(w, target, issue)
 			})
 		},
 	}
@@ -415,6 +353,82 @@ func writeIssueMutationSummary(w io.Writer, action, workspace, repo string, issu
 		}
 	}
 	return nil
+}
+
+func writeIssueListSummary(w io.Writer, target resolvedRepoTarget, issues []bitbucket.Issue) error {
+	if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.Warnings); err != nil {
+		return err
+	}
+	if len(issues) == 0 {
+		if _, err := fmt.Fprintf(w, "No issues found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
+			return err
+		}
+		return writeNextStep(w, issueListEmptyNextStep(target.Workspace, target.Repo))
+	}
+	return writeIssueTable(w, issues)
+}
+
+func writeIssueViewSummary(w io.Writer, target resolvedRepoTarget, issue bitbucket.Issue) error {
+	if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.Warnings); err != nil {
+		return err
+	}
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintf(tw, "ID:\t%d\n", issue.ID); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(tw, "Title:\t%s\n", issue.Title); err != nil {
+		return err
+	}
+	if issue.State != "" {
+		if _, err := fmt.Fprintf(tw, "State:\t%s\n", issue.State); err != nil {
+			return err
+		}
+	}
+	if issue.Kind != "" {
+		if _, err := fmt.Fprintf(tw, "Kind:\t%s\n", issue.Kind); err != nil {
+			return err
+		}
+	}
+	if issue.Priority != "" {
+		if _, err := fmt.Fprintf(tw, "Priority:\t%s\n", issue.Priority); err != nil {
+			return err
+		}
+	}
+	if issue.Reporter.DisplayName != "" {
+		if _, err := fmt.Fprintf(tw, "Reporter:\t%s\n", issue.Reporter.DisplayName); err != nil {
+			return err
+		}
+	}
+	if issue.Assignee.DisplayName != "" {
+		if _, err := fmt.Fprintf(tw, "Assignee:\t%s\n", issue.Assignee.DisplayName); err != nil {
+			return err
+		}
+	}
+	if issue.UpdatedOn != "" {
+		if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", issue.UpdatedOn); err != nil {
+			return err
+		}
+	}
+	if issue.Links.HTML.Href != "" {
+		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", issue.Links.HTML.Href); err != nil {
+			return err
+		}
+	}
+	if issue.Content.Raw != "" {
+		if _, err := fmt.Fprintf(tw, "Body:\t%s\n", issue.Content.Raw); err != nil {
+			return err
+		}
+	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	return writeNextStep(w, issueViewNextStep(target.Workspace, target.Repo, issue.ID))
 }
 
 func issueListEmptyNextStep(workspace, repo string) string {

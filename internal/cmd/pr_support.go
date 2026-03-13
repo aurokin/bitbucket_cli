@@ -152,6 +152,7 @@ type prDiffPayload struct {
 	Host      string                          `json:"host"`
 	Workspace string                          `json:"workspace"`
 	Repo      string                          `json:"repo"`
+	Warnings  []string                        `json:"warnings,omitempty"`
 	ID        int                             `json:"id"`
 	Title     string                          `json:"title"`
 	Patch     string                          `json:"patch"`
@@ -280,6 +281,19 @@ func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {
 	return nil
 }
 
+func writePRDiffStatSummary(w io.Writer, payload prDiffPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "Pull Request: #%d %s\n\n", payload.ID, payload.Title); err != nil {
+		return err
+	}
+	return writePRDiffStatTable(w, payload.Stats)
+}
+
 func writePRDiffStatTable(w io.Writer, stats []bitbucket.PullRequestDiffStat) error {
 	if len(stats) == 0 {
 		_, err := fmt.Fprintln(w, "No changed files.")
@@ -306,6 +320,22 @@ func writePRDiffStatTable(w io.Writer, stats []bitbucket.PullRequestDiffStat) er
 	}
 
 	return tw.Flush()
+}
+
+func writePRListSummary(w io.Writer, target resolvedRepoTarget, prs []bitbucket.PullRequest) error {
+	if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.Warnings); err != nil {
+		return err
+	}
+	if len(prs) == 0 {
+		if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
+			return err
+		}
+		return writeNextStep(w, fmt.Sprintf("bb pr create --repo %s/%s --title '<title>'", target.Workspace, target.Repo))
+	}
+	return writePRListTable(w, prs)
 }
 
 func writePRListTable(w io.Writer, prs []bitbucket.PullRequest) error {
@@ -335,6 +365,23 @@ func writePRListTable(w io.Writer, prs []bitbucket.PullRequest) error {
 	}
 
 	return tw.Flush()
+}
+
+func writePRViewSummary(w io.Writer, target resolvedPullRequestTarget, pr bitbucket.PullRequest) error {
+	if err := writeTargetHeader(w, "Repository", target.RepoTarget.Workspace, target.RepoTarget.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.RepoTarget.Warnings); err != nil {
+		return err
+	}
+	if err := writePullRequestSummaryTable(w, pr, pullRequestSummaryOptions{
+		IncludeAuthor:      true,
+		IncludeUpdated:     true,
+		IncludeDescription: true,
+	}); err != nil {
+		return err
+	}
+	return writeNextStep(w, prViewNextStep(target.RepoTarget.Workspace, target.RepoTarget.Repo, pr.ID))
 }
 
 func formatPRUpdated(raw string) string {

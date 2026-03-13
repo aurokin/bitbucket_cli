@@ -42,17 +42,7 @@ func newPRViewCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, pr, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
-					return err
-				}
-				if err := writePullRequestSummaryTable(w, pr, pullRequestSummaryOptions{
-					IncludeAuthor:      true,
-					IncludeUpdated:     true,
-					IncludeDescription: true,
-				}); err != nil {
-					return err
-				}
-				return writeNextStep(w, prViewNextStep(prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, pr.ID))
+				return writePRViewSummary(w, prTarget, pr)
 			})
 		},
 	}

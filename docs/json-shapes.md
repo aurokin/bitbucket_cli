@@ -854,6 +854,9 @@ Representative shape:
     }
   ],
   "title": "Example title",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
   "workspace": "workspace-slug"
 }
 ```

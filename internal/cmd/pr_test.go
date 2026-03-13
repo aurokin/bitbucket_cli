@@ -320,6 +320,43 @@ func TestWritePRDiffStatTableCompactsPaths(t *testing.T) {
 	}
 }
 
+func TestWritePRDiffStatSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := prDiffPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		ID:        7,
+		Title:     "Fixture PR",
+		Stats: []bitbucket.PullRequestDiffStat{
+			{
+				Status:       "modified",
+				LinesAdded:   3,
+				LinesRemoved: 1,
+				New:          &bitbucket.PullRequestDiffRef{Path: "file.txt"},
+			},
+		},
+	}
+
+	if err := writePRDiffStatSummary(&buf, payload); err != nil {
+		t.Fatalf("writePRDiffStatSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Pull Request: #7 Fixture PR",
+		"file.txt",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func TestPRViewNextStep(t *testing.T) {
 	t.Parallel()
 
@@ -361,6 +398,90 @@ func TestWritePRListTableWithRepositoryHeader(t *testing.T) {
 	}
 	if !strings.Contains(got, "Fixture PR") {
 		t.Fatalf("expected PR row, got %q", got)
+	}
+}
+
+func TestWritePRListSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	prs := []bitbucket.PullRequest{
+		{
+			ID:           7,
+			Title:        "Fixture PR",
+			State:        "OPEN",
+			TaskCount:    2,
+			CommentCount: 4,
+			UpdatedOn:    "2026-03-10T12:34:56Z",
+			Author:       bitbucket.PullRequestActor{DisplayName: "Example User"},
+			Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/test"}},
+			Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+	}
+
+	if err := writePRListSummary(&buf, target, prs); err != nil {
+		t.Fatalf("writePRListSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Fixture PR",
+		"2",
+		"4",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWritePRViewSummaryIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedPullRequestTarget{
+		RepoTarget: resolvedRepoTarget{
+			Workspace: "acme",
+			Repo:      "widgets",
+			Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		},
+		ID: 9,
+	}
+	pr := bitbucket.PullRequest{
+		ID:           9,
+		Title:        "Ship feature",
+		State:        "OPEN",
+		TaskCount:    1,
+		CommentCount: 2,
+		UpdatedOn:    "2026-03-10T12:34:56Z",
+		Description:  "Ready to land",
+		Author:       bitbucket.PullRequestActor{DisplayName: "Example User"},
+		Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/ship"}},
+		Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+	}
+
+	if err := writePRViewSummary(&buf, target, pr); err != nil {
+		t.Fatalf("writePRViewSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Title:",
+		"Ship feature",
+		"Next: bb pr diff 9 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
 	}
 }
 

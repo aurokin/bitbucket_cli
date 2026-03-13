@@ -88,8 +88,10 @@ func nextResolveCommand(entity resolvedEntity) string {
 	switch entity.Type {
 	case "repository":
 		return "bb repo view --repo " + repoTarget
-	case "pull-request", "pull-request-comment":
+	case "pull-request":
 		return "bb pr view " + strconv.Itoa(entity.PR) + " --repo " + repoTarget
+	case "pull-request-comment":
+		return "bb pr comment view " + strconv.Itoa(entity.Comment) + " --pr " + strconv.Itoa(entity.PR) + " --repo " + repoTarget
 	case "issue":
 		return "bb issue view " + strconv.Itoa(entity.Issue) + " --repo " + repoTarget
 	case "commit":

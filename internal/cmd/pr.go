@@ -106,7 +106,7 @@ func newPRCommentCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "comment <id-or-url>",
 		Short: "Add a comment to a pull request",
-		Long:  "Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage.",
+		Long:  "Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage. Use the comment subcommands to view, edit, delete, resolve, or reopen specific pull request comments.",
 		Example: "  bb pr comment 1 --body 'Looks good'\n" +
 			"  bb pr comment 1 --repo workspace-slug/repo-slug --body-file comment.md\n" +
 			"  printf 'Ship it\\n' | bb pr comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --body-file - --json",
@@ -173,6 +173,13 @@ func newPRCommentCmd() *cobra.Command {
 	cmd.Flags().StringVar(&body, "body", "", "Comment body text")
 	cmd.Flags().StringVar(&bodyFile, "body-file", "", "Read the comment body from a file, or '-' for stdin")
 	cmd.MarkFlagsMutuallyExclusive("body", "body-file")
+	cmd.AddCommand(
+		newPRCommentViewCmd(),
+		newPRCommentEditCmd(),
+		newPRCommentDeleteCmd(),
+		newPRCommentResolveCmd(),
+		newPRCommentReopenCmd(),
+	)
 
 	return cmd
 }

@@ -16,6 +16,11 @@ type resolvedPullRequestCommandTarget struct {
 	Target resolvedPullRequestTarget
 }
 
+type resolvedPullRequestCommentCommandTarget struct {
+	Client *bitbucket.Client
+	Target resolvedPullRequestCommentTarget
+}
+
 func resolveRepoCommandTarget(ctx context.Context, host, workspace, repo string, allowLocal bool) (resolvedRepoCommandTarget, error) {
 	selector, err := parseRepoSelector(host, workspace, repo)
 	if err != nil {
@@ -83,6 +88,29 @@ func resolvePullRequestCommandTarget(ctx context.Context, host, workspace, repo,
 	}
 
 	return resolvedPullRequestCommandTarget{
+		Client: client,
+		Target: target,
+	}, nil
+}
+
+func resolvePullRequestCommentCommandTarget(ctx context.Context, host, workspace, repo, prRef, commentRef string, allowLocal bool) (resolvedPullRequestCommentCommandTarget, error) {
+	selector, err := parseRepoSelector(host, workspace, repo)
+	if err != nil {
+		return resolvedPullRequestCommentCommandTarget{}, err
+	}
+
+	resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+	if err != nil {
+		return resolvedPullRequestCommentCommandTarget{}, err
+	}
+
+	selector.Host = resolvedHost
+	target, err := resolvePullRequestCommentTarget(ctx, selector, client, prRef, commentRef, allowLocal)
+	if err != nil {
+		return resolvedPullRequestCommentCommandTarget{}, err
+	}
+
+	return resolvedPullRequestCommentCommandTarget{
 		Client: client,
 		Target: target,
 	}, nil

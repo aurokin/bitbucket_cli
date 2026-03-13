@@ -142,7 +142,7 @@ func TestNextResolveCommand(t *testing.T) {
 				PR:        7,
 				Comment:   15,
 			},
-			want: "bb pr view 7 --repo acme/widgets",
+			want: "bb pr comment view 15 --pr 7 --repo acme/widgets",
 		},
 		{
 			name: "source path with line",

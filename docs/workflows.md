@@ -83,6 +83,14 @@ bb pr diff 1 --repo workspace-slug/repo-slug --stat
 bb pr comment 1 --repo workspace-slug/repo-slug --body "Looks good overall. Please tighten the error handling."
 ```
 
+## Resolve Or Reopen A Comment Thread
+
+```bash
+bb pr comment view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
+bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
+bb pr comment reopen 15 --pr 1 --repo workspace-slug/repo-slug
+```
+
 ## Create And Land A Pull Request
 
 From a local checkout:

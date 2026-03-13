@@ -301,6 +301,70 @@ func TestParsePullRequestSelector(t *testing.T) {
 	}
 }
 
+func TestParsePullRequestCommentSelector(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		raw     string
+		want    pullRequestCommentSelector
+		wantErr string
+	}{
+		{
+			name: "numeric id",
+			raw:  "15",
+			want: pullRequestCommentSelector{CommentID: 15},
+		},
+		{
+			name: "comment url",
+			raw:  "https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
+			want: pullRequestCommentSelector{
+				PR: pullRequestSelector{
+					Repo: repoSelector{
+						Host:      "bitbucket.org",
+						Workspace: "acme",
+						Repo:      "widgets",
+						Explicit:  true,
+					},
+					ID: 42,
+				},
+				CommentID: 15,
+			},
+		},
+		{
+			name:    "pr url is not comment url",
+			raw:     "https://bitbucket.org/acme/widgets/pull-requests/42",
+			wantErr: `pull request comment URL "https://bitbucket.org/acme/widgets/pull-requests/42" must point to a Bitbucket pull request comment`,
+		},
+		{
+			name:    "invalid raw",
+			raw:     "branch-name",
+			wantErr: "pull request comment must be provided as an ID or Bitbucket pull request comment URL",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := parsePullRequestCommentSelector(tc.raw)
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr {
+					t.Fatalf("expected error %q, got %v", tc.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("did not expect error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %+v, got %+v", tc.want, got)
+			}
+		})
+	}
+}
+
 func TestMergeRepoSelectors(t *testing.T) {
 	t.Parallel()
 
@@ -474,6 +538,54 @@ func TestResolvePullRequestTarget(t *testing.T) {
 			Explicit:  true,
 		}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
 		if err == nil || err.Error() != `repository workspace "Other" does not match "acme"` {
+			t.Fatalf("expected mismatch error, got %v", err)
+		}
+	})
+}
+
+func TestResolvePullRequestCommentTarget(t *testing.T) {
+	t.Run("uses comment url repository context", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
+		if err != nil {
+			t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
+		}
+		if target.PRTarget.ID != 7 || target.CommentID != 15 || target.PRTarget.RepoTarget.Workspace != "acme" || target.PRTarget.RepoTarget.Repo != "widgets" {
+			t.Fatalf("unexpected comment target %+v", target)
+		}
+	})
+
+	t.Run("uses numeric comment id with pr ref", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{
+			Host:      "bitbucket.org",
+			Workspace: "acme",
+			RepoSlug:  "widgets",
+		}, nil)
+
+		target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, nil, "7", "15", true)
+		if err != nil {
+			t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
+		}
+		if target.PRTarget.ID != 7 || target.CommentID != 15 || target.PRTarget.RepoTarget.Workspace != "acme" || target.PRTarget.RepoTarget.Repo != "widgets" {
+			t.Fatalf("unexpected comment target %+v", target)
+		}
+	})
+
+	t.Run("rejects numeric comment id without pr ref", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "15", false)
+		if err == nil || err.Error() != "pull request comment ID 15 requires --pr <id-or-url>" {
+			t.Fatalf("expected missing pr error, got %v", err)
+		}
+	})
+
+	t.Run("rejects mismatched pr ref and comment url", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/8", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
+		if err == nil || err.Error() != `--pr "https://bitbucket.org/acme/widgets/pull-requests/8" does not match comment target "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"` {
 			t.Fatalf("expected mismatch error, got %v", err)
 		}
 	})

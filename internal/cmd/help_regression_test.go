@@ -126,6 +126,67 @@ func TestPRMergeHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPRCommentHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "comment", "--help")
+	for _, fragment := range []string{
+		"view, edit, delete, resolve, or reopen",
+		"bb pr comment 1 --body 'Looks good'",
+		"Available Commands:",
+		"view        View a pull request comment",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr comment help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRCommentViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "comment", "view", "--help")
+	for _, fragment := range []string{
+		"numeric comment ID together with --pr <id-or-url>",
+		"#comment-15",
+		"--pr string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr comment view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRCommentResolveHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "comment", "resolve", "--help")
+	for _, fragment := range []string{
+		"top-level diff comments",
+		"#comment-15",
+		"--pr string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr comment resolve help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRCommentDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "comment", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"--pr string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr comment delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPipelineListHelpRegression(t *testing.T) {
 	t.Parallel()
 

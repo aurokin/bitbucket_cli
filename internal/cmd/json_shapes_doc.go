@@ -78,6 +78,15 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: bitbucket.PullRequest{},
 		},
 		{
+			Title:       "Pull Request Comment View And Resolution",
+			Description: "Representative shape for pull request comment detail, edit, delete, resolve, and reopen payloads.",
+			Commands: []string{
+				"bb pr comment view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'",
+				"bb pr comment resolve 15 --pr 1 --repo workspace-slug/repo-slug --json '*'",
+			},
+			Type: prCommentPayload{},
+		},
+		{
 			Title:       "Pull Request Status",
 			Description: "Representative shape for the pull request status payload.",
 			Commands: []string{

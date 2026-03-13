@@ -142,6 +142,7 @@ Agents and scripts should prefer explicit, deterministic invocations:
 ```bash
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
+bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb --no-prompt pr create \
   --repo workspace-slug/repo-slug \
   --source feature \

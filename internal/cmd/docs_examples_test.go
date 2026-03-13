@@ -158,10 +158,8 @@ func newDocsValidationRootCmd() *cobra.Command {
 }
 
 func disableCommandExecution(command *cobra.Command) {
-	if len(command.Commands()) == 0 {
-		command.Run = func(*cobra.Command, []string) {}
-		command.RunE = func(*cobra.Command, []string) error { return nil }
-	}
+	command.Run = func(*cobra.Command, []string) {}
+	command.RunE = func(*cobra.Command, []string) error { return nil }
 	command.PreRun = nil
 	command.PreRunE = nil
 	command.PostRun = nil

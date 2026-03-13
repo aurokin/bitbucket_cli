@@ -125,20 +125,39 @@ type pullRequestDiffStatResponse struct {
 }
 
 type PullRequestComment struct {
-	ID        int                       `json:"id"`
-	Content   PullRequestCommentContent `json:"content"`
-	User      PullRequestActor          `json:"user"`
-	CreatedOn string                    `json:"created_on,omitempty"`
-	UpdatedOn string                    `json:"updated_on,omitempty"`
-	Links     PullRequestCommentLinks   `json:"links,omitempty"`
+	ID         int                        `json:"id"`
+	Content    PullRequestCommentContent  `json:"content"`
+	User       PullRequestActor           `json:"user"`
+	Deleted    bool                       `json:"deleted,omitempty"`
+	Parent     *PullRequestComment        `json:"parent,omitempty"`
+	Inline     *PullRequestCommentInline  `json:"inline,omitempty"`
+	Resolution *PullRequestCommentResolve `json:"resolution,omitempty"`
+	Pending    bool                       `json:"pending,omitempty"`
+	CreatedOn  string                     `json:"created_on,omitempty"`
+	UpdatedOn  string                     `json:"updated_on,omitempty"`
+	Links      PullRequestCommentLinks    `json:"links,omitempty"`
 }
 
 type PullRequestCommentContent struct {
 	Raw string `json:"raw,omitempty"`
 }
 
+type PullRequestCommentInline struct {
+	From      int    `json:"from,omitempty"`
+	To        int    `json:"to,omitempty"`
+	StartFrom int    `json:"start_from,omitempty"`
+	StartTo   int    `json:"start_to,omitempty"`
+	Path      string `json:"path,omitempty"`
+}
+
 type PullRequestCommentLinks struct {
 	HTML Link `json:"html"`
+}
+
+type PullRequestCommentResolve struct {
+	Type      string           `json:"type,omitempty"`
+	User      PullRequestActor `json:"user,omitempty"`
+	CreatedOn string           `json:"created_on,omitempty"`
 }
 
 type mergeTaskStatusResponse struct {
@@ -464,6 +483,150 @@ func (c *Client) CreatePullRequestComment(ctx context.Context, workspace, repoSl
 	}
 
 	return comment, nil
+}
+
+func (c *Client) GetPullRequestComment(ctx context.Context, workspace, repoSlug string, pullRequestID, commentID int) (PullRequestComment, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestComment{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestComment{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if commentID <= 0 {
+		return PullRequestComment{}, fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, commentID)
+	resp, err := c.Do(ctx, http.MethodGet, path, nil, nil)
+	if err != nil {
+		return PullRequestComment{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestComment{}, err
+	}
+
+	var comment PullRequestComment
+	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
+		return PullRequestComment{}, fmt.Errorf("decode pull request comment: %w", err)
+	}
+
+	return comment, nil
+}
+
+func (c *Client) UpdatePullRequestComment(ctx context.Context, workspace, repoSlug string, pullRequestID, commentID int, body string) (PullRequestComment, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestComment{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestComment{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if commentID <= 0 {
+		return PullRequestComment{}, fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+	if strings.TrimSpace(body) == "" {
+		return PullRequestComment{}, fmt.Errorf("comment body is required")
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"content": map[string]string{
+			"raw": body,
+		},
+	})
+	if err != nil {
+		return PullRequestComment{}, fmt.Errorf("marshal pull request comment request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, commentID)
+	resp, err := c.Do(ctx, http.MethodPut, path, payload, nil)
+	if err != nil {
+		return PullRequestComment{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestComment{}, err
+	}
+
+	var comment PullRequestComment
+	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
+		return PullRequestComment{}, fmt.Errorf("decode updated pull request comment: %w", err)
+	}
+
+	return comment, nil
+}
+
+func (c *Client) DeletePullRequestComment(ctx context.Context, workspace, repoSlug string, pullRequestID, commentID int) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if commentID <= 0 {
+		return fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, commentID)
+	resp, err := c.Do(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return requireSuccess(resp)
+}
+
+func (c *Client) ResolvePullRequestComment(ctx context.Context, workspace, repoSlug string, pullRequestID, commentID int) (PullRequestCommentResolve, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestCommentResolve{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestCommentResolve{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if commentID <= 0 {
+		return PullRequestCommentResolve{}, fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments/%d/resolve", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, commentID)
+	resp, err := c.Do(ctx, http.MethodPost, path, nil, nil)
+	if err != nil {
+		return PullRequestCommentResolve{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestCommentResolve{}, err
+	}
+
+	var resolution PullRequestCommentResolve
+	if err := json.NewDecoder(resp.Body).Decode(&resolution); err != nil {
+		return PullRequestCommentResolve{}, fmt.Errorf("decode pull request comment resolution: %w", err)
+	}
+
+	return resolution, nil
+}
+
+func (c *Client) ReopenPullRequestComment(ctx context.Context, workspace, repoSlug string, pullRequestID, commentID int) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if commentID <= 0 {
+		return fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments/%d/resolve", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, commentID)
+	resp, err := c.Do(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return requireSuccess(resp)
 }
 
 func (c *Client) DeclinePullRequest(ctx context.Context, workspace, repoSlug string, id int) (PullRequest, error) {

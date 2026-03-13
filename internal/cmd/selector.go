@@ -46,6 +46,16 @@ type resolvedPullRequestTarget struct {
 	ID         int
 }
 
+type pullRequestCommentSelector struct {
+	PR        pullRequestSelector
+	CommentID int
+}
+
+type resolvedPullRequestCommentTarget struct {
+	PRTarget  resolvedPullRequestTarget
+	CommentID int
+}
+
 func parseRepoSelector(hostFlag, workspaceFlag, repoFlag string) (repoSelector, error) {
 	hostFlag = strings.TrimSpace(hostFlag)
 	workspaceFlag = strings.TrimSpace(workspaceFlag)
@@ -202,6 +212,41 @@ func parsePullRequestSelector(raw string) (pullRequestSelector, error) {
 	}, nil
 }
 
+func parsePullRequestCommentSelector(raw string) (pullRequestCommentSelector, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return pullRequestCommentSelector{}, fmt.Errorf("pull request comment reference is required")
+	}
+
+	if id, err := strconv.Atoi(raw); err == nil {
+		if id <= 0 {
+			return pullRequestCommentSelector{}, fmt.Errorf("invalid pull request comment ID %q", raw)
+		}
+		return pullRequestCommentSelector{CommentID: id}, nil
+	}
+
+	entity, err := parseBitbucketEntityURL(raw)
+	if err != nil {
+		return pullRequestCommentSelector{}, fmt.Errorf("pull request comment must be provided as an ID or Bitbucket pull request comment URL")
+	}
+	if entity.Type != "pull-request-comment" {
+		return pullRequestCommentSelector{}, fmt.Errorf("pull request comment URL %q must point to a Bitbucket pull request comment", raw)
+	}
+
+	return pullRequestCommentSelector{
+		PR: pullRequestSelector{
+			Repo: repoSelector{
+				Host:      entity.Host,
+				Workspace: entity.Workspace,
+				Repo:      entity.Repo,
+				Explicit:  true,
+			},
+			ID: entity.PR,
+		},
+		CommentID: entity.Comment,
+	}, nil
+}
+
 func parseRepositoryURL(raw string) (repoSelector, error) {
 	entity, err := parseBitbucketEntityURL(raw)
 	if err != nil {
@@ -333,6 +378,53 @@ func resolvePullRequestTarget(ctx context.Context, base repoSelector, client wor
 	return resolvedPullRequestTarget{
 		RepoTarget: repoTarget,
 		ID:         prSelector.ID,
+	}, nil
+}
+
+func resolvePullRequestCommentTarget(ctx context.Context, base repoSelector, client workspaceResolver, prRef, commentRef string, allowLocal bool) (resolvedPullRequestCommentTarget, error) {
+	commentSelector, err := parsePullRequestCommentSelector(commentRef)
+	if err != nil {
+		return resolvedPullRequestCommentTarget{}, err
+	}
+
+	if commentSelector.PR.ID > 0 {
+		repoSelector, err := mergeRepoSelectors(base, commentSelector.PR.Repo)
+		if err != nil {
+			return resolvedPullRequestCommentTarget{}, err
+		}
+		prTarget, err := resolvePullRequestTarget(ctx, repoSelector, client, strconv.Itoa(commentSelector.PR.ID), allowLocal)
+		if err != nil {
+			return resolvedPullRequestCommentTarget{}, err
+		}
+		if strings.TrimSpace(prRef) != "" {
+			explicitPRTarget, err := resolvePullRequestTarget(ctx, base, client, prRef, allowLocal)
+			if err != nil {
+				return resolvedPullRequestCommentTarget{}, err
+			}
+			if explicitPRTarget.ID != prTarget.ID ||
+				explicitPRTarget.RepoTarget.Workspace != prTarget.RepoTarget.Workspace ||
+				explicitPRTarget.RepoTarget.Repo != prTarget.RepoTarget.Repo {
+				return resolvedPullRequestCommentTarget{}, fmt.Errorf("--pr %q does not match comment target %q", prRef, commentRef)
+			}
+		}
+		return resolvedPullRequestCommentTarget{
+			PRTarget:  prTarget,
+			CommentID: commentSelector.CommentID,
+		}, nil
+	}
+
+	if strings.TrimSpace(prRef) == "" {
+		return resolvedPullRequestCommentTarget{}, fmt.Errorf("pull request comment ID %d requires --pr <id-or-url>", commentSelector.CommentID)
+	}
+
+	prTarget, err := resolvePullRequestTarget(ctx, base, client, prRef, allowLocal)
+	if err != nil {
+		return resolvedPullRequestCommentTarget{}, err
+	}
+
+	return resolvedPullRequestCommentTarget{
+		PRTarget:  prTarget,
+		CommentID: commentSelector.CommentID,
 	}, nil
 }
 

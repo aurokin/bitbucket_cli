@@ -42,6 +42,11 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb pr checkout`
   - `bb pr close`
   - `bb pr comment`
+    - `bb pr comment delete`
+    - `bb pr comment edit`
+    - `bb pr comment reopen`
+    - `bb pr comment resolve`
+    - `bb pr comment view`
   - `bb pr create`
   - `bb pr diff`
   - `bb pr list`
@@ -922,7 +927,7 @@ Flags:
 
 Add a comment to a pull request
 
-Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage.
+Add a comment to a pull request using --body, --body-file, or --body-file - for stdin. This first pass is intentionally deterministic for agent and script usage. Use the comment subcommands to view, edit, delete, resolve, or reopen specific pull request comments.
 
 Usage:
 
@@ -946,6 +951,167 @@ Flags:
 - `--jq`: Filter JSON output using a jq expression
 - `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+Subcommands:
+
+- `bb pr comment delete`: Delete a pull request comment
+- `bb pr comment edit`: Edit a pull request comment
+- `bb pr comment reopen`: Reopen a pull request comment thread
+- `bb pr comment resolve`: Resolve a pull request comment thread
+- `bb pr comment view`: View a pull request comment
+
+## `bb pr comment delete`
+
+Delete a pull request comment
+
+Delete a pull request comment. Humans must confirm the exact repository, pull request, and comment unless --yes is provided. Scripts and agents should use --yes together with --no-prompt. Accepts a Bitbucket pull request comment URL directly, or a numeric comment ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr comment delete <comment-url-or-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr comment delete https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --yes
+bb --no-prompt pr comment delete 15 --pr 1 --repo workspace-slug/repo-slug --yes --json '*'
+bb pr comment delete 15 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --yes
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL; required when the comment target is a numeric ID
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pr comment edit`
+
+Edit a pull request comment
+
+Edit a pull request comment. Accepts a Bitbucket pull request comment URL directly, or a numeric comment ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr comment edit <comment-url-or-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr comment edit https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body 'Updated feedback'
+bb pr comment edit 15 --pr 1 --repo workspace-slug/repo-slug --body-file comment.md --json '*'
+printf 'Updated feedback\n' | bb pr comment edit 15 --pr 1 --repo workspace-slug/repo-slug --body-file -
+```
+
+Flags:
+
+- `--body-file`: Read the comment body from a file, or '-' for stdin
+- `--body`: Comment body text
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL; required when the comment target is a numeric ID
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr comment reopen`
+
+Reopen a pull request comment thread
+
+Reopen a previously resolved pull request comment thread. Accepts a Bitbucket pull request comment URL directly, or a numeric comment ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr comment reopen <comment-url-or-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr comment reopen https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
+bb pr comment reopen 15 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb pr comment reopen 15 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL; required when the comment target is a numeric ID
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr comment resolve`
+
+Resolve a pull request comment thread
+
+Resolve a pull request comment thread. Bitbucket Cloud only allows resolving top-level diff comments. Accepts a Bitbucket pull request comment URL directly, or a numeric comment ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr comment resolve <comment-url-or-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
+bb pr comment resolve 15 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb pr comment resolve 15 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL; required when the comment target is a numeric ID
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr comment view`
+
+View a pull request comment
+
+View a pull request comment. Accepts a Bitbucket pull request comment URL directly, or a numeric comment ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr comment view <comment-url-or-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr comment view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
+bb pr comment view 15 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb pr comment view 15 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL; required when the comment target is a numeric ID
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 

@@ -34,7 +34,11 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb pipeline view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr checkout` |  |  | yes | yes | yes | yes |  |
 | `bb pr close` | yes | yes | yes | yes | yes | yes |  |
-| `bb pr comment` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body` |
+| `bb pr comment delete` | yes | yes | yes | yes | yes | yes | `--pr`, `--yes` |
+| `bb pr comment edit` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--pr` |
+| `bb pr comment reopen` | yes | yes | yes | yes | yes | yes | `--pr` |
+| `bb pr comment resolve` | yes | yes | yes | yes | yes | yes | `--pr` |
+| `bb pr comment view` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr create` | yes | yes | yes | yes | yes | yes | `--close-source-branch`, `--description`, `--destination`, `--draft`, `--reuse-existing`, `--source`, `--title` |
 | `bb pr diff` | yes | yes | yes | yes | yes | yes | `--stat` |
 | `bb pr list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |

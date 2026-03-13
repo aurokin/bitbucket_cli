@@ -475,6 +475,172 @@ func TestCreatePullRequestComment(t *testing.T) {
 	}
 }
 
+func TestGetPullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments/15" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":15,"content":{"raw":"Looks good to me"},"user":{"display_name":"Auro"},"resolution":{"type":"comment_resolution","user":{"display_name":"Reviewer"}},"pending":false,"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	comment, err := client.GetPullRequestComment(context.Background(), "acme", "widgets", 7, 15)
+	if err != nil {
+		t.Fatalf("GetPullRequestComment returned error: %v", err)
+	}
+	if comment.ID != 15 || comment.Resolution == nil || comment.Resolution.User.DisplayName != "Reviewer" {
+		t.Fatalf("unexpected pull request comment %+v", comment)
+	}
+}
+
+func TestUpdatePullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments/15" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		content := body["content"].(map[string]any)
+		if content["raw"] != "One more thing!" {
+			t.Fatalf("unexpected comment body %#v", body)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":15,"content":{"raw":"One more thing!"},"user":{"display_name":"Auro"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	comment, err := client.UpdatePullRequestComment(context.Background(), "acme", "widgets", 7, 15, "One more thing!")
+	if err != nil {
+		t.Fatalf("UpdatePullRequestComment returned error: %v", err)
+	}
+	if comment.ID != 15 || comment.Content.Raw != "One more thing!" {
+		t.Fatalf("unexpected updated pull request comment %+v", comment)
+	}
+}
+
+func TestDeletePullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments/15" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if err := client.DeletePullRequestComment(context.Background(), "acme", "widgets", 7, 15); err != nil {
+		t.Fatalf("DeletePullRequestComment returned error: %v", err)
+	}
+}
+
+func TestResolvePullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments/15/resolve" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"type":"comment_resolution","user":{"display_name":"Reviewer"},"created_on":"2026-03-13T00:00:00Z"}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	resolution, err := client.ResolvePullRequestComment(context.Background(), "acme", "widgets", 7, 15)
+	if err != nil {
+		t.Fatalf("ResolvePullRequestComment returned error: %v", err)
+	}
+	if resolution.Type != "comment_resolution" || resolution.User.DisplayName != "Reviewer" {
+		t.Fatalf("unexpected resolution %+v", resolution)
+	}
+}
+
+func TestReopenPullRequestComment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments/15/resolve" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if err := client.ReopenPullRequestComment(context.Background(), "acme", "widgets", 7, 15); err != nil {
+		t.Fatalf("ReopenPullRequestComment returned error: %v", err)
+	}
+}
+
 func TestDeclinePullRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

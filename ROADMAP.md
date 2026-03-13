@@ -2,4 +2,78 @@
 
 ## Next Commands
 
+1. Pull request review actions
+   - `bb pr review approve`
+   - `bb pr review unapprove`
+   - `bb pr review request-changes`
+   - `bb pr activity`
+   - `bb pr commits`
+   - `bb pr checks` or `bb pr statuses`
+   - Backed by the official Bitbucket Cloud pull request APIs for approvals, change requests, activity, commits, and statuses.
+
+2. Pipeline actions and diagnostics
+   - `bb pipeline run`
+   - `bb pipeline test-reports`
+   - `bb pipeline schedules`
+   - `bb pipeline variables`
+   - `bb pipeline runners`
+   - `bb pipeline caches`
+   - Backed by the official Bitbucket Cloud pipeline run, schedule, variable, runner, cache, and test report APIs.
+
+3. Issue collaboration depth
+   - `bb issue comment`
+   - `bb issue attachments`
+   - `bb issue milestones`
+   - `bb issue components`
+   - `bb issue import`
+   - `bb issue export`
+   - Backed by the official Bitbucket Cloud issue tracker APIs for comments, attachments, milestones, components, and import/export.
+
+4. Repository administration
+   - `bb repo edit`
+   - `bb repo fork`
+   - `bb repo list`
+   - `bb repo hooks`
+   - `bb repo deploy-key`
+   - `bb repo permissions`
+   - Backed by the official Bitbucket Cloud repository, webhook, deploy key, and permission APIs.
+
+5. Commit and code insight surfaces
+   - `bb commit view`
+   - `bb commit diff`
+   - `bb commit comments`
+   - `bb commit approve`
+   - `bb commit statuses`
+   - `bb commit report`
+   - Backed by the official Bitbucket Cloud commit, commit status, and report APIs.
+
 ## Later Phase
+
+1. Refs and branch/tag workflows
+   - `bb branch`
+   - `bb tag`
+   - Branch restrictions and branching model support where the official Cloud APIs make sense.
+
+2. Workspace and project administration
+   - `bb workspace list`
+   - `bb workspace members`
+   - `bb workspace permissions`
+   - `bb project`
+   - Backed by the official Bitbucket Cloud workspace and project APIs.
+
+3. Search expansion
+   - `bb search code`
+   - Deeper workspace-scoped search workflows where the official Cloud search APIs remain usable and stable.
+
+4. Downloads, deployments, and environments
+   - `bb download`
+   - `bb deployment`
+   - Environment and deployment variable support where the official Cloud APIs are clear.
+
+5. Snippets
+   - `bb snippet`
+   - Snippet comments, history, file views, and watch support.
+
+6. Platform-limit follow-up
+   - Continue documenting official Bitbucket Cloud limits instead of faking unsupported behavior.
+   - Keep unsupported items like PR reopen, PR comment likes, and undocumented pipeline rerun out of scope unless Atlassian adds official API support.

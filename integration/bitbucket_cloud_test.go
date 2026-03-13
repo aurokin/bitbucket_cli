@@ -225,9 +225,9 @@ func TestBitbucketCloudPRActivity(t *testing.T) {
 	output := session.Run(t, "", "pr", "activity", prURL, "--json", "*")
 
 	var payload struct {
-		Workspace   string                        `json:"workspace"`
-		Repo        string                        `json:"repo"`
-		PullRequest int                           `json:"pull_request"`
+		Workspace   string                          `json:"workspace"`
+		Repo        string                          `json:"repo"`
+		PullRequest int                             `json:"pull_request"`
 		Activity    []bitbucket.PullRequestActivity `json:"activity"`
 	}
 	if err := json.Unmarshal(output, &payload); err != nil {
@@ -249,9 +249,9 @@ func TestBitbucketCloudPRCommits(t *testing.T) {
 	output := session.Run(t, "", "pr", "commits", prURL, "--json", "*")
 
 	var payload struct {
-		Workspace   string                      `json:"workspace"`
-		Repo        string                      `json:"repo"`
-		PullRequest int                         `json:"pull_request"`
+		Workspace   string                       `json:"workspace"`
+		Repo        string                       `json:"repo"`
+		PullRequest int                          `json:"pull_request"`
 		Commits     []bitbucket.RepositoryCommit `json:"commits"`
 	}
 	if err := json.Unmarshal(output, &payload); err != nil {
@@ -650,6 +650,28 @@ func TestBitbucketCloudPipelineList(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPipelineRun(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+
+	output := session.Run(t, "", "pipeline", "run", "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--ref", "main", "--json", "*")
+
+	var payload struct {
+		Workspace string             `json:"workspace"`
+		Repo      string             `json:"repo"`
+		Pipeline  bitbucket.Pipeline `json:"pipeline"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline run JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug {
+		t.Fatalf("unexpected pipeline run identity %+v", payload)
+	}
+	if payload.Pipeline.BuildNumber <= 0 || payload.Pipeline.Target.RefName != "main" {
+		t.Fatalf("unexpected triggered pipeline %+v", payload.Pipeline)
+	}
+}
+
 func TestBitbucketCloudPipelineView(t *testing.T) {
 	session := newIntegrationSession(t)
 	pipelines := session.PipelineFixture(t)
@@ -674,6 +696,51 @@ func TestBitbucketCloudPipelineView(t *testing.T) {
 	}
 	if len(payload.Steps) == 0 {
 		t.Fatalf("expected pipeline steps in payload %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPipelineTestReports(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+
+	if len(pipelines.PipelineSteps) == 0 {
+		t.Skip("pipeline fixture has no steps to inspect for test reports")
+	}
+	_, err := session.Client.GetPipelineTestReports(context.Background(), session.Workspace, pipelines.Repo.Slug, pipelines.Pipeline.UUID, pipelines.PipelineSteps[0].UUID)
+	if err != nil {
+		if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == http.StatusNotFound {
+			t.Skip("Bitbucket did not expose test reports for the pipeline fixture step")
+		}
+		t.Fatalf("probe pipeline test reports: %v", err)
+	}
+
+	output := session.Run(
+		t,
+		"",
+		"pipeline", "test-reports", fmt.Sprintf("%d", pipelines.Pipeline.BuildNumber),
+		"--repo", session.Workspace+"/"+pipelines.Repo.Slug,
+		"--step", pipelines.PipelineSteps[0].UUID,
+		"--json", "*",
+	)
+
+	var payload struct {
+		Workspace string                              `json:"workspace"`
+		Repo      string                              `json:"repo"`
+		Pipeline  bitbucket.Pipeline                  `json:"pipeline"`
+		Step      bitbucket.PipelineStep              `json:"step"`
+		Summary   bitbucket.PipelineTestReportSummary `json:"summary"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline test reports JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug {
+		t.Fatalf("unexpected pipeline test reports identity %+v", payload)
+	}
+	if payload.Pipeline.UUID != pipelines.Pipeline.UUID || payload.Step.UUID != pipelines.PipelineSteps[0].UUID {
+		t.Fatalf("unexpected pipeline test reports payload %+v", payload)
+	}
+	if len(payload.Summary) == 0 {
+		t.Fatalf("expected non-empty pipeline test report summary %+v", payload)
 	}
 }
 
@@ -711,6 +778,91 @@ func TestBitbucketCloudPipelineLog(t *testing.T) {
 	}
 	if strings.TrimSpace(payload.Log) == "" {
 		t.Fatalf("expected non-empty pipeline log payload %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPipelineVariableFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+	repoTarget := session.Workspace + "/" + pipelines.Repo.Slug
+	variableKey := fmt.Sprintf("BB_CLI_IT_%d", time.Now().UTC().UnixNano())
+
+	createOutput, err := session.RunAllowFailure(t, "", "pipeline", "variable", "create", "--repo", repoTarget, "--key", variableKey, "--value", "created-value", "--json", "*")
+	if err != nil {
+		if bytes.Contains(createOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("pipeline variable create requires broader repository administration scopes:\n%s", createOutput)
+		}
+		t.Fatalf("bb pipeline variable create failed: %v\n%s", err, createOutput)
+	}
+
+	var created struct {
+		Workspace string                     `json:"workspace"`
+		Repo      string                     `json:"repo"`
+		Variable  bitbucket.PipelineVariable `json:"variable"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse pipeline variable create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Workspace != session.Workspace || created.Repo != pipelines.Repo.Slug || created.Variable.Key != variableKey {
+		t.Fatalf("unexpected created pipeline variable %+v", created)
+	}
+
+	viewOutput := session.Run(t, "", "pipeline", "variable", "view", created.Variable.UUID, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Variable bitbucket.PipelineVariable `json:"variable"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse pipeline variable view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Variable.UUID != created.Variable.UUID {
+		t.Fatalf("expected viewed variable UUID %s, got %+v", created.Variable.UUID, viewed)
+	}
+
+	editOutput := session.Run(t, "", "pipeline", "variable", "edit", created.Variable.UUID, "--repo", repoTarget, "--value", "updated-value", "--secured", "false", "--json", "*")
+	var edited struct {
+		Variable bitbucket.PipelineVariable `json:"variable"`
+	}
+	if err := json.Unmarshal(editOutput, &edited); err != nil {
+		t.Fatalf("parse pipeline variable edit JSON: %v\n%s", err, editOutput)
+	}
+	if edited.Variable.UUID != created.Variable.UUID || edited.Variable.Value != "updated-value" {
+		t.Fatalf("unexpected edited pipeline variable %+v", edited)
+	}
+
+	var listed struct {
+		Variables []bitbucket.PipelineVariable `json:"variables"`
+	}
+	var found bool
+	for attempt := 0; attempt < 12; attempt++ {
+		listOutput := session.Run(t, "", "pipeline", "variable", "list", "--repo", repoTarget, "--json", "*")
+		if err := json.Unmarshal(listOutput, &listed); err != nil {
+			t.Fatalf("parse pipeline variable list JSON: %v\n%s", err, listOutput)
+		}
+		for _, variable := range listed.Variables {
+			if variable.UUID == created.Variable.UUID {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if !found {
+		t.Fatalf("expected created pipeline variable in list %+v", listed.Variables)
+	}
+
+	deleteOutput := session.Run(t, "", "pipeline", "variable", "delete", created.Variable.UUID, "--repo", repoTarget, "--yes", "--json", "*")
+	var deleted struct {
+		Deleted  bool                       `json:"deleted"`
+		Variable bitbucket.PipelineVariable `json:"variable"`
+	}
+	if err := json.Unmarshal(deleteOutput, &deleted); err != nil {
+		t.Fatalf("parse pipeline variable delete JSON: %v\n%s", err, deleteOutput)
+	}
+	if !deleted.Deleted || deleted.Variable.UUID != created.Variable.UUID {
+		t.Fatalf("unexpected deleted pipeline variable payload %+v", deleted)
 	}
 }
 

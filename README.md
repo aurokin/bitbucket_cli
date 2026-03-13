@@ -80,6 +80,7 @@ Prefer explicit repository targets when you are outside a checkout or writing au
 bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo view --repo workspace-slug/repo-slug
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pr list --repo workspace-slug/repo-slug
 bb issue list --repo workspace-slug/issues-repo-slug
 ```
@@ -133,6 +134,7 @@ For agents and scripts:
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 ```
 
@@ -170,7 +172,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Authenticated API access through `gh api` / `bb api`
 - Browser navigation through `gh browse` / `bb browse`
 - Repository inspection, creation, cloning, and deletion
-- Pipeline run listing and inspection
+- Pipeline run triggering, listing, inspection, test reports, and repository variable management
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
 - Cross-repository status summaries
@@ -208,9 +210,10 @@ References:
 
 ## Notes On Pipeline Behavior
 
-- `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: list, view, log, and stop.
+- `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: run, list, view, test reports, repository variables, log, and stop.
 - `bb` does not provide pipeline rerun because the current Bitbucket Cloud pipeline REST docs do not expose a rerun endpoint. `bb` does not fake rerun by creating a new run behind your back.
 - Raw step logs are not guaranteed for every Bitbucket pipeline step. When Bitbucket does not expose a log file for a step, `bb pipeline log` fails clearly instead of inventing synthetic output.
+- Test reports are also not guaranteed for every pipeline step. When Bitbucket does not expose test reports for a step, `bb pipeline test-reports` fails clearly instead of inventing synthetic results.
 
 ## Notes On Current Behavior
 

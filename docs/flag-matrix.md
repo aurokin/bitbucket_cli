@@ -30,7 +30,14 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb issue view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pipeline list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb pipeline log` | yes | yes | yes | yes | yes | yes | `--step` |
+| `bb pipeline run` | yes | yes | yes | yes | yes | yes | `--ref-type`, `--ref` |
 | `bb pipeline stop` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline test-reports` | yes | yes | yes | yes | yes | yes | `--cases`, `--limit`, `--step` |
+| `bb pipeline variable create` | yes | yes | yes | yes | yes | yes | `--key`, `--secured`, `--value-file`, `--value` |
+| `bb pipeline variable delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline variable edit` | yes | yes | yes | yes | yes | yes | `--key`, `--secured`, `--value-file`, `--value` |
+| `bb pipeline variable list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb pipeline variable view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pipeline view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr activity` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pr checkout` |  |  | yes | yes | yes | yes |  |

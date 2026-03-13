@@ -72,6 +72,10 @@ Use the generated [flag matrix](./flag-matrix.md), [CLI reference](./cli-referen
 ```bash
 bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
+bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
+bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
+bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file secret.txt --secured --json variable
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pr activity https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb pr commits https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json commits

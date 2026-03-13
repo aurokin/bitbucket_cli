@@ -3,13 +3,10 @@
 ## Next Commands
 
 1. Pipeline actions and diagnostics
-   - `bb pipeline run`
-   - `bb pipeline test-reports`
    - `bb pipeline schedules`
-   - `bb pipeline variables`
    - `bb pipeline runners`
    - `bb pipeline caches`
-   - Backed by the official Bitbucket Cloud pipeline run, schedule, variable, runner, cache, and test report APIs.
+   - Backed by the official Bitbucket Cloud pipeline schedule, runner, and cache APIs.
 
 2. Issue collaboration depth
    - `bb issue comment`

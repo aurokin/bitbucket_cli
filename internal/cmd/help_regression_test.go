@@ -366,6 +366,66 @@ func TestPipelineListHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPipelineRunHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "run", "--help")
+	for _, fragment := range []string{
+		"bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json '*'",
+		"--ref-type string",
+		"current local branch",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline run help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineTestReportsHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "test-reports", "--help")
+	for _, fragment := range []string{
+		"--cases",
+		"--step string",
+		"bb pipeline test-reports 42 --repo workspace-slug/pipelines-repo-slug --cases --limit 50 --json '*'",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline test-reports help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineVariableHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "variable", "--help")
+	for _, fragment := range []string{
+		"bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file secret.txt --secured",
+		"Available Commands:",
+		"delete      Delete a repository pipeline variable",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline variable help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineVariableDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "variable", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"key or UUID",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline variable delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestBrowseHelpRegression(t *testing.T) {
 	t.Parallel()
 

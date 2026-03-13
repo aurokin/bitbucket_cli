@@ -36,7 +36,15 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
 - `bb pipeline`
   - `bb pipeline list`
   - `bb pipeline log`
+  - `bb pipeline run`
   - `bb pipeline stop`
+  - `bb pipeline test-reports`
+  - `bb pipeline variable`
+    - `bb pipeline variable create`
+    - `bb pipeline variable delete`
+    - `bb pipeline variable edit`
+    - `bb pipeline variable list`
+    - `bb pipeline variable view`
   - `bb pipeline view`
 - `bb pr`
   - `bb pr activity`
@@ -732,7 +740,10 @@ Subcommands:
 
 - `bb pipeline list`: List pipeline runs for a repository
 - `bb pipeline log`: Show the log for one pipeline step
+- `bb pipeline run`: Trigger a pipeline run
 - `bb pipeline stop`: Stop a running pipeline
+- `bb pipeline test-reports`: View pipeline test reports
+- `bb pipeline variable`: Manage repository pipeline variables
 - `bb pipeline view`: View one pipeline run
 
 ## `bb pipeline list`
@@ -794,6 +805,37 @@ Flags:
 - `--step`: Pipeline step UUID or name when a pipeline has more than one step
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
+## `bb pipeline run`
+
+Trigger a pipeline run
+
+Trigger a Bitbucket pipeline run for a branch or tag. If no ref is provided, bb uses the current local branch when the repository target matches the current checkout.
+
+Usage:
+
+```text
+bb pipeline run [ref] [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline run main --repo workspace-slug/pipelines-repo-slug
+bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json '*'
+bb pipeline run v1.2.3 --ref-type tag --repo workspace-slug/pipelines-repo-slug
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--ref-type`: Reference type to build: branch or tag
+- `--ref`: Branch or tag name to build
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
 ## `bb pipeline stop`
 
 Stop a running pipeline
@@ -823,6 +865,217 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 - `--yes`: Skip the confirmation prompt
+
+## `bb pipeline test-reports`
+
+View pipeline test reports
+
+View Bitbucket pipeline test reports for one pipeline step. If the pipeline has exactly one step, bb selects it automatically. Otherwise pass --step with a step UUID or step name.
+
+Usage:
+
+```text
+bb pipeline test-reports <number-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline test-reports 42 --repo workspace-slug/pipelines-repo-slug
+bb pipeline test-reports 42 --repo workspace-slug/pipelines-repo-slug --cases --limit 50 --json '*'
+bb pipeline test-reports '{uuid}' --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
+```
+
+Flags:
+
+- `--cases`: Include individual test cases in the response
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of test cases to return when --cases is set
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--step`: Pipeline step UUID or name when a pipeline has more than one step
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline variable`
+
+Manage repository pipeline variables
+
+List, inspect, create, edit, and delete Bitbucket repository pipeline variables.
+
+Usage:
+
+```text
+bb pipeline variable
+```
+
+Examples:
+
+```bash
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug
+bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file secret.txt --secured
+bb pipeline variable delete CI_TOKEN --repo workspace-slug/pipelines-repo-slug --yes
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pipeline variable create`: Create a repository pipeline variable
+- `bb pipeline variable delete`: Delete a repository pipeline variable
+- `bb pipeline variable edit`: Edit a repository pipeline variable
+- `bb pipeline variable list`: List repository pipeline variables
+- `bb pipeline variable view`: View one repository pipeline variable
+
+## `bb pipeline variable create`
+
+Create a repository pipeline variable
+
+Usage:
+
+```text
+bb pipeline variable create [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file secret.txt --secured
+printf 'token-value\n' | bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file - --json '*'
+bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key APP_ENV --value production
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--key`: Pipeline variable key
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secured`: Mark the variable as secured
+- `--value-file`: Read the pipeline variable value from a file, or '-' for stdin
+- `--value`: Pipeline variable value
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline variable delete`
+
+Delete a repository pipeline variable
+
+Delete a Bitbucket repository pipeline variable by key or UUID. Humans must confirm the exact repository and variable unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline variable delete <key-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline variable delete CI_TOKEN --repo workspace-slug/pipelines-repo-slug --yes
+bb --no-prompt pipeline variable delete '{uuid}' --repo workspace-slug/pipelines-repo-slug --yes --json '*'
+bb pipeline variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --yes
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pipeline variable edit`
+
+Edit a repository pipeline variable
+
+Edit a Bitbucket repository pipeline variable by key or UUID. By default the existing secured flag is preserved unless --secured true or --secured false is provided.
+
+Usage:
+
+```text
+bb pipeline variable edit <key-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline variable edit CI_TOKEN --repo workspace-slug/pipelines-repo-slug --value-file secret.txt --secured true
+bb pipeline variable edit '{uuid}' --repo workspace-slug/pipelines-repo-slug --key APP_ENV --value staging --json '*'
+bb pipeline variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --value production
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--key`: Override the pipeline variable key
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secured`: Set secured to true or false; defaults to the existing value
+- `--value-file`: Read the pipeline variable value from a file, or '-' for stdin
+- `--value`: Pipeline variable value
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline variable list`
+
+List repository pipeline variables
+
+Usage:
+
+```text
+bb pipeline variable list [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of pipeline variables to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline variable view`
+
+View one repository pipeline variable
+
+Usage:
+
+```text
+bb pipeline variable view <key-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline variable view CI_TOKEN --repo workspace-slug/pipelines-repo-slug
+bb pipeline variable view '{uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb pipeline view`
 

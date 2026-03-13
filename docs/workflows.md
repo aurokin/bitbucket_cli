@@ -70,8 +70,11 @@ bb repo clone workspace-slug/repo-slug
 
 ```bash
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug
+bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
+bb pipeline variable list --repo workspace-slug/pipelines-repo-slug
 ```
 
 ## Review A Pull Request

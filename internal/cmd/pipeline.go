@@ -51,6 +51,9 @@ func newPipelineCmd() *cobra.Command {
 
 	pipelineCmd.AddCommand(
 		newPipelineListCmd(),
+		newPipelineRunCmd(),
+		newPipelineTestReportsCmd(),
+		newPipelineVariableCmd(),
 		newPipelineLogCmd(),
 		newPipelineStopCmd(),
 		newPipelineViewCmd(),

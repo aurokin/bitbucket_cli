@@ -140,4 +140,11 @@ func TestWriteRepoViewSummaryIncludesWarningsAndNextStep(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Visibility: private",
+		"URL: https://bitbucket.org/acme/widgets",
+		"Next: bb repo clone acme/widgets",
+	)
 }

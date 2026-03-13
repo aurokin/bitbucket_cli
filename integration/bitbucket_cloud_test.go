@@ -917,6 +917,14 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	if !strings.Contains(string(resolveOutput), "Next: bb pr comment view "+strconv.Itoa(comment.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected resolve next step for comment URL:\n%s", resolveOutput)
 	}
+	messyCommentURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d/?smoke=1#comment-%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, comment.ID)
+	messyResolveOutput := session.Run(t, "", "resolve", messyCommentURL)
+	if !strings.Contains(string(messyResolveOutput), "Canonical URL: https://bitbucket.org/"+session.Workspace+"/"+fixture.PrimaryRepo.Slug+"/pull-requests/"+strconv.Itoa(fixture.PrimaryPRID)+"#comment-"+strconv.Itoa(comment.ID)) {
+		t.Fatalf("expected canonical URL for messy resolve input:\n%s", messyResolveOutput)
+	}
+	if !strings.Contains(string(messyResolveOutput), "Next: bb pr comment view "+strconv.Itoa(comment.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected resolve next step for messy comment URL:\n%s", messyResolveOutput)
+	}
 
 	prCommentViewOutput := session.Run(t, "", "pr", "comment", "view", commentURL)
 	if !strings.Contains(string(prCommentViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {

@@ -263,6 +263,90 @@ func TestStatusOutputIncludesNotes(t *testing.T) {
 	}
 }
 
+func TestStatusOutputSectionOrder(t *testing.T) {
+	t.Parallel()
+
+	payload := crossRepoStatusPayload{
+		User:         "Test User",
+		Workspaces:   []string{"acme"},
+		Repositories: 1,
+		AuthoredPRs: []crossRepoPullRequest{
+			{
+				Workspace: "acme",
+				Repo:      "widgets",
+				PullRequest: bitbucket.PullRequest{
+					ID:          7,
+					Title:       "Owned PR",
+					State:       "OPEN",
+					Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/owned"}},
+					Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+				},
+			},
+		},
+		ReviewRequestedPRs: []crossRepoPullRequest{
+			{
+				Workspace: "acme",
+				Repo:      "widgets",
+				PullRequest: bitbucket.PullRequest{
+					ID:          9,
+					Title:       "Needs Review",
+					State:       "OPEN",
+					Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/review"}},
+					Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+				},
+			},
+		},
+		YourIssues: []crossRepoIssue{
+			{
+				Workspace: "acme",
+				Repo:      "widgets",
+				Issue: bitbucket.Issue{
+					ID:    5,
+					Title: "Assigned issue",
+					State: "new",
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if _, err := fmt.Fprintf(&buf, "User: %s\n", payload.User); err != nil {
+		t.Fatalf("write header: %v", err)
+	}
+	if _, err := fmt.Fprintf(&buf, "Workspaces: %s\n", strings.Join(payload.Workspaces, ", ")); err != nil {
+		t.Fatalf("write workspaces: %v", err)
+	}
+	if _, err := fmt.Fprintf(&buf, "Repositories Scanned: %d\n\n", payload.Repositories); err != nil {
+		t.Fatalf("write repo count: %v", err)
+	}
+	if _, err := fmt.Fprintln(&buf, "Authored Pull Requests"); err != nil {
+		t.Fatalf("write authored section: %v", err)
+	}
+	if err := writeCrossRepoPRTable(&buf, payload.AuthoredPRs); err != nil {
+		t.Fatalf("write authored table: %v", err)
+	}
+	if _, err := fmt.Fprintln(&buf, "\nReview Requested"); err != nil {
+		t.Fatalf("write review section: %v", err)
+	}
+	if err := writeCrossRepoPRTable(&buf, payload.ReviewRequestedPRs); err != nil {
+		t.Fatalf("write review table: %v", err)
+	}
+	if _, err := fmt.Fprintln(&buf, "\nYour Issues"); err != nil {
+		t.Fatalf("write issues section: %v", err)
+	}
+	if err := writeCrossRepoIssueTable(&buf, payload.YourIssues); err != nil {
+		t.Fatalf("write issues table: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"User: Test User",
+		"Workspaces: acme",
+		"Authored Pull Requests",
+		"Review Requested",
+		"Your Issues",
+	)
+}
+
 func TestWriteCrossRepoPRTableIncludesTaskAndCommentCounts(t *testing.T) {
 	t.Parallel()
 

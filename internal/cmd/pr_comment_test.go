@@ -78,4 +78,14 @@ func TestWritePullRequestCommentSummary(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"Repository: acme/widgets",
+		"Pull Request: #7",
+		"Comment:",
+		"State:",
+		"Path:",
+		"Line:",
+		"URL:",
+		"Next: bb pr comment view 15 --pr 7 --repo acme/widgets",
+	)
 }

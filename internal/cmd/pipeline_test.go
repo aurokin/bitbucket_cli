@@ -163,6 +163,13 @@ func TestWritePipelineViewSummary(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Pipeline: #42",
+		"State:",
+		"Steps:",
+	)
 }
 
 func TestPipelinePayloadsPreserveWarnings(t *testing.T) {

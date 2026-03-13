@@ -94,6 +94,16 @@ func TestWritePullRequestTaskSummary(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"Repository: acme/widgets",
+		"Pull Request: #7",
+		"Task:",
+		"Action:",
+		"State:",
+		"Comment:",
+		"URL:",
+		"Next: bb pr task reopen 3 --pr 7 --repo acme/widgets",
+	)
 }
 
 func TestWritePullRequestTaskListSummary(t *testing.T) {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -97,4 +98,59 @@ func TestSetConfigValueRejectsInvalidBrowserCommand(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "browser command is invalid") {
 		t.Fatalf("expected invalid browser command error, got %v", err)
 	}
+}
+
+func TestConfigSetCommandOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	output := renderCommand(t, "config", "set", "output.format", "json")
+	for _, expected := range []string{
+		"Set output.format=json",
+		"Next: bb config get output.format",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, output)
+		}
+	}
+	assertOrderedSubstrings(t, output,
+		"Set output.format=json",
+		"Next: bb config get output.format",
+	)
+}
+
+func TestConfigUnsetCommandOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+	if output := renderCommand(t, "config", "set", "browser", "firefox"); !strings.Contains(output, "Set browser=firefox") {
+		t.Fatalf("expected browser set output, got %q", output)
+	}
+
+	output := renderCommand(t, "config", "unset", "browser")
+	for _, expected := range []string{
+		"Unset browser",
+		"Next: bb config list",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, output)
+		}
+	}
+	assertOrderedSubstrings(t, output,
+		"Unset browser",
+		"Next: bb config list",
+	)
+}
+
+func renderCommand(t *testing.T, args ...string) string {
+	t.Helper()
+
+	root := NewRootCmd()
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&out)
+	root.SetArgs(args)
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("render command %v: %v\n%s", args, err, out.String())
+	}
+
+	return out.String()
 }

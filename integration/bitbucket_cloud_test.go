@@ -330,12 +330,16 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 	}
 
 	resolveHuman := session.Run(t, "", "pr", "task", "resolve", strconv.Itoa(created.Task.ID), "--pr", prURL)
-	if !strings.Contains(string(resolveHuman), "resolved") {
-		t.Fatalf("expected resolved state in pr task resolve output:\n%s", resolveHuman)
-	}
-	if !strings.Contains(string(resolveHuman), "Next: bb pr task reopen "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
-		t.Fatalf("expected next step in pr task resolve output:\n%s", resolveHuman)
-	}
+	assertContainsOrdered(t, string(resolveHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Task:",
+		"Action:",
+		"resolved",
+		"State:",
+		"resolved",
+		"Next: bb pr task reopen "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
 
 	reopenOutput := session.Run(t, "", "pr", "task", "reopen", strconv.Itoa(created.Task.ID), "--pr", prURL, "--json", "*")
 	var reopened struct {
@@ -351,12 +355,16 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 	}
 
 	reopenHuman := session.Run(t, "", "pr", "task", "reopen", strconv.Itoa(created.Task.ID), "--pr", prURL)
-	if !strings.Contains(string(reopenHuman), "open") {
-		t.Fatalf("expected open state in pr task reopen output:\n%s", reopenHuman)
-	}
-	if !strings.Contains(string(reopenHuman), "Next: bb pr task resolve "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
-		t.Fatalf("expected next step in pr task reopen output:\n%s", reopenHuman)
-	}
+	assertContainsOrdered(t, string(reopenHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Task:",
+		"Action:",
+		"reopened",
+		"State:",
+		"open",
+		"Next: bb pr task resolve "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
 
 	deleteOutput := session.Run(t, "", "pr", "task", "delete", strconv.Itoa(created.Task.ID), "--pr", prURL, "--yes", "--json", "*")
 	var deleted struct {
@@ -379,12 +387,16 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 		t.Fatalf("create human delete smoke task: %v", err)
 	}
 	deleteHuman := session.Run(t, "", "pr", "task", "delete", strconv.Itoa(humanDeleteTask.ID), "--pr", prURL, "--yes")
-	if !strings.Contains(string(deleteHuman), "deleted") {
-		t.Fatalf("expected deleted state in pr task delete output:\n%s", deleteHuman)
-	}
-	if !strings.Contains(string(deleteHuman), "Next: bb pr task list "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
-		t.Fatalf("expected next step in pr task delete output:\n%s", deleteHuman)
-	}
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Task:",
+		"Action:",
+		"deleted",
+		"State:",
+		"deleted",
+		"Next: bb pr task list "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
 
 	if _, err := session.Client.GetPullRequestTask(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, created.Task.ID); err == nil {
 		t.Fatalf("expected deleted task %d to be unavailable", created.Task.ID)

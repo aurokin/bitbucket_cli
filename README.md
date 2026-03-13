@@ -161,6 +161,7 @@ Automation conventions:
 
 - prefer `--repo <workspace>/<repo>` over local inference
 - use `--workspace` only to disambiguate a bare repository name
+- when a task starts from a Bitbucket web URL, prefer `bb resolve <url>` before choosing a repo, PR, comment, task, issue, or browse command
 - use `--json` or `--json '*'` for machine parsing
 - use `--jq` to keep agent output token-efficient
 - use `--no-prompt` for mutations and any non-interactive flow

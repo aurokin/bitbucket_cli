@@ -132,6 +132,9 @@ These commands are backed by the official Bitbucket Cloud commits, commit status
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb deployment environment list --repo workspace-slug/pipelines-repo-slug
 bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test
+bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production
+bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging
+bb deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
 bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'

@@ -237,6 +237,18 @@ func TestDeploymentHelpRegression(t *testing.T) {
 			t.Fatalf("deployment help missing %q\n%s", fragment, output)
 		}
 	}
+
+	output = renderHelp(t, "deployment", "environment", "variable", "create", "--help")
+	for _, fragment := range []string{
+		"bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production",
+		"--key string",
+		"--value-file string",
+		"--secured",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("deployment help missing %q\n%s", fragment, output)
+		}
+	}
 }
 
 func TestPRCreateHelpRegression(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type Deployment struct {
@@ -277,4 +278,101 @@ func (c *Client) GetDeploymentVariable(ctx context.Context, workspace, repoSlug,
 		return DeploymentVariable{}, fmt.Errorf("decode deployment variable: %w", err)
 	}
 	return item, nil
+}
+
+func (c *Client) CreateDeploymentVariable(ctx context.Context, workspace, repoSlug, environmentUUID string, variable DeploymentVariable) (DeploymentVariable, error) {
+	if workspace == "" || repoSlug == "" {
+		return DeploymentVariable{}, fmt.Errorf("workspace and repository are required")
+	}
+	environmentUUID = normalizePipelineUUID(environmentUUID)
+	if environmentUUID == "" {
+		return DeploymentVariable{}, fmt.Errorf("environment UUID is required")
+	}
+	if strings.TrimSpace(variable.Key) == "" {
+		return DeploymentVariable{}, fmt.Errorf("deployment variable key is required")
+	}
+
+	payload, err := json.Marshal(variable)
+	if err != nil {
+		return DeploymentVariable{}, fmt.Errorf("marshal deployment variable request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/deployments_config/environments/%s/variables", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(environmentUUID))
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return DeploymentVariable{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return DeploymentVariable{}, err
+	}
+
+	var created DeploymentVariable
+	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+		return DeploymentVariable{}, fmt.Errorf("decode created deployment variable: %w", err)
+	}
+	return created, nil
+}
+
+func (c *Client) UpdateDeploymentVariable(ctx context.Context, workspace, repoSlug, environmentUUID, variableUUID string, variable DeploymentVariable) (DeploymentVariable, error) {
+	if workspace == "" || repoSlug == "" {
+		return DeploymentVariable{}, fmt.Errorf("workspace and repository are required")
+	}
+	environmentUUID = normalizePipelineUUID(environmentUUID)
+	if environmentUUID == "" {
+		return DeploymentVariable{}, fmt.Errorf("environment UUID is required")
+	}
+	variableUUID = normalizePipelineUUID(variableUUID)
+	if variableUUID == "" {
+		return DeploymentVariable{}, fmt.Errorf("deployment variable UUID is required")
+	}
+	if strings.TrimSpace(variable.Key) == "" {
+		return DeploymentVariable{}, fmt.Errorf("deployment variable key is required")
+	}
+
+	payload, err := json.Marshal(variable)
+	if err != nil {
+		return DeploymentVariable{}, fmt.Errorf("marshal deployment variable request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/deployments_config/environments/%s/variables/%s", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(environmentUUID), url.PathEscape(variableUUID))
+	resp, err := c.Do(ctx, http.MethodPut, path, payload, nil)
+	if err != nil {
+		return DeploymentVariable{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return DeploymentVariable{}, err
+	}
+
+	var updated DeploymentVariable
+	if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+		return DeploymentVariable{}, fmt.Errorf("decode updated deployment variable: %w", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) DeleteDeploymentVariable(ctx context.Context, workspace, repoSlug, environmentUUID, variableUUID string) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	environmentUUID = normalizePipelineUUID(environmentUUID)
+	if environmentUUID == "" {
+		return fmt.Errorf("environment UUID is required")
+	}
+	variableUUID = normalizePipelineUUID(variableUUID)
+	if variableUUID == "" {
+		return fmt.Errorf("deployment variable UUID is required")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/deployments_config/environments/%s/variables/%s", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(environmentUUID), url.PathEscape(variableUUID))
+	resp, err := c.Do(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return requireSuccess(resp)
 }

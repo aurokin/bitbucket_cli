@@ -101,6 +101,9 @@ bb commit approve abc1234 --repo workspace-slug/repo-slug --json action,commit
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
 bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json environments
 bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test --json variables
+bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production --json variable
+bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging --json variable
+bb --no-prompt deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes --json deleted,variable
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables

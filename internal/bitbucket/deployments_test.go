@@ -21,11 +21,24 @@ func TestDeploymentEndpoints(t *testing.T) {
 	mux.HandleFunc("/2.0/repositories/acme/widgets/environments/%7Benv-1%7D", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"uuid":"{env-1}","name":"Test","slug":"test","category":{"name":"Test"},"lock":{"name":"OPEN"}}`))
 	})
-	mux.HandleFunc("/2.0/repositories/acme/widgets/deployments_config/environments/%7Benv-1%7D/variables", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"values":[{"uuid":"{var-1}","key":"APP_ENV","secured":true}]}`))
-	})
 	mux.HandleFunc("/2.0/repositories/acme/widgets/deployments_config/environments/%7Benv-1%7D/variables/%7Bvar-1%7D", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"uuid":"{var-1}","key":"APP_ENV","secured":true}`))
+		switch r.Method {
+		case http.MethodGet:
+			_, _ = w.Write([]byte(`{"uuid":"{var-1}","key":"APP_ENV","secured":true}`))
+		case http.MethodPut:
+			_, _ = w.Write([]byte(`{"uuid":"{var-1}","key":"APP_ENV","secured":true}`))
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	mux.HandleFunc("/2.0/repositories/acme/widgets/deployments_config/environments/%7Benv-1%7D/variables", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			_, _ = w.Write([]byte(`{"uuid":"{var-2}","key":"NEW_KEY","secured":false}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"values":[{"uuid":"{var-1}","key":"APP_ENV","secured":true}]}`))
 	})
 
 	server := httptest.NewServer(mux)
@@ -80,5 +93,25 @@ func TestDeploymentEndpoints(t *testing.T) {
 	}
 	if variable.UUID != "{var-1}" || variable.Key != "APP_ENV" {
 		t.Fatalf("unexpected deployment variable %+v", variable)
+	}
+
+	created, err := client.CreateDeploymentVariable(context.Background(), "acme", "widgets", "env-1", DeploymentVariable{Key: "NEW_KEY", Value: "hello"})
+	if err != nil {
+		t.Fatalf("CreateDeploymentVariable returned error: %v", err)
+	}
+	if created.UUID != "{var-2}" || created.Key != "NEW_KEY" {
+		t.Fatalf("unexpected created deployment variable %+v", created)
+	}
+
+	updated, err := client.UpdateDeploymentVariable(context.Background(), "acme", "widgets", "env-1", "var-1", DeploymentVariable{Key: "APP_ENV", Value: "updated", Secured: true})
+	if err != nil {
+		t.Fatalf("UpdateDeploymentVariable returned error: %v", err)
+	}
+	if updated.UUID != "{var-1}" || updated.Key != "APP_ENV" || !updated.Secured {
+		t.Fatalf("unexpected updated deployment variable %+v", updated)
+	}
+
+	if err := client.DeleteDeploymentVariable(context.Background(), "acme", "widgets", "env-1", "var-1"); err != nil {
+		t.Fatalf("DeleteDeploymentVariable returned error: %v", err)
 	}
 }

@@ -44,6 +44,9 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb deployment environment`
     - `bb deployment environment list`
     - `bb deployment environment variable`
+      - `bb deployment environment variable create`
+      - `bb deployment environment variable delete`
+      - `bb deployment environment variable edit`
       - `bb deployment environment variable list`
       - `bb deployment environment variable view`
     - `bb deployment environment view`
@@ -1110,7 +1113,7 @@ Flags:
 Subcommands:
 
 - `bb deployment environment list`: List deployment environments in one repository
-- `bb deployment environment variable`: Inspect deployment environment variables
+- `bb deployment environment variable`: Manage deployment environment variables
 - `bb deployment environment view`: Show deployment environment information
 
 ## `bb deployment environment list`
@@ -1142,7 +1145,7 @@ Flags:
 
 ## `bb deployment environment variable`
 
-Inspect deployment environment variables
+Manage deployment environment variables
 
 Aliases: `variables`
 
@@ -1158,8 +1161,106 @@ Flags:
 
 Subcommands:
 
+- `bb deployment environment variable create`: Create a deployment environment variable
+- `bb deployment environment variable delete`: Delete a deployment environment variable
+- `bb deployment environment variable edit`: Edit a deployment environment variable
 - `bb deployment environment variable list`: List variables for one deployment environment
 - `bb deployment environment variable view`: Show one deployment environment variable
+
+## `bb deployment environment variable create`
+
+Create a deployment environment variable
+
+Usage:
+
+```text
+bb deployment environment variable create [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production
+bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key SECRET_TOKEN --value-file secret.txt --secured
+printf 'secret\n' | bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key SECRET_TOKEN --value-file - --json '*'
+```
+
+Flags:
+
+- `--environment`: Deployment environment reference as a name, slug, or UUID
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--key`: Deployment variable key
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secured`: Mark the deployment variable as secured
+- `--value-file`: Read the deployment variable value from a file, or '-' for stdin
+- `--value`: Deployment variable value
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment environment variable delete`
+
+Delete a deployment environment variable
+
+Delete a Bitbucket deployment environment variable by key or UUID. Humans must confirm the exact repository, environment, and variable unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb deployment environment variable delete <key-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes
+bb --no-prompt deployment environment variable delete '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test --yes --json '*'
+```
+
+Flags:
+
+- `--environment`: Deployment environment reference as a name, slug, or UUID
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb deployment environment variable edit`
+
+Edit a deployment environment variable
+
+Edit a Bitbucket deployment environment variable by key or UUID. By default the existing secured flag is preserved unless --secured true or --secured false is provided.
+
+Usage:
+
+```text
+bb deployment environment variable edit <key-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging
+bb deployment environment variable edit '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test --secured true --json '*'
+```
+
+Flags:
+
+- `--environment`: Deployment environment reference as a name, slug, or UUID
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--key`: Override the deployment variable key
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secured`: Set secured to true or false; defaults to the existing value
+- `--value-file`: Read the deployment variable value from a file, or '-' for stdin
+- `--value`: Deployment variable value
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb deployment environment variable list`
 

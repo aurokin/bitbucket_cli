@@ -57,6 +57,8 @@ type deploymentVariablePayload struct {
 	Workspace   string                          `json:"workspace"`
 	Repo        string                          `json:"repo"`
 	Warnings    []string                        `json:"warnings,omitempty"`
+	Action      string                          `json:"action,omitempty"`
+	Deleted     bool                            `json:"deleted,omitempty"`
 	Environment bitbucket.DeploymentEnvironment `json:"environment"`
 	Variable    bitbucket.DeploymentVariable    `json:"variable"`
 }
@@ -269,9 +271,15 @@ func newDeploymentEnvironmentVariableCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "variable",
 		Aliases: []string{"variables"},
-		Short:   "Inspect deployment environment variables",
+		Short:   "Manage deployment environment variables",
 	}
-	cmd.AddCommand(newDeploymentEnvironmentVariableListCmd(), newDeploymentEnvironmentVariableViewCmd())
+	cmd.AddCommand(
+		newDeploymentEnvironmentVariableListCmd(),
+		newDeploymentEnvironmentVariableViewCmd(),
+		newDeploymentEnvironmentVariableCreateCmd(),
+		newDeploymentEnvironmentVariableEditCmd(),
+		newDeploymentEnvironmentVariableDeleteCmd(),
+	)
 	return cmd
 }
 
@@ -355,7 +363,7 @@ func newDeploymentEnvironmentVariableViewCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			variable, err := resolved.Client.GetDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, args[0])
+			variable, err := resolveDeploymentVariableReference(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, env.UUID, args[0])
 			if err != nil {
 				return err
 			}
@@ -364,6 +372,7 @@ func newDeploymentEnvironmentVariableViewCmd() *cobra.Command {
 				Workspace:   resolved.Target.Workspace,
 				Repo:        resolved.Target.Repo,
 				Warnings:    append([]string(nil), resolved.Target.Warnings...),
+				Action:      "viewed",
 				Environment: env,
 				Variable:    variable,
 			}
@@ -378,6 +387,223 @@ func newDeploymentEnvironmentVariableViewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 	cmd.Flags().StringVar(&environment, "environment", "", "Deployment environment reference as a name, slug, or UUID")
+	return cmd
+}
+
+func newDeploymentEnvironmentVariableCreateCmd() *cobra.Command {
+	var flags formatFlags
+	var host, workspace, repo, environment, key, value, valueFile string
+	var secured bool
+
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a deployment environment variable",
+		Example: "  bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production\n" +
+			"  bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key SECRET_TOKEN --value-file secret.txt --secured\n" +
+			"  printf 'secret\\n' | bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key SECRET_TOKEN --value-file - --json '*'",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(environment) == "" {
+				return fmt.Errorf("deployment environment variable creation requires --environment")
+			}
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
+			if err != nil {
+				return err
+			}
+			env, err := resolveDeploymentEnvironment(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, environment)
+			if err != nil {
+				return err
+			}
+			resolvedValue, err := resolvePipelineVariableValue(cmd.InOrStdin(), value, valueFile)
+			if err != nil {
+				return err
+			}
+			variable, err := resolved.Client.CreateDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, bitbucket.DeploymentVariable{
+				Key:     strings.TrimSpace(key),
+				Value:   resolvedValue,
+				Secured: secured,
+			})
+			if err != nil {
+				return err
+			}
+			payload := deploymentVariablePayload{
+				Host:        resolved.Target.Host,
+				Workspace:   resolved.Target.Workspace,
+				Repo:        resolved.Target.Repo,
+				Warnings:    append([]string(nil), resolved.Target.Warnings...),
+				Action:      "created",
+				Environment: env,
+				Variable:    variable,
+			}
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				return writeDeploymentVariableSummary(w, payload)
+			})
+		},
+	}
+
+	addFormatFlags(cmd, &flags)
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().StringVar(&environment, "environment", "", "Deployment environment reference as a name, slug, or UUID")
+	cmd.Flags().StringVar(&key, "key", "", "Deployment variable key")
+	cmd.Flags().StringVar(&value, "value", "", "Deployment variable value")
+	cmd.Flags().StringVar(&valueFile, "value-file", "", "Read the deployment variable value from a file, or '-' for stdin")
+	cmd.Flags().BoolVar(&secured, "secured", false, "Mark the deployment variable as secured")
+	cmd.MarkFlagsMutuallyExclusive("value", "value-file")
+	_ = cmd.MarkFlagRequired("key")
+	return cmd
+}
+
+func newDeploymentEnvironmentVariableEditCmd() *cobra.Command {
+	var flags formatFlags
+	var host, workspace, repo, environment, key, value, valueFile, secured string
+
+	cmd := &cobra.Command{
+		Use:   "edit <key-or-uuid>",
+		Short: "Edit a deployment environment variable",
+		Long:  "Edit a Bitbucket deployment environment variable by key or UUID. By default the existing secured flag is preserved unless --secured true or --secured false is provided.",
+		Example: "  bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging\n" +
+			"  bb deployment environment variable edit '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test --secured true --json '*'",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(environment) == "" {
+				return fmt.Errorf("deployment environment variable editing requires --environment")
+			}
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
+			if err != nil {
+				return err
+			}
+			env, err := resolveDeploymentEnvironment(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, environment)
+			if err != nil {
+				return err
+			}
+			existing, err := resolveDeploymentVariableReference(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, env.UUID, args[0])
+			if err != nil {
+				return err
+			}
+			resolvedValue, err := resolvePipelineVariableValue(cmd.InOrStdin(), value, valueFile)
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(key) == "" {
+				key = existing.Key
+			}
+			nextSecured := existing.Secured
+			if strings.TrimSpace(secured) != "" {
+				nextSecured, err = parseBoolString(secured)
+				if err != nil {
+					return fmt.Errorf("--secured must be true or false")
+				}
+			}
+			variable, err := resolved.Client.UpdateDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, existing.UUID, bitbucket.DeploymentVariable{
+				Key:     strings.TrimSpace(key),
+				Value:   resolvedValue,
+				Secured: nextSecured,
+			})
+			if err != nil {
+				return err
+			}
+			payload := deploymentVariablePayload{
+				Host:        resolved.Target.Host,
+				Workspace:   resolved.Target.Workspace,
+				Repo:        resolved.Target.Repo,
+				Warnings:    append([]string(nil), resolved.Target.Warnings...),
+				Action:      "edited",
+				Environment: env,
+				Variable:    variable,
+			}
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				return writeDeploymentVariableSummary(w, payload)
+			})
+		},
+	}
+
+	addFormatFlags(cmd, &flags)
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().StringVar(&environment, "environment", "", "Deployment environment reference as a name, slug, or UUID")
+	cmd.Flags().StringVar(&key, "key", "", "Override the deployment variable key")
+	cmd.Flags().StringVar(&value, "value", "", "Deployment variable value")
+	cmd.Flags().StringVar(&valueFile, "value-file", "", "Read the deployment variable value from a file, or '-' for stdin")
+	cmd.Flags().StringVar(&secured, "secured", "", "Set secured to true or false; defaults to the existing value")
+	cmd.MarkFlagsMutuallyExclusive("value", "value-file")
+	return cmd
+}
+
+func newDeploymentEnvironmentVariableDeleteCmd() *cobra.Command {
+	var flags formatFlags
+	var host, workspace, repo, environment string
+	var yes bool
+
+	cmd := &cobra.Command{
+		Use:   "delete <key-or-uuid>",
+		Short: "Delete a deployment environment variable",
+		Long:  "Delete a Bitbucket deployment environment variable by key or UUID. Humans must confirm the exact repository, environment, and variable unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.",
+		Example: "  bb deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes\n" +
+			"  bb --no-prompt deployment environment variable delete '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test --yes --json '*'",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := flags.options()
+			if err != nil {
+				return err
+			}
+			if strings.TrimSpace(environment) == "" {
+				return fmt.Errorf("deployment environment variable deletion requires --environment")
+			}
+			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
+			if err != nil {
+				return err
+			}
+			env, err := resolveDeploymentEnvironment(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, environment)
+			if err != nil {
+				return err
+			}
+			variable, err := resolveDeploymentVariableReference(context.Background(), resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, env.UUID, args[0])
+			if err != nil {
+				return err
+			}
+			if !yes {
+				if !promptsEnabled(cmd) {
+					return fmt.Errorf("deployment environment variable deletion requires confirmation; pass --yes or run in an interactive terminal")
+				}
+				if err := confirmExactMatch(cmd, fmt.Sprintf("%s/%s:%s:%s", resolved.Target.Workspace, resolved.Target.Repo, env.Slug, variable.Key)); err != nil {
+					return err
+				}
+			}
+			if err := resolved.Client.DeleteDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, variable.UUID); err != nil {
+				return err
+			}
+			payload := deploymentVariablePayload{
+				Host:        resolved.Target.Host,
+				Workspace:   resolved.Target.Workspace,
+				Repo:        resolved.Target.Repo,
+				Warnings:    append([]string(nil), resolved.Target.Warnings...),
+				Action:      "deleted",
+				Deleted:     true,
+				Environment: env,
+				Variable:    variable,
+			}
+			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
+				return writeDeploymentVariableSummary(w, payload)
+			})
+		},
+	}
+
+	addFormatFlags(cmd, &flags)
+	cmd.Flags().StringVar(&host, "host", "", "Bitbucket host to use")
+	cmd.Flags().StringVar(&workspace, "workspace", "", "Optional workspace slug used only to disambiguate a bare repository target")
+	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
+	cmd.Flags().StringVar(&environment, "environment", "", "Deployment environment reference as a name, slug, or UUID")
+	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 	return cmd
 }
 
@@ -399,6 +625,31 @@ func resolveDeploymentEnvironment(ctx context.Context, client *bitbucket.Client,
 		}
 	}
 	return bitbucket.DeploymentEnvironment{}, fmt.Errorf("deployment environment %q not found in %s/%s", reference, workspace, repo)
+}
+
+func resolveDeploymentVariableReference(ctx context.Context, client *bitbucket.Client, workspace, repo, environmentUUID, raw string) (bitbucket.DeploymentVariable, error) {
+	reference := strings.TrimSpace(raw)
+	if reference == "" {
+		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable reference is required")
+	}
+	variables, err := client.ListDeploymentVariables(ctx, workspace, repo, environmentUUID, bitbucket.ListDeploymentVariablesOptions{Limit: 200})
+	if err != nil {
+		return bitbucket.DeploymentVariable{}, err
+	}
+	var matches []bitbucket.DeploymentVariable
+	for _, variable := range variables {
+		if strings.EqualFold(variable.Key, reference) || strings.EqualFold(strings.Trim(variable.UUID, "{}"), strings.Trim(reference, "{}")) {
+			matches = append(matches, variable)
+		}
+	}
+	switch len(matches) {
+	case 1:
+		return matches[0], nil
+	case 0:
+		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable %q was not found", reference)
+	default:
+		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable %q is ambiguous; use a UUID instead", reference)
+	}
 }
 
 func writeDeploymentListSummary(w io.Writer, payload deploymentListPayload) error {
@@ -559,6 +810,11 @@ func writeDeploymentVariableSummary(w io.Writer, payload deploymentVariablePaylo
 	if err := writeLabelValue(w, "Environment", payload.Environment.Name); err != nil {
 		return err
 	}
+	if payload.Action != "" {
+		if err := writeLabelValue(w, "Action", payload.Action); err != nil {
+			return err
+		}
+	}
 	if err := writeLabelValue(w, "Variable", payload.Variable.Key); err != nil {
 		return err
 	}
@@ -567,6 +823,11 @@ func writeDeploymentVariableSummary(w io.Writer, payload deploymentVariablePaylo
 	}
 	if err := writeLabelValue(w, "Secured", fmt.Sprintf("%t", payload.Variable.Secured)); err != nil {
 		return err
+	}
+	if payload.Deleted {
+		if err := writeLabelValue(w, "Status", "deleted"); err != nil {
+			return err
+		}
 	}
 	return writeNextStep(w, fmt.Sprintf("bb deployment environment variable list --repo %s/%s --environment %s", payload.Workspace, payload.Repo, payload.Environment.Slug))
 }

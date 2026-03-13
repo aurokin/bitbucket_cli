@@ -21,7 +21,7 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb deployment environment list` | `environments`, `host`, `repo`, `warnings`, `workspace` | `bb deployment environment list --json environments,host,repo` |
 | `bb deployment environment view` | `environment`, `host`, `repo`, `warnings`, `workspace` | `bb deployment environment view --json environment,host,repo` |
 | `bb deployment environment variable list` | `environment`, `host`, `repo`, `variables`, `warnings`, `workspace` | `bb deployment environment variable list --json environment,host,repo` |
-| `bb deployment environment variable view` | `environment`, `host`, `repo`, `variable`, `warnings`, `workspace` | `bb deployment environment variable view --json environment,host,repo` |
+| `bb deployment environment variable view` | `action`, `deleted`, `environment`, `host`, `repo`, `variable`, `warnings`, `workspace` | `bb deployment environment variable view --json action,deleted,environment` |
 | `bb repo view` | `description`, `full_name`, `host`, `html_url`, `https_clone`, `local_clone_url`, `main_branch`, `name`, `private`, `project_key`, `project_name`, `remote`, `repo`, `root`, `ssh_clone`, `warnings`, `workspace` | `bb repo view --json description,full_name,host` |
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |

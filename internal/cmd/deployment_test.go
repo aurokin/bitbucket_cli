@@ -110,3 +110,37 @@ func TestWriteDeploymentVariableListSummary(t *testing.T) {
 		"Next: bb deployment environment variable view {var-1} --repo acme/widgets --environment production",
 	)
 }
+
+func TestWriteDeploymentVariableSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := deploymentVariablePayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Action:    "deleted",
+		Deleted:   true,
+		Environment: bitbucket.DeploymentEnvironment{
+			Name: "Production",
+			Slug: "production",
+		},
+		Variable: bitbucket.DeploymentVariable{
+			UUID:    "{var-1}",
+			Key:     "APP_ENV",
+			Secured: true,
+		},
+	}
+
+	if err := writeDeploymentVariableSummary(&buf, payload); err != nil {
+		t.Fatalf("writeDeploymentVariableSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Environment: Production",
+		"Action: deleted",
+		"Variable: APP_ENV",
+		"Status: deleted",
+		"Next: bb deployment environment variable list --repo acme/widgets --environment production",
+	)
+}

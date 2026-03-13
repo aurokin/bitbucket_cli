@@ -477,6 +477,8 @@ Representative shapes:
 
 ```json
 {
+  "action": "\u003caction\u003e",
+  "deleted": true,
   "environment": {
     "category": {
       "name": "Example Name"

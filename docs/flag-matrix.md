@@ -34,6 +34,9 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb config set` |  |  | yes |  |  |  |  |
 | `bb config unset` |  |  | yes |  |  |  |  |
 | `bb deployment environment list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb deployment environment variable create` | yes | yes | yes | yes | yes | yes | `--environment`, `--key`, `--secured`, `--value-file`, `--value` |
+| `bb deployment environment variable delete` | yes | yes | yes | yes | yes | yes | `--environment`, `--yes` |
+| `bb deployment environment variable edit` | yes | yes | yes | yes | yes | yes | `--environment`, `--key`, `--secured`, `--value-file`, `--value` |
 | `bb deployment environment variable list` | yes | yes | yes | yes | yes | yes | `--environment`, `--limit` |
 | `bb deployment environment variable view` | yes | yes | yes | yes | yes | yes | `--environment` |
 | `bb deployment environment view` | yes | yes | yes | yes | yes | yes |  |

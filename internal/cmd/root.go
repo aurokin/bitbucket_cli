@@ -23,6 +23,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(
 		newVersionCmd(),
+		newResolveCmd(),
 		newConfigCmd(),
 		newAliasCmd(),
 		newExtensionCmd(),

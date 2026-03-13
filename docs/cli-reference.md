@@ -53,6 +53,7 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb repo create`
   - `bb repo delete`
   - `bb repo view`
+- `bb resolve`
 - `bb search`
   - `bb search issues`
   - `bb search prs`
@@ -1282,6 +1283,32 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb resolve`
+
+Resolve a Bitbucket URL into a structured entity
+
+Resolve Bitbucket repository, pull request, pull request comment, issue, commit, and source URLs into a structured entity payload without making an API request.
+
+Usage:
+
+```text
+bb resolve <url> [flags]
+```
+
+Examples:
+
+```bash
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/src/main/README.md#lines-12 --json type,repo,path,line
+```
+
+Flags:
+
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 
 ## `bb search`
 

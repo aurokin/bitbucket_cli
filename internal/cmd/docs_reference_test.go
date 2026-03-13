@@ -170,6 +170,21 @@ func TestBrowseHelpShowsExplicitRepoExamples(t *testing.T) {
 	}
 }
 
+func TestResolveHelpShowsPRCommentExample(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "resolve", "--help")
+	for _, fragment := range []string{
+		"bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7",
+		"#comment-15",
+		"--json string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("resolve help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestIssueCreateHelpShowsExplicitRepoExamples(t *testing.T) {
 	t.Parallel()
 

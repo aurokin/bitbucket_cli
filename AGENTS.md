@@ -19,6 +19,7 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 
 ## Deterministic Command Shape
 - Prefer `--repo <workspace>/<repo>` over local inference.
+- When a task starts from a Bitbucket web URL, prefer `bb resolve <url> --json '*'` before inferring the entity manually.
 - Use `--json` or `--json '*'` for machine parsing.
 - Use `--jq` when a smaller payload is enough.
 - Use `--no-prompt` for mutations and non-interactive runs.

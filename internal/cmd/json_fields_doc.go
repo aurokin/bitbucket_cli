@@ -20,6 +20,7 @@ func GenerateJSONFieldsDoc() (string, error) {
 		{Command: "bb repo clone", Type: repoClonePayload{}},
 		{Command: "bb repo delete", Type: repoDeletePayload{}},
 		{Command: "bb browse", Type: browsePayload{}},
+		{Command: "bb resolve", Type: resolvedEntity{}},
 		{Command: "bb pipeline list", Type: bitbucket.Pipeline{}},
 		{Command: "bb pipeline log", Type: pipelineLogPayload{}},
 		{Command: "bb pipeline stop", Type: pipelineStopPayload{}},

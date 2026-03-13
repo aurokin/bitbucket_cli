@@ -10,6 +10,7 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |
 | `bb browse` | `commit`, `host`, `issue`, `line`, `opened`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `warnings`, `workspace` | `bb browse --json commit,host,issue` |
+| `bb resolve` | `canonical_url`, `comment`, `commit`, `host`, `issue`, `line`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `workspace` | `bb resolve --json canonical_url,comment,commit` |
 | `bb pipeline list` | `build_number`, `completed_on`, `created_on`, `creator`, `links`, `state`, `target`, `uuid` | `bb pipeline list --json build_number,completed_on,created_on` |
 | `bb pipeline log` | `host`, `log`, `pipeline`, `repo`, `step`, `workspace` | `bb pipeline log --json host,log,pipeline` |
 | `bb pipeline stop` | `host`, `pipeline`, `repo`, `stopped`, `workspace` | `bb pipeline stop --json host,pipeline,repo` |

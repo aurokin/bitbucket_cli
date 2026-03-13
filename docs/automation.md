@@ -32,10 +32,19 @@ bb version
 
 - Prefer `--repo <workspace>/<repo>` over local inference.
 - Use `--workspace` only to disambiguate a bare repository name.
+- Use `bb resolve <url> --json '*'` when automation needs to normalize a Bitbucket URL before choosing a command.
 - Use `--json` or `--json '*'` for machine parsing.
 - Use `--jq` when a smaller result is enough.
 - Use `--no-prompt` for mutations and all non-interactive runs.
 - Do not parse the default human-readable output when structured output is available.
+
+## URL Resolution
+
+```bash
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7 --json '*'
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json type,repo,pr,comment,canonical_url
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/src/main/README.md#lines-12 --jq '{type, repo, path, line}'
+```
 
 ## Browse
 

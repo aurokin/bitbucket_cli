@@ -140,6 +140,7 @@ The human-readable path is designed to:
 Agents and scripts should prefer explicit, deterministic invocations:
 
 ```bash
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
 bb --no-prompt pr create \
   --repo workspace-slug/repo-slug \
@@ -192,6 +193,7 @@ Automation conventions:
 - `bb auth status`
 - `bb api`
 - `bb browse`
+- `bb resolve`
 - `bb config list`
 - `bb config get`
 - `bb config set`

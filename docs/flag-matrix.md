@@ -45,6 +45,7 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb repo create` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--private`, `--project-key`, `--reuse-existing` |
 | `bb repo delete` | yes | yes | yes | yes | yes | yes | `--yes` |
 | `bb repo view` | yes | yes | yes | yes | yes | yes |  |
+| `bb resolve` | yes | yes | yes |  |  |  |  |
 | `bb search issues` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb search prs` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb search repos` | yes | yes | yes | yes |  | yes | `--limit` |

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -184,49 +183,38 @@ func parsePullRequestSelector(raw string) (pullRequestSelector, error) {
 		return pullRequestSelector{ID: id}, nil
 	}
 
-	parsedURL, err := url.Parse(raw)
-	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+	entity, err := parseBitbucketEntityURL(raw)
+	if err != nil {
 		return pullRequestSelector{}, fmt.Errorf("pull request must be provided as an ID or Bitbucket pull request URL")
 	}
-
-	path := strings.Trim(parsedURL.Path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) < 4 || parts[0] == "" || parts[1] == "" || parts[2] != "pull-requests" {
+	if entity.Type != "pull-request" && entity.Type != "pull-request-comment" {
 		return pullRequestSelector{}, fmt.Errorf("pull request URL %q must point to a Bitbucket pull request", raw)
-	}
-
-	id, err := strconv.Atoi(parts[3])
-	if err != nil || id <= 0 {
-		return pullRequestSelector{}, fmt.Errorf("pull request URL %q does not contain a valid pull request ID", raw)
 	}
 
 	return pullRequestSelector{
 		Repo: repoSelector{
-			Host:      parsedURL.Hostname(),
-			Workspace: parts[0],
-			Repo:      strings.TrimSuffix(parts[1], ".git"),
+			Host:      entity.Host,
+			Workspace: entity.Workspace,
+			Repo:      entity.Repo,
 			Explicit:  true,
 		},
-		ID: id,
+		ID: entity.PR,
 	}, nil
 }
 
 func parseRepositoryURL(raw string) (repoSelector, error) {
-	parsedURL, err := url.Parse(raw)
+	entity, err := parseBitbucketEntityURL(raw)
 	if err != nil {
 		return repoSelector{}, fmt.Errorf("parse repository URL %q: %w", raw, err)
 	}
-
-	path := strings.Trim(parsedURL.Path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	if entity.Type != "repository" {
 		return repoSelector{}, fmt.Errorf("repository URL %q must point to a repository", raw)
 	}
 
 	return repoSelector{
-		Host:      parsedURL.Hostname(),
-		Workspace: parts[0],
-		Repo:      strings.TrimSuffix(parts[1], ".git"),
+		Host:      entity.Host,
+		Workspace: entity.Workspace,
+		Repo:      entity.Repo,
 	}, nil
 }
 

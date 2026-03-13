@@ -50,6 +50,14 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: browsePayload{},
 		},
 		{
+			Title:       "Resolve",
+			Description: "Representative shape for URL-to-entity resolution payloads used by agents and humans to normalize Bitbucket URLs.",
+			Commands: []string{
+				"bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'",
+			},
+			Type: resolvedEntity{},
+		},
+		{
 			Title:       "Pipeline List And View",
 			Description: "Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.",
 			Commands: []string{

@@ -110,6 +110,36 @@ Representative shape:
 }
 ```
 
+## Resolve
+
+Representative shape for URL-to-entity resolution payloads used by agents and humans to normalize Bitbucket URLs.
+
+Command:
+
+```bash
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+```
+
+Representative shape:
+
+```json
+{
+  "canonical_url": "\u003ccanonical-url\u003e",
+  "comment": 1,
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "issue": 1,
+  "line": 1,
+  "path": "file.txt",
+  "pr": 1,
+  "ref": "\u003cref\u003e",
+  "repo": "repo-slug",
+  "type": "commit_file",
+  "url": "\u003curl\u003e",
+  "workspace": "workspace-slug"
+}
+```
+
 ## Pipeline List And View
 
 Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.

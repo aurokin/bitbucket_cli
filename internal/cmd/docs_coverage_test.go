@@ -28,6 +28,7 @@ func TestAutomationDocsCoverMajorCommandFamilies(t *testing.T) {
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "automation.md"), []string{
 		"bb auth login",
 		"bb browse",
+		"bb resolve",
 		"bb repo view",
 		"bb pipeline list",
 		"bb pr list",

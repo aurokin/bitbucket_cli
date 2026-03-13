@@ -255,6 +255,19 @@ func TestParsePullRequestSelector(t *testing.T) {
 			},
 		},
 		{
+			name: "comment url resolves to parent pull request",
+			raw:  "https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
+			want: pullRequestSelector{
+				Repo: repoSelector{
+					Host:      "bitbucket.org",
+					Workspace: "acme",
+					Repo:      "widgets",
+					Explicit:  true,
+				},
+				ID: 42,
+			},
+		},
+		{
 			name:    "invalid path",
 			raw:     "https://bitbucket.org/acme/widgets/src/main.go",
 			wantErr: `pull request URL "https://bitbucket.org/acme/widgets/src/main.go" must point to a Bitbucket pull request`,

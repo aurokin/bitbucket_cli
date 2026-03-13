@@ -204,6 +204,41 @@ func TestProjectHelpRegression(t *testing.T) {
 	}
 }
 
+func TestDeploymentHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "deployment", "environment", "list", "--help")
+	for _, fragment := range []string{
+		"bb deployment environment list --repo workspace-slug/pipelines-repo-slug",
+		"--repo string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("deployment help missing %q\n%s", fragment, output)
+		}
+	}
+
+	output = renderHelp(t, "deployment", "environment", "view", "--help")
+	for _, fragment := range []string{
+		"bb deployment environment view '{environment-uuid}' --repo workspace-slug/pipelines-repo-slug --json environment",
+		"Show deployment environment information",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("deployment help missing %q\n%s", fragment, output)
+		}
+	}
+
+	output = renderHelp(t, "deployment", "environment", "variable", "list", "--help")
+	for _, fragment := range []string{
+		"bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test",
+		"--environment string",
+		"--limit int",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("deployment help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

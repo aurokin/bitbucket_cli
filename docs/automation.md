@@ -99,6 +99,8 @@ bb commit comment list abc1234 --repo workspace-slug/repo-slug --json comments
 bb commit report list abc1234 --repo workspace-slug/repo-slug --json reports
 bb commit approve abc1234 --repo workspace-slug/repo-slug --json action,commit
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json environments
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test --json variables
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
@@ -144,6 +146,8 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 ```
 
 Bitbucket Cloud currently rejects API-token auth for the documented issue import/export job endpoints. Keep automation on attachments, comments, milestones, and components unless Atlassian changes the auth behavior.
+
+Bitbucket Cloud repository downloads also remain out of scope on the verified API-token path for the current fixture workspace. The official downloads endpoint currently returns a workspace-plan `402 Payment Required` response instead of a usable download workflow.
 
 Bitbucket also rejected deploy-key updates in the live API behavior we verified. Rotate deploy keys by deleting and creating them instead of expecting an in-place update command.
 

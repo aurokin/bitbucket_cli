@@ -40,6 +40,15 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb config path`
   - `bb config set`
   - `bb config unset`
+- `bb deployment`
+  - `bb deployment environment`
+    - `bb deployment environment list`
+    - `bb deployment environment variable`
+      - `bb deployment environment variable list`
+      - `bb deployment environment variable view`
+    - `bb deployment environment view`
+  - `bb deployment list`
+  - `bb deployment view`
 - `bb extension`
   - `bb extension exec`
   - `bb extension list`
@@ -1059,6 +1068,232 @@ bb config unset output.format
 Flags:
 
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb deployment`
+
+Inspect Bitbucket deployments and environments
+
+Inspect Bitbucket deployment history, deployment environments, and deployment environment variables backed by the official Bitbucket Cloud deployments APIs.
+
+Usage:
+
+```text
+bb deployment
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb deployment environment`: Inspect deployment environments
+- `bb deployment list`: List deployments in one repository
+- `bb deployment view`: Show deployment information
+
+## `bb deployment environment`
+
+Inspect deployment environments
+
+Aliases: `environments`
+
+Usage:
+
+```text
+bb deployment environment
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb deployment environment list`: List deployment environments in one repository
+- `bb deployment environment variable`: Inspect deployment environment variables
+- `bb deployment environment view`: Show deployment environment information
+
+## `bb deployment environment list`
+
+List deployment environments in one repository
+
+Usage:
+
+```text
+bb deployment environment list [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json environments
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of environments to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment environment variable`
+
+Inspect deployment environment variables
+
+Aliases: `variables`
+
+Usage:
+
+```text
+bb deployment environment variable
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb deployment environment variable list`: List variables for one deployment environment
+- `bb deployment environment variable view`: Show one deployment environment variable
+
+## `bb deployment environment variable list`
+
+List variables for one deployment environment
+
+Usage:
+
+```text
+bb deployment environment variable list [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment '{environment-uuid}' --json variables
+```
+
+Flags:
+
+- `--environment`: Deployment environment reference as a name, slug, or UUID
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of deployment variables to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment environment variable view`
+
+Show one deployment environment variable
+
+Usage:
+
+```text
+bb deployment environment variable view <variable-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment variable view '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test
+bb deployment environment variable view '{variable-uuid}' --repo workspace-slug/pipelines-repo-slug --environment test --json variable
+```
+
+Flags:
+
+- `--environment`: Deployment environment reference as a name, slug, or UUID
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment environment view`
+
+Show deployment environment information
+
+Usage:
+
+```text
+bb deployment environment view <environment> [flags]
+```
+
+Examples:
+
+```bash
+bb deployment environment view test --repo workspace-slug/pipelines-repo-slug
+bb deployment environment view '{environment-uuid}' --repo workspace-slug/pipelines-repo-slug --json environment
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment list`
+
+List deployments in one repository
+
+Usage:
+
+```text
+bb deployment list [flags]
+```
+
+Examples:
+
+```bash
+bb deployment list --repo workspace-slug/pipelines-repo-slug
+bb deployment list --repo workspace-slug/pipelines-repo-slug --json deployments
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of deployments to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb deployment view`
+
+Show deployment information
+
+Usage:
+
+```text
+bb deployment view <deployment-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb deployment view '{deployment-uuid}' --repo workspace-slug/pipelines-repo-slug
+bb deployment view '{deployment-uuid}' --repo workspace-slug/pipelines-repo-slug --json deployment
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb extension`
 

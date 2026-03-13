@@ -98,6 +98,8 @@ bb commit view abc1234 --repo workspace-slug/repo-slug
 bb commit statuses abc1234 --repo workspace-slug/repo-slug
 bb commit report list abc1234 --repo workspace-slug/repo-slug
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
 bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
@@ -175,6 +177,8 @@ bb commit statuses abc1234 --repo workspace-slug/repo-slug --json statuses
 bb commit report list abc1234 --repo workspace-slug/repo-slug --json reports
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json environments
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test --json variables
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug --json schedules
 bb pipeline cache list --repo workspace-slug/pipelines-repo-slug --json caches
@@ -209,7 +213,7 @@ Key behavior:
 
 Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
 
-- auth, api, branch, browse, commit, project, resolve, tag, and workspace
+- auth, api, branch, browse, commit, deployment, project, resolve, tag, and workspace
 - repo, pipeline, pr, and issue
 - search, status, config, alias, and extension
 
@@ -264,6 +268,7 @@ References:
 ## Notes On Pipeline Behavior
 
 - `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: run, list, view, test reports, repository variables, schedules, runners, caches, log, and stop.
+- `bb deployment` supports the official Bitbucket Cloud deployment and environment read paths we could verify directly today: deployment listing, environment inspection, and deployment environment variable inspection.
 - `bb` does not provide pipeline rerun because the current Bitbucket Cloud pipeline REST docs do not expose a rerun endpoint. `bb` does not fake rerun by creating a new run behind your back.
 - Raw step logs are not guaranteed for every Bitbucket pipeline step. When Bitbucket does not expose a log file for a step, `bb pipeline log` fails clearly instead of inventing synthetic output.
 - Test reports are also not guaranteed for every pipeline step. When Bitbucket does not expose test reports for a step, `bb pipeline test-reports` fails clearly instead of inventing synthetic results.
@@ -273,6 +278,8 @@ References:
 - `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
 - `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
 - Project permission mutation stays out of scope for now. `bb` only exposes explicit project permission inspection until the API-token path is verified cleanly enough to support a documented write workflow.
+- Bitbucket Cloud exposes a workspace code-search endpoint in the official REST API, but on the verified full-access API-token path it currently returns `Search is not enabled for the requested account`. `bb` keeps code search out of scope until Atlassian exposes it consistently enough to support as a documented workflow.
+- Bitbucket Cloud repository downloads stay out of scope for now. On the verified API-token path in the current fixture workspace, the official downloads endpoint returns `402 Payment Required` because that workspace plan does not support downloads.
 - `bb` intentionally supports API-token login only. Browser login is out of scope unless Bitbucket Cloud exposes a cleaner CLI-safe auth path.
 - `bb` does not wrap Bitbucket issue import or export jobs today. Atlassian documents those endpoints, but the current Bitbucket Cloud issue import/export endpoints reject API-token auth, so `bb` leaves them out instead of shipping a broken wrapper.
 - `bb repo deploy-key` supports list, view, create, and delete. Bitbucket rejected deploy-key updates in the live API behavior we verified, so key rotation should use delete plus create instead of an `edit` command.

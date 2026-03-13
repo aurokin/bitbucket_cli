@@ -130,6 +130,8 @@ These commands are backed by the official Bitbucket Cloud commits, commit status
 
 ```bash
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
 bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'
@@ -140,6 +142,8 @@ bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{st
 bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug
 ```
+
+Bitbucket Cloud repository downloads remain out of scope for this CLI on the verified API-token path because the official downloads endpoint currently returns a workspace-plan `402 Payment Required` response on the fixture workspace.
 
 ## Review A Pull Request
 

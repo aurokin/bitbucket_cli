@@ -33,6 +33,12 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb config path` |  |  | yes |  |  |  |  |
 | `bb config set` |  |  | yes |  |  |  |  |
 | `bb config unset` |  |  | yes |  |  |  |  |
+| `bb deployment environment list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb deployment environment variable list` | yes | yes | yes | yes | yes | yes | `--environment`, `--limit` |
+| `bb deployment environment variable view` | yes | yes | yes | yes | yes | yes | `--environment` |
+| `bb deployment environment view` | yes | yes | yes | yes | yes | yes |  |
+| `bb deployment list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb deployment view` | yes | yes | yes | yes | yes | yes |  |
 | `bb extension exec` |  |  | yes |  |  |  |  |
 | `bb extension list` | yes | yes | yes |  |  |  |  |
 | `bb issue attachment list` | yes | yes | yes | yes | yes | yes | `--limit` |

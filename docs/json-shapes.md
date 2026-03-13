@@ -290,6 +290,230 @@ Representative shapes:
 }
 ```
 
+## Deployments And Environments
+
+Representative shapes for deployment history, deployment environment inspection, and deployment environment variable inspection.
+
+Commands:
+
+```bash
+bb deployment list --repo workspace-slug/pipelines-repo-slug --json '*'
+bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json '*'
+bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "deployments": [
+    {
+      "environment": {
+        "name": "Example Name"
+      },
+      "release": {
+        "name": "Example Name"
+      },
+      "state": {
+        "name": "Example Name"
+      },
+      "uuid": "{uuid}"
+    }
+  ],
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "deployment": {
+    "environment": {
+      "category": {
+        "name": "Example Name"
+      },
+      "deployment_gate_enabled": true,
+      "environment_lock_enabled": true,
+      "environment_type": {
+        "name": "Example Name"
+      },
+      "hidden": true,
+      "lock": {
+        "name": "Example Name"
+      },
+      "name": "Example Name",
+      "rank": 1,
+      "slug": "\u003cslug\u003e",
+      "type": "commit_file",
+      "uuid": "{uuid}"
+    },
+    "release": {
+      "name": "Example Name"
+    },
+    "state": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "uuid": "{uuid}"
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "environments": [
+    {
+      "category": {
+        "name": "Example Name"
+      },
+      "deployment_gate_enabled": true,
+      "environment_lock_enabled": true,
+      "environment_type": {
+        "name": "Example Name"
+      },
+      "hidden": true,
+      "lock": {
+        "name": "Example Name"
+      },
+      "name": "Example Name",
+      "rank": 1,
+      "slug": "\u003cslug\u003e",
+      "type": "commit_file",
+      "uuid": "{uuid}"
+    }
+  ],
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "environment": {
+    "category": {
+      "name": "Example Name"
+    },
+    "deployment_gate_enabled": true,
+    "environment_lock_enabled": true,
+    "environment_type": {
+      "name": "Example Name",
+      "rank": 1,
+      "type": "commit_file"
+    },
+    "hidden": true,
+    "lock": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "name": "Example Name",
+    "rank": 1,
+    "slug": "\u003cslug\u003e",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "environment": {
+    "category": {
+      "name": "Example Name"
+    },
+    "deployment_gate_enabled": true,
+    "environment_lock_enabled": true,
+    "environment_type": {
+      "name": "Example Name",
+      "rank": 1,
+      "type": "commit_file"
+    },
+    "hidden": true,
+    "lock": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "name": "Example Name",
+    "rank": 1,
+    "slug": "\u003cslug\u003e",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "variables": [
+    {
+      "key": "BBCLI",
+      "secured": true,
+      "uuid": "{uuid}",
+      "value": "\u003cvalue\u003e"
+    }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "environment": {
+    "category": {
+      "name": "Example Name"
+    },
+    "deployment_gate_enabled": true,
+    "environment_lock_enabled": true,
+    "environment_type": {
+      "name": "Example Name",
+      "rank": 1,
+      "type": "commit_file"
+    },
+    "hidden": true,
+    "lock": {
+      "name": "Example Name",
+      "type": "commit_file"
+    },
+    "name": "Example Name",
+    "rank": 1,
+    "slug": "\u003cslug\u003e",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "variable": {
+    "key": "BBCLI",
+    "secured": true,
+    "uuid": "{uuid}",
+    "value": "\u003cvalue\u003e"
+  },
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
 ## Repository View
 
 Representative shape for the repository view payload.

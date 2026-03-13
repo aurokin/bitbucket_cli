@@ -46,6 +46,16 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: []any{projectListPayload{}, projectPayload{}, projectMutationPayload{}, projectDefaultReviewerListPayload{}, projectUserPermissionPayload{}, projectGroupPermissionPayload{}},
 		},
 		{
+			Title:       "Deployments And Environments",
+			Description: "Representative shapes for deployment history, deployment environment inspection, and deployment environment variable inspection.",
+			Commands: []string{
+				"bb deployment list --repo workspace-slug/pipelines-repo-slug --json '*'",
+				"bb deployment environment list --repo workspace-slug/pipelines-repo-slug --json '*'",
+				"bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test --json '*'",
+			},
+			Type: []any{deploymentListPayload{}, deploymentPayload{}, deploymentEnvironmentListPayload{}, deploymentEnvironmentPayload{}, deploymentVariableListPayload{}, deploymentVariablePayload{}},
+		},
+		{
 			Title:       "Repository View",
 			Description: "Representative shape for the repository view payload.",
 			Commands: []string{

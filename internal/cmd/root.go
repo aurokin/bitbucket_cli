@@ -15,7 +15,7 @@ func NewRootCmd() *cobra.Command {
 		Use:           "bb",
 		Short:         "Bitbucket CLI",
 		Long:          "bb is a Bitbucket Cloud CLI for humans and automation. Prefer --repo <workspace>/<repo> for explicit targeting. Use --json and --jq for structured output, and --no-prompt for deterministic non-interactive runs.",
-		Example:       "  bb auth login --username you@example.com --with-token\n  bb workspace list\n  bb project list workspace-slug\n  bb browse --repo workspace-slug/repo-slug --no-browser\n  bb repo view --repo workspace-slug/repo-slug\n  bb commit view abc1234 --repo workspace-slug/repo-slug\n  bb pipeline list --repo workspace-slug/pipelines-repo-slug\n  bb pr list --repo workspace-slug/repo-slug\n  bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'\n  bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title 'Add feature' --json id,title,state\n  bb status --json authored_prs,review_requested_prs,your_issues",
+		Example:       "  bb auth login --username you@example.com --with-token\n  bb workspace list\n  bb project list workspace-slug\n  bb deployment environment list --repo workspace-slug/pipelines-repo-slug\n  bb browse --repo workspace-slug/repo-slug --no-browser\n  bb repo view --repo workspace-slug/repo-slug\n  bb commit view abc1234 --repo workspace-slug/repo-slug\n  bb pipeline list --repo workspace-slug/pipelines-repo-slug\n  bb pr list --repo workspace-slug/repo-slug\n  bb issue create --repo workspace-slug/issues-repo-slug --title 'Broken flow'\n  bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title 'Add feature' --json id,title,state\n  bb status --json authored_prs,review_requested_prs,your_issues",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
@@ -31,6 +31,7 @@ func NewRootCmd() *cobra.Command {
 		newBrowseCmd(),
 		newWorkspaceCmd(),
 		newProjectCmd(),
+		newDeploymentCmd(),
 		newSearchCmd(),
 		newStatusCmd(),
 		newTagCmd(),

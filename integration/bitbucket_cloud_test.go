@@ -1811,6 +1811,66 @@ func TestBitbucketCloudProjectMutation(t *testing.T) {
 	)
 }
 
+func TestBitbucketCloudDeploymentRead(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+	repoTarget := session.Workspace + "/" + pipelines.Repo.Slug
+
+	listOutput := session.Run(t, "", "deployment", "list", "--repo", repoTarget, "--json", "*")
+	var listed struct {
+		Workspace   string                 `json:"workspace"`
+		Repo        string                 `json:"repo"`
+		Deployments []bitbucket.Deployment `json:"deployments"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse deployment list JSON: %v\n%s", err, listOutput)
+	}
+	if listed.Workspace != session.Workspace || listed.Repo != pipelines.Repo.Slug {
+		t.Fatalf("unexpected deployment list payload %+v", listed)
+	}
+
+	environmentListOutput := session.Run(t, "", "deployment", "environment", "list", "--repo", repoTarget, "--json", "*")
+	var environments struct {
+		Environments []bitbucket.DeploymentEnvironment `json:"environments"`
+	}
+	if err := json.Unmarshal(environmentListOutput, &environments); err != nil {
+		t.Fatalf("parse deployment environment list JSON: %v\n%s", err, environmentListOutput)
+	}
+	if len(environments.Environments) == 0 {
+		t.Fatalf("expected at least one deployment environment")
+	}
+
+	viewOutput := session.Run(t, "", "deployment", "environment", "view", environments.Environments[0].Slug, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Environment bitbucket.DeploymentEnvironment `json:"environment"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse deployment environment view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Environment.UUID == "" {
+		t.Fatalf("unexpected deployment environment payload %+v", viewed)
+	}
+
+	variableListOutput := session.Run(t, "", "deployment", "environment", "variable", "list", "--repo", repoTarget, "--environment", environments.Environments[0].Slug, "--json", "*")
+	var variables struct {
+		Environment bitbucket.DeploymentEnvironment `json:"environment"`
+		Variables   []bitbucket.DeploymentVariable  `json:"variables"`
+	}
+	if err := json.Unmarshal(variableListOutput, &variables); err != nil {
+		t.Fatalf("parse deployment variable list JSON: %v\n%s", err, variableListOutput)
+	}
+	if variables.Environment.UUID != viewed.Environment.UUID {
+		t.Fatalf("unexpected deployment variable payload %+v", variables)
+	}
+
+	humanOutput := session.Run(t, "", "deployment", "environment", "view", environments.Environments[0].Slug, "--repo", repoTarget)
+	assertContainsOrdered(t, string(humanOutput),
+		"Repository: "+repoTarget,
+		"Environment: "+viewed.Environment.Name,
+		"Next: bb deployment environment variable list --repo "+repoTarget+" --environment "+viewed.Environment.Slug,
+	)
+}
+
 func TestBitbucketCloudCommitRead(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)
@@ -2223,6 +2283,14 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected pipeline list next step:\n%s", pipelineListOutput)
 	}
 
+	deploymentEnvironmentOutput := session.Run(t, "", "deployment", "environment", "list", "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug)
+	if !strings.Contains(string(deploymentEnvironmentOutput), "Repository: "+session.Workspace+"/"+pipelineRepo.Repo.Slug) {
+		t.Fatalf("expected repo header in deployment environment list output:\n%s", deploymentEnvironmentOutput)
+	}
+	if !strings.Contains(string(deploymentEnvironmentOutput), "Next: bb deployment environment view") {
+		t.Fatalf("expected deployment environment next step:\n%s", deploymentEnvironmentOutput)
+	}
+
 	pipelineViewOutput := session.Run(t, "", "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug)
 	if !strings.Contains(string(pipelineViewOutput), "Repository: "+session.Workspace+"/"+pipelineRepo.Repo.Slug) {
 		t.Fatalf("expected repo header in pipeline view output:\n%s", pipelineViewOutput)
@@ -2421,6 +2489,19 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if pipelineView.Workspace != session.Workspace || pipelineView.Repo != pipelineRepo.Repo.Slug || pipelineView.Pipeline.BuildNumber == 0 {
 		t.Fatalf("unexpected pipeline view payload %+v", pipelineView)
+	}
+
+	deploymentEnvironmentOutput := session.Run(t, "", "deployment", "environment", "list", "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug, "--json", "workspace,repo,environments")
+	var deploymentEnvironments struct {
+		Workspace    string                            `json:"workspace"`
+		Repo         string                            `json:"repo"`
+		Environments []bitbucket.DeploymentEnvironment `json:"environments"`
+	}
+	if err := json.Unmarshal(deploymentEnvironmentOutput, &deploymentEnvironments); err != nil {
+		t.Fatalf("parse deployment environment list JSON: %v\n%s", err, deploymentEnvironmentOutput)
+	}
+	if deploymentEnvironments.Workspace != session.Workspace || deploymentEnvironments.Repo != pipelineRepo.Repo.Slug || len(deploymentEnvironments.Environments) == 0 {
+		t.Fatalf("unexpected deployment environment payload %+v", deploymentEnvironments)
 	}
 
 	if canReadPipelineLog {

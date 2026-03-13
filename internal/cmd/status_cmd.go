@@ -397,13 +397,13 @@ func writeCrossRepoPRTable(w io.Writer, prs []crossRepoPullRequest) error {
 	}
 
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintln(tw, "repo\t#\ttitle\tstate\tsrc\tdst\tupdated"); err != nil {
+	if _, err := fmt.Fprintln(tw, "repo\t#\ttitle\tstate\tsrc\tdst\ttsk\tcmt\tupdated"); err != nil {
 		return err
 	}
 	for _, item := range prs {
 		if _, err := fmt.Fprintf(
 			tw,
-			"%s/%s\t%d\t%s\t%s\t%s\t%s\t%s\n",
+			"%s/%s\t%d\t%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 			item.Workspace,
 			item.Repo,
 			item.PullRequest.ID,
@@ -411,6 +411,8 @@ func writeCrossRepoPRTable(w io.Writer, prs []crossRepoPullRequest) error {
 			output.Truncate(item.PullRequest.State, 12),
 			output.TruncateMiddle(item.PullRequest.Source.Branch.Name, 12),
 			output.TruncateMiddle(item.PullRequest.Destination.Branch.Name, 12),
+			item.PullRequest.TaskCount,
+			item.PullRequest.CommentCount,
 			formatPRUpdated(item.PullRequest.UpdatedOn),
 		); err != nil {
 			return err

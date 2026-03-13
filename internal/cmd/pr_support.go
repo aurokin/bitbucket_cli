@@ -266,6 +266,12 @@ func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {
 
 	for _, pr := range prs {
 		line := fmt.Sprintf("  #%d  %s [%s] %s -> %s", pr.ID, pr.Title, pr.State, pr.Source.Branch.Name, pr.Destination.Branch.Name)
+		if pr.TaskCount > 0 {
+			line += fmt.Sprintf("  tasks:%d", pr.TaskCount)
+		}
+		if pr.CommentCount > 0 {
+			line += fmt.Sprintf("  comments:%d", pr.CommentCount)
+		}
 		if _, err := fmt.Fprintln(w, line); err != nil {
 			return err
 		}
@@ -306,20 +312,22 @@ func writePRListTable(w io.Writer, prs []bitbucket.PullRequest) error {
 	titleWidth, authorWidth, branchWidth := prListColumnWidths(output.TerminalWidth(w))
 
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintln(tw, "#\ttitle\tstate\tauthor\tsrc\tdst\tupdated"); err != nil {
+	if _, err := fmt.Fprintln(tw, "#\ttitle\tstate\tauthor\tsrc\tdst\ttsk\tcmt\tupdated"); err != nil {
 		return err
 	}
 
 	for _, pr := range prs {
 		if _, err := fmt.Fprintf(
 			tw,
-			"%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			"%d\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\n",
 			pr.ID,
 			output.Truncate(pr.Title, titleWidth),
 			output.Truncate(pr.State, 10),
 			output.Truncate(pr.Author.DisplayName, authorWidth),
 			output.TruncateMiddle(pr.Source.Branch.Name, branchWidth),
 			output.TruncateMiddle(pr.Destination.Branch.Name, branchWidth),
+			pr.TaskCount,
+			pr.CommentCount,
 			formatPRUpdated(pr.UpdatedOn),
 		); err != nil {
 			return err
@@ -497,6 +505,16 @@ func writePullRequestSummaryTable(w io.Writer, pr bitbucket.PullRequest, options
 	}
 	if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
 		return err
+	}
+	if pr.TaskCount > 0 {
+		if _, err := fmt.Fprintf(tw, "Tasks:\t%d\n", pr.TaskCount); err != nil {
+			return err
+		}
+	}
+	if pr.CommentCount > 0 {
+		if _, err := fmt.Fprintf(tw, "Comments:\t%d\n", pr.CommentCount); err != nil {
+			return err
+		}
 	}
 	if options.IncludeUpdated && pr.UpdatedOn != "" {
 		if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", pr.UpdatedOn); err != nil {

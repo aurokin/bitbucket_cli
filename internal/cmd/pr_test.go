@@ -257,10 +257,12 @@ func TestWritePRListTableCompactsWideFields(t *testing.T) {
 	var buf bytes.Buffer
 	prs := []bitbucket.PullRequest{
 		{
-			ID:        7,
-			Title:     "Add a very long pull request title that should be truncated for human output",
-			State:     "OPEN",
-			UpdatedOn: "2026-03-10T12:34:56Z",
+			ID:           7,
+			Title:        "Add a very long pull request title that should be truncated for human output",
+			State:        "OPEN",
+			TaskCount:    3,
+			CommentCount: 5,
+			UpdatedOn:    "2026-03-10T12:34:56Z",
 			Author: bitbucket.PullRequestActor{
 				DisplayName: "Example User With A Long Name",
 			},
@@ -274,11 +276,14 @@ func TestWritePRListTableCompactsWideFields(t *testing.T) {
 	}
 
 	got := buf.String()
-	if !strings.Contains(got, "#\ttitle\tstate\tauthor\tsrc\tdst\tupdated") && !strings.Contains(got, "# title") {
+	if !strings.Contains(got, "#\ttitle\tstate\tauthor\tsrc\tdst\ttsk\tcmt\tupdated") && !strings.Contains(got, "# title") {
 		t.Fatalf("expected compact header, got %q", got)
 	}
 	if !strings.Contains(got, "…") {
 		t.Fatalf("expected truncation marker in output, got %q", got)
+	}
+	if !strings.Contains(got, "3") || !strings.Contains(got, "5") {
+		t.Fatalf("expected task and comment counts in output, got %q", got)
 	}
 	if !strings.Contains(got, "2026-03-10") {
 		t.Fatalf("expected compact timestamp, got %q", got)
@@ -329,12 +334,14 @@ func TestWritePRListTableWithRepositoryHeader(t *testing.T) {
 	var buf bytes.Buffer
 	prs := []bitbucket.PullRequest{
 		{
-			ID:        7,
-			Title:     "Fixture PR",
-			State:     "OPEN",
-			UpdatedOn: "2026-03-10T12:34:56Z",
-			Author:    bitbucket.PullRequestActor{DisplayName: "Example User"},
-			Source:    bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/test"}},
+			ID:           7,
+			Title:        "Fixture PR",
+			State:        "OPEN",
+			TaskCount:    2,
+			CommentCount: 4,
+			UpdatedOn:    "2026-03-10T12:34:56Z",
+			Author:       bitbucket.PullRequestActor{DisplayName: "Example User"},
+			Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/test"}},
 			Destination: bitbucket.PullRequestRef{
 				Branch: bitbucket.PullRequestBranch{Name: "main"},
 			},
@@ -362,15 +369,17 @@ func TestWritePullRequestSummaryTableIncludesOptionalFields(t *testing.T) {
 
 	var buf bytes.Buffer
 	pr := bitbucket.PullRequest{
-		ID:          9,
-		Title:       "Ship feature",
-		State:       "MERGED",
-		UpdatedOn:   "2026-03-10T12:34:56Z",
-		Description: "Ready to land",
-		Author:      bitbucket.PullRequestActor{DisplayName: "Example User"},
-		Source:      bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/ship"}},
-		Destination: bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
-		Links:       bitbucket.PullRequestLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pull-requests/9"}},
+		ID:           9,
+		Title:        "Ship feature",
+		State:        "MERGED",
+		TaskCount:    3,
+		CommentCount: 8,
+		UpdatedOn:    "2026-03-10T12:34:56Z",
+		Description:  "Ready to land",
+		Author:       bitbucket.PullRequestActor{DisplayName: "Example User"},
+		Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/ship"}},
+		Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		Links:        bitbucket.PullRequestLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pull-requests/9"}},
 	}
 
 	if err := writePullRequestSummaryTable(&buf, pr, pullRequestSummaryOptions{
@@ -390,6 +399,8 @@ func TestWritePullRequestSummaryTableIncludesOptionalFields(t *testing.T) {
 		"Author:",
 		"Strategy:",
 		"Merge Commit:",
+		"Tasks:",
+		"Comments:",
 		"Updated:",
 		"Description:",
 	} {
@@ -408,6 +419,17 @@ func TestWritePRStatusSummaryIncludesWarnings(t *testing.T) {
 		Repo:              "widgets",
 		Warnings:          []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
 		CurrentBranchName: "",
+		Created: []bitbucket.PullRequest{
+			{
+				ID:           7,
+				Title:        "Needs follow-up",
+				State:        "OPEN",
+				TaskCount:    2,
+				CommentCount: 4,
+				Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/tasks"}},
+				Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+			},
+		},
 	}
 
 	if err := writePRStatusSummary(&buf, payload); err != nil {
@@ -420,7 +442,8 @@ func TestWritePRStatusSummaryIncludesWarnings(t *testing.T) {
 		"Warning: local repository context unavailable",
 		"Current Branch: unavailable",
 		"Current Branch Pull Request",
-		"Next: bb pr list --repo acme/widgets",
+		"tasks:2",
+		"comments:4",
 	} {
 		if !strings.Contains(got, expected) {
 			t.Fatalf("expected %q in output, got %q", expected, got)

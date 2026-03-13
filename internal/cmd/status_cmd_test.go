@@ -263,6 +263,46 @@ func TestStatusOutputIncludesNotes(t *testing.T) {
 	}
 }
 
+func TestWriteCrossRepoPRTableIncludesTaskAndCommentCounts(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	prs := []crossRepoPullRequest{
+		{
+			Workspace: "acme",
+			Repo:      "widgets",
+			PullRequest: bitbucket.PullRequest{
+				ID:           7,
+				Title:        "Needs follow-up",
+				State:        "OPEN",
+				TaskCount:    3,
+				CommentCount: 5,
+				Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/tasks"}},
+				Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+				UpdatedOn:    "2026-03-11T00:00:00Z",
+			},
+		},
+	}
+
+	if err := writeCrossRepoPRTable(&buf, prs); err != nil {
+		t.Fatalf("writeCrossRepoPRTable returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"repo",
+		"tsk",
+		"cmt",
+		"Needs follow-up",
+		"3",
+		"5",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func BenchmarkBuildCrossRepoStatus(b *testing.B) {
 	client := &fakeStatusClient{
 		repositories: map[string][]bitbucket.Repository{

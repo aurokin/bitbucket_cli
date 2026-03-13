@@ -834,6 +834,9 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	if !strings.Contains(string(prListOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in pr list output:\n%s", prListOutput)
 	}
+	if !strings.Contains(string(prListOutput), "tsk") || !strings.Contains(string(prListOutput), "cmt") {
+		t.Fatalf("expected task/comment count columns in pr list output:\n%s", prListOutput)
+	}
 
 	prViewOutput := session.Run(t, "", "pr", "view", fmt.Sprintf("%d", fixture.PrimaryPRID), "--repo", session.Workspace+"/"+fixture.PrimaryRepo.Slug)
 	if !strings.Contains(string(prViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {

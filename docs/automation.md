@@ -95,7 +95,7 @@ bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json host,workspa
 ## Pull Request Commands
 
 ```bash
-bb pr list --repo workspace-slug/repo-slug --json id,title,state,author
+bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pr view 1 --repo workspace-slug/repo-slug --json '*'
 bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json id,title,state
 bb pr diff 1 --repo workspace-slug/repo-slug --json patch,stats
@@ -134,7 +134,7 @@ bb issue reopen 1 --repo workspace-slug/issues-repo-slug --json id,title,state
 
 ```bash
 bb search repos bb-cli --workspace workspace-slug --json name,slug,project
-bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | {id, title, state}'
+bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | {id, title, state, task_count, comment_count}'
 bb search issues broken --repo workspace-slug/issues-repo-slug --json id,title,state
 bb status --workspace workspace-slug --limit 10 --json authored_prs,review_requested_prs,your_issues,warnings
 ```

@@ -59,8 +59,6 @@ npx skills add https://github.com/aurokin/bitbucket_cli --skill bb-cli
 
 You can also inspect the skill directly in [skills/bb-cli](./skills/bb-cli).
 
-`skills.sh` does not use a separate registry submission flow for publishing. Public skills become discoverable from their git repositories, and skills.sh visibility is driven by installs through the `skills` CLI.
-
 ## Quick Start
 
 Authenticate with an Atlassian API token:
@@ -132,6 +130,7 @@ bb status
 The human-readable path is designed to:
 
 - show repository or workspace context before results
+- surface pull request task and comment counts in PR tables and status views
 - include `Next:` suggestions after most mutations, detail views, and empty states
 - stay compact on wide terminals without dropping key context
 
@@ -187,54 +186,13 @@ Automation conventions:
 - `bb auth status --check` validates credentials against the Bitbucket current-user API.
 - `bb api` is the escape hatch for any official REST endpoint that `bb` does not yet wrap directly.
 
-## Command Families
+## Command Surface
 
-- `bb version`
-- `bb auth login`
-- `bb auth logout`
-- `bb auth status`
-- `bb api`
-- `bb browse`
-- `bb resolve`
-- `bb config list`
-- `bb config get`
-- `bb config set`
-- `bb config unset`
-- `bb config path`
-- `bb alias list`
-- `bb alias get`
-- `bb alias set`
-- `bb alias delete`
-- `bb extension list`
-- `bb extension exec`
-- `bb repo view`
-- `bb repo create`
-- `bb repo clone`
-- `bb repo delete`
-- `bb pipeline list`
-- `bb pipeline log`
-- `bb pipeline stop`
-- `bb pipeline view`
-- `bb pr list`
-- `bb pr status`
-- `bb pr view`
-- `bb pr diff`
-- `bb pr comment`
-- `bb pr task`
-- `bb pr create`
-- `bb pr checkout`
-- `bb pr merge`
-- `bb pr close`
-- `bb issue list`
-- `bb issue view`
-- `bb issue create`
-- `bb issue edit`
-- `bb issue close`
-- `bb issue reopen`
-- `bb search repos`
-- `bb search prs`
-- `bb search issues`
-- `bb status`
+Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
+
+- auth, api, browse, and resolve
+- repo, pipeline, pr, and issue
+- search, status, config, alias, and extension
 
 ## Output Modes
 

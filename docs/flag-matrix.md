@@ -32,17 +32,24 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb pipeline log` | yes | yes | yes | yes | yes | yes | `--step` |
 | `bb pipeline stop` | yes | yes | yes | yes | yes | yes | `--yes` |
 | `bb pipeline view` | yes | yes | yes | yes | yes | yes |  |
+| `bb pr activity` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pr checkout` |  |  | yes | yes | yes | yes |  |
+| `bb pr checks` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pr close` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr comment delete` | yes | yes | yes | yes | yes | yes | `--pr`, `--yes` |
 | `bb pr comment edit` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--pr` |
 | `bb pr comment reopen` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr comment resolve` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr comment view` | yes | yes | yes | yes | yes | yes | `--pr` |
+| `bb pr commits` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pr create` | yes | yes | yes | yes | yes | yes | `--close-source-branch`, `--description`, `--destination`, `--draft`, `--reuse-existing`, `--source`, `--title` |
 | `bb pr diff` | yes | yes | yes | yes | yes | yes | `--stat` |
 | `bb pr list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb pr merge` | yes | yes | yes | yes | yes | yes | `--close-source-branch`, `--message`, `--strategy` |
+| `bb pr review approve` | yes | yes | yes | yes | yes | yes |  |
+| `bb pr review clear-request-changes` | yes | yes | yes | yes | yes | yes |  |
+| `bb pr review request-changes` | yes | yes | yes | yes | yes | yes |  |
+| `bb pr review unapprove` | yes | yes | yes | yes | yes | yes |  |
 | `bb pr status` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pr task create` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--comment`, `--pending` |
 | `bb pr task delete` | yes | yes | yes | yes | yes | yes | `--pr`, `--yes` |

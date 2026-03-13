@@ -39,7 +39,9 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb pipeline stop`
   - `bb pipeline view`
 - `bb pr`
+  - `bb pr activity`
   - `bb pr checkout`
+  - `bb pr checks`
   - `bb pr close`
   - `bb pr comment`
     - `bb pr comment delete`
@@ -47,10 +49,16 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
     - `bb pr comment reopen`
     - `bb pr comment resolve`
     - `bb pr comment view`
+  - `bb pr commits`
   - `bb pr create`
   - `bb pr diff`
   - `bb pr list`
   - `bb pr merge`
+  - `bb pr review`
+    - `bb pr review approve`
+    - `bb pr review clear-request-changes`
+    - `bb pr review request-changes`
+    - `bb pr review unapprove`
   - `bb pr status`
   - `bb pr task`
     - `bb pr task create`
@@ -863,16 +871,50 @@ Flags:
 
 Subcommands:
 
+- `bb pr activity`: Show recent pull request activity
 - `bb pr checkout`: Check out a pull request locally
+- `bb pr checks`: Show commit statuses for a pull request
 - `bb pr close`: Close a pull request without merging it
 - `bb pr comment`: Add a comment to a pull request
+- `bb pr commits`: List commits on a pull request
 - `bb pr create`: Create a pull request
 - `bb pr diff`: View a pull request diff
 - `bb pr list`: List pull requests for a repository
 - `bb pr merge`: Merge a pull request
+- `bb pr review`: Review a pull request
 - `bb pr status`: Show pull request status for a repository
 - `bb pr task`: Work with pull request tasks
 - `bb pr view`: View a pull request
+
+## `bb pr activity`
+
+Show recent pull request activity
+
+Show recent pull request activity including comments, updates, approvals, and change requests. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr activity <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr activity 7 --repo workspace-slug/repo-slug
+bb pr activity https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7 --limit 50 --json '*'
+bb pr activity https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of activity entries to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb pr checkout`
 
@@ -898,6 +940,38 @@ bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#co
 Flags:
 
 - `--host`: Bitbucket host to use
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr checks`
+
+Show commit statuses for a pull request
+
+Show commit statuses for a pull request. This is the Bitbucket Cloud equivalent of PR checks backed by commit statuses. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Aliases: `statuses`
+
+Usage:
+
+```text
+bb pr checks <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr checks 7 --repo workspace-slug/repo-slug
+bb pr checks https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7 --json '*'
+bb pr statuses https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of commit statuses to return
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
@@ -1124,6 +1198,36 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
+## `bb pr commits`
+
+List commits on a pull request
+
+List the commits that would be merged by the pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr commits <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr commits 7 --repo workspace-slug/repo-slug
+bb pr commits https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7 --json '*'
+bb pr commits https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --limit 50
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of commits to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
 ## `bb pr create`
 
 Create a pull request
@@ -1253,6 +1357,153 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--strategy`: Merge strategy to use; required when Bitbucket does not expose a default
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr review`
+
+Review a pull request
+
+Review a pull request using Bitbucket Cloud review actions such as approve, request-changes, and clearing your own prior review state.
+
+Usage:
+
+```text
+bb pr review
+```
+
+Examples:
+
+```bash
+bb pr review approve 7 --repo workspace-slug/repo-slug
+bb pr review request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb pr review clear-request-changes 7 --repo workspace-slug/repo-slug
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pr review approve`: Approve a pull request
+- `bb pr review clear-request-changes`: Clear your prior request for changes
+- `bb pr review request-changes`: Request changes on a pull request
+- `bb pr review unapprove`: Withdraw your approval of a pull request
+
+## `bb pr review approve`
+
+Approve a pull request
+
+Approve a pull request as the authenticated user. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr review approve <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr review approve 7 --repo workspace-slug/repo-slug
+bb pr review approve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb pr review approve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr review clear-request-changes`
+
+Clear your prior request for changes
+
+Clear your own prior request for changes on a pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr review clear-request-changes <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr review clear-request-changes 7 --repo workspace-slug/repo-slug
+bb pr review clear-request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb pr review clear-request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr review request-changes`
+
+Request changes on a pull request
+
+Request changes on a pull request as the authenticated user. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr review request-changes <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr review request-changes 7 --repo workspace-slug/repo-slug
+bb pr review request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb pr review request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr review unapprove`
+
+Withdraw your approval of a pull request
+
+Withdraw your own approval of a pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.
+
+Usage:
+
+```text
+bb pr review unapprove <id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr review unapprove 7 --repo workspace-slug/repo-slug
+bb pr review unapprove https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb pr review unapprove https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb pr status`

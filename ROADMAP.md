@@ -2,16 +2,7 @@
 
 ## Next Commands
 
-1. Pull request review actions
-   - `bb pr review approve`
-   - `bb pr review unapprove`
-   - `bb pr review request-changes`
-   - `bb pr activity`
-   - `bb pr commits`
-   - `bb pr checks` or `bb pr statuses`
-   - Backed by the official Bitbucket Cloud pull request APIs for approvals, change requests, activity, commits, and statuses.
-
-2. Pipeline actions and diagnostics
+1. Pipeline actions and diagnostics
    - `bb pipeline run`
    - `bb pipeline test-reports`
    - `bb pipeline schedules`
@@ -20,7 +11,7 @@
    - `bb pipeline caches`
    - Backed by the official Bitbucket Cloud pipeline run, schedule, variable, runner, cache, and test report APIs.
 
-3. Issue collaboration depth
+2. Issue collaboration depth
    - `bb issue comment`
    - `bb issue attachments`
    - `bb issue milestones`
@@ -29,7 +20,7 @@
    - `bb issue export`
    - Backed by the official Bitbucket Cloud issue tracker APIs for comments, attachments, milestones, components, and import/export.
 
-4. Repository administration
+3. Repository administration
    - `bb repo edit`
    - `bb repo fork`
    - `bb repo list`
@@ -38,7 +29,7 @@
    - `bb repo permissions`
    - Backed by the official Bitbucket Cloud repository, webhook, deploy key, and permission APIs.
 
-5. Commit and code insight surfaces
+4. Commit and code insight surfaces
    - `bb commit view`
    - `bb commit diff`
    - `bb commit comments`

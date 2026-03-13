@@ -148,6 +148,144 @@ func TestBitbucketCloudPRStatus(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPRReview(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+
+	requestChangesOutput, err := session.RunAllowFailure(t, "", "pr", "review", "request-changes", prURL, "--json", "*")
+	if err != nil {
+		t.Skipf("request-changes not available for this fixture/account: %v\n%s", err, requestChangesOutput)
+	}
+
+	var requested struct {
+		Workspace   string `json:"workspace"`
+		Repo        string `json:"repo"`
+		PullRequest int    `json:"pull_request"`
+		Action      string `json:"action"`
+		ReviewState string `json:"review_state"`
+	}
+	if err := json.Unmarshal(requestChangesOutput, &requested); err != nil {
+		t.Fatalf("parse pr review request-changes JSON: %v\n%s", err, requestChangesOutput)
+	}
+	if requested.Workspace != session.Workspace || requested.Repo != fixture.PrimaryRepo.Slug || requested.PullRequest != fixture.PrimaryPRID {
+		t.Fatalf("unexpected request-changes payload %+v", requested)
+	}
+	if requested.Action != "request-changes" || requested.ReviewState != "changes_requested" {
+		t.Fatalf("unexpected request-changes state %+v", requested)
+	}
+
+	clearHuman, err := session.RunAllowFailure(t, "", "pr", "review", "clear-request-changes", prURL)
+	if err != nil {
+		t.Fatalf("clear-request-changes failed: %v\n%s", err, clearHuman)
+	}
+	assertContainsOrdered(t, string(clearHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Action:",
+		"cleared requested changes",
+		"Next: bb pr view "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
+
+	approveOutput, err := session.RunAllowFailure(t, "", "pr", "review", "approve", prURL, "--json", "*")
+	if err != nil {
+		t.Skipf("approve not available for this fixture/account: %v\n%s", err, approveOutput)
+	}
+
+	var approved struct {
+		Action      string `json:"action"`
+		ReviewState string `json:"review_state"`
+	}
+	if err := json.Unmarshal(approveOutput, &approved); err != nil {
+		t.Fatalf("parse pr review approve JSON: %v\n%s", err, approveOutput)
+	}
+	if approved.Action != "approve" || approved.ReviewState != "approved" {
+		t.Fatalf("unexpected approve payload %+v", approved)
+	}
+
+	unapproveHuman, err := session.RunAllowFailure(t, "", "pr", "review", "unapprove", prURL)
+	if err != nil {
+		t.Fatalf("unapprove failed: %v\n%s", err, unapproveHuman)
+	}
+	assertContainsOrdered(t, string(unapproveHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Action:",
+		"unapproved",
+		"Next: bb pr view "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
+}
+
+func TestBitbucketCloudPRActivity(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	output := session.Run(t, "", "pr", "activity", prURL, "--json", "*")
+
+	var payload struct {
+		Workspace   string                        `json:"workspace"`
+		Repo        string                        `json:"repo"`
+		PullRequest int                           `json:"pull_request"`
+		Activity    []bitbucket.PullRequestActivity `json:"activity"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr activity JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.PullRequest != fixture.PrimaryPRID {
+		t.Fatalf("unexpected pr activity payload %+v", payload)
+	}
+	if len(payload.Activity) == 0 {
+		t.Fatalf("expected pull request activity entries in %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPRCommits(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	output := session.Run(t, "", "pr", "commits", prURL, "--json", "*")
+
+	var payload struct {
+		Workspace   string                      `json:"workspace"`
+		Repo        string                      `json:"repo"`
+		PullRequest int                         `json:"pull_request"`
+		Commits     []bitbucket.RepositoryCommit `json:"commits"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr commits JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.PullRequest != fixture.PrimaryPRID {
+		t.Fatalf("unexpected pr commits payload %+v", payload)
+	}
+	if len(payload.Commits) == 0 {
+		t.Fatalf("expected pull request commits in %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPRChecks(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	output := session.Run(t, "", "pr", "checks", prURL, "--json", "*")
+
+	var payload struct {
+		Workspace   string                   `json:"workspace"`
+		Repo        string                   `json:"repo"`
+		PullRequest int                      `json:"pull_request"`
+		Statuses    []bitbucket.CommitStatus `json:"statuses"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pr checks JSON: %v\n%s", err, output)
+	}
+	if payload.Workspace != session.Workspace || payload.Repo != fixture.PrimaryRepo.Slug || payload.PullRequest != fixture.PrimaryPRID {
+		t.Fatalf("unexpected pr checks payload %+v", payload)
+	}
+}
+
 func TestBitbucketCloudPRDiff(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)

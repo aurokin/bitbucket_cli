@@ -73,7 +73,11 @@ Use the generated [flag matrix](./flag-matrix.md), [CLI reference](./cli-referen
 bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
+bb pr activity https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
+bb pr commits https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json commits
+bb pr checks 1 --repo workspace-slug/repo-slug --json statuses
 bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json id,title,state
+bb pr review request-changes https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb pr comment view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread" --json '*'

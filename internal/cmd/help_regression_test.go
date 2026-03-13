@@ -172,6 +172,81 @@ func TestPRCommentHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPRReviewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "review", "--help")
+	for _, fragment := range []string{
+		"bb pr review approve 7 --repo workspace-slug/repo-slug",
+		"Available Commands:",
+		"request-changes       Request changes on a pull request",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr review help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRReviewApproveHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "review", "approve", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"--repo string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr review approve help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRActivityHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "activity", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"--limit int",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr activity help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRCommitsHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "commits", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"--limit int",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr commits help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRChecksHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "checks", "--help")
+	for _, fragment := range []string{
+		"Bitbucket Cloud equivalent of PR checks backed by commit statuses",
+		"bb pr statuses https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15",
+		"--limit int",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr checks help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCommentViewHelpRegression(t *testing.T) {
 	t.Parallel()
 

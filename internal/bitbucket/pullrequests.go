@@ -83,10 +83,11 @@ type PullRequestActor struct {
 }
 
 type PullRequestParticipant struct {
-	User     PullRequestActor `json:"user"`
-	Role     string           `json:"role,omitempty"`
-	Approved bool             `json:"approved,omitempty"`
-	State    string           `json:"state,omitempty"`
+	User           PullRequestActor `json:"user"`
+	Role           string           `json:"role,omitempty"`
+	Approved       bool             `json:"approved,omitempty"`
+	State          string           `json:"state,omitempty"`
+	ParticipatedOn string           `json:"participated_on,omitempty"`
 }
 
 type PullRequestRef struct {

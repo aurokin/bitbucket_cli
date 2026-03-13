@@ -412,6 +412,7 @@ Representative shape:
   "participants": [
     {
       "approved": true,
+      "participated_on": "\u003cparticipated-on\u003e",
       "role": "REVIEWER",
       "state": "OPEN",
       "user": {
@@ -987,6 +988,7 @@ Representative shapes:
   "participants": [
     {
       "approved": true,
+      "participated_on": "\u003cparticipated-on\u003e",
       "role": "REVIEWER",
       "state": "OPEN",
       "user": {

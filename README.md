@@ -171,7 +171,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Browser navigation through `gh browse` / `bb browse`
 - Repository inspection, creation, cloning, and deletion
 - Pipeline run listing and inspection
-- Pull request listing, status, viewing, diffing, commenting, creation, checkout, merge, and close flows
+- Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
 - Cross-repository status summaries
 - Search for repositories, pull requests, and issues
@@ -190,7 +190,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Broader auth account management
 - Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
 - Richer repository administration such as list, edit, rename, fork, archive, and sync
-- Additional pull request flows such as review, checks, edit, ready, update-branch, and revert
+- Additional pull request flows such as edit, ready, update-branch, and revert
 - Pull request reopen on platforms that actually support it
 
 ## Why There Is No `bb pr reopen`

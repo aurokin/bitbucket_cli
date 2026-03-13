@@ -79,7 +79,11 @@ bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 ```bash
 bb pr list --repo workspace-slug/repo-slug
 bb pr view 1 --repo workspace-slug/repo-slug
+bb pr activity 1 --repo workspace-slug/repo-slug
+bb pr commits 1 --repo workspace-slug/repo-slug
+bb pr checks 1 --repo workspace-slug/repo-slug
 bb pr diff 1 --repo workspace-slug/repo-slug --stat
+bb pr review approve 1 --repo workspace-slug/repo-slug
 bb pr comment 1 --repo workspace-slug/repo-slug --body "Looks good overall. Please tighten the error handling."
 ```
 

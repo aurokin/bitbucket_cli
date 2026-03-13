@@ -87,6 +87,8 @@ bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
 bb pr list --repo workspace-slug/repo-slug
 bb issue list --repo workspace-slug/issues-repo-slug
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug
+bb issue milestone list --repo workspace-slug/issues-repo-slug
+bb issue component list --repo workspace-slug/issues-repo-slug
 ```
 
 If a workflow starts from a pasted Bitbucket URL, normalize it first:
@@ -144,6 +146,8 @@ bb pipeline cache list --repo workspace-slug/pipelines-repo-slug --json caches
 bb pipeline runner list --repo workspace-slug/pipelines-repo-slug --json runners
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug --json comments
+bb issue milestone list --repo workspace-slug/issues-repo-slug --json milestones
+bb issue component list --repo workspace-slug/issues-repo-slug --json components
 ```
 
 Key behavior:
@@ -184,6 +188,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
 - Issue comment listing, creation, viewing, editing, and deletion
+- Issue milestone and component inspection
 - Cross-repository status summaries
 - Search for repositories, pull requests, and issues
 - Config defaults for prompt behavior and default output format, plus aliases and extension discovery

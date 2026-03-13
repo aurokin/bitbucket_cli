@@ -546,6 +546,36 @@ func TestIssueCommentDeleteHelpRegression(t *testing.T) {
 	}
 }
 
+func TestIssueMilestoneHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "milestone", "--help")
+	for _, fragment := range []string{
+		"List and view Bitbucket issue tracker milestones",
+		"Available Commands:",
+		"view        View one issue milestone",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue milestone help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestIssueComponentHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "component", "--help")
+	for _, fragment := range []string{
+		"List and view Bitbucket issue tracker components",
+		"Available Commands:",
+		"view        View one issue component",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue component help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestBrowseHelpRegression(t *testing.T) {
 	t.Parallel()
 

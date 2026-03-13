@@ -34,9 +34,15 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
     - `bb issue comment edit`
     - `bb issue comment list`
     - `bb issue comment view`
+  - `bb issue component`
+    - `bb issue component list`
+    - `bb issue component view`
   - `bb issue create`
   - `bb issue edit`
   - `bb issue list`
+  - `bb issue milestone`
+    - `bb issue milestone list`
+    - `bb issue milestone view`
   - `bb issue reopen`
   - `bb issue view`
 - `bb pipeline`
@@ -571,9 +577,11 @@ Subcommands:
 
 - `bb issue close`: Close an issue
 - `bb issue comment`: Work with issue comments
+- `bb issue component`: List and view issue components
 - `bb issue create`: Create an issue
 - `bb issue edit`: Edit an issue
 - `bb issue list`: List issues for a repository
+- `bb issue milestone`: List and view issue milestones
 - `bb issue reopen`: Reopen an issue
 - `bb issue view`: View one issue
 
@@ -774,6 +782,80 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
+## `bb issue component`
+
+List and view issue components
+
+List and view Bitbucket issue tracker components. Bitbucket Cloud only exposes component read APIs in the official REST surface.
+
+Usage:
+
+```text
+bb issue component
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb issue component list`: List issue components for a repository
+- `bb issue component view`: View one issue component
+
+## `bb issue component list`
+
+List issue components for a repository
+
+Usage:
+
+```text
+bb issue component list [flags]
+```
+
+Examples:
+
+```bash
+bb issue component list --repo workspace-slug/issues-repo-slug
+bb issue component list --repo workspace-slug/issues-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of components to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue component view`
+
+View one issue component
+
+Usage:
+
+```text
+bb issue component view <id> [flags]
+```
+
+Examples:
+
+```bash
+bb issue component view 1 --repo workspace-slug/issues-repo-slug
+bb issue component view 1 --repo workspace-slug/issues-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
 ## `bb issue create`
 
 Create an issue
@@ -863,6 +945,80 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--state`: Filter issues by state
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue milestone`
+
+List and view issue milestones
+
+List and view Bitbucket issue tracker milestones. Bitbucket Cloud only exposes milestone read APIs in the official REST surface.
+
+Usage:
+
+```text
+bb issue milestone
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb issue milestone list`: List issue milestones for a repository
+- `bb issue milestone view`: View one issue milestone
+
+## `bb issue milestone list`
+
+List issue milestones for a repository
+
+Usage:
+
+```text
+bb issue milestone list [flags]
+```
+
+Examples:
+
+```bash
+bb issue milestone list --repo workspace-slug/issues-repo-slug
+bb issue milestone list --repo workspace-slug/issues-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of milestones to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue milestone view`
+
+View one issue milestone
+
+Usage:
+
+```text
+bb issue milestone view <id> [flags]
+```
+
+Examples:
+
+```bash
+bb issue milestone view 1 --repo workspace-slug/issues-repo-slug
+bb issue milestone view 1 --repo workspace-slug/issues-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb issue reopen`

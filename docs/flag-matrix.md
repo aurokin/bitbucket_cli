@@ -28,9 +28,13 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb issue comment edit` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--issue` |
 | `bb issue comment list` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb issue comment view` | yes | yes | yes | yes | yes | yes | `--issue` |
+| `bb issue component list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb issue component view` | yes | yes | yes | yes | yes | yes |  |
 | `bb issue create` | yes | yes | yes | yes | yes | yes | `--body`, `--kind`, `--priority`, `--title` |
 | `bb issue edit` | yes | yes | yes | yes | yes | yes | `--body`, `--kind`, `--priority`, `--state`, `--title` |
 | `bb issue list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
+| `bb issue milestone list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb issue milestone view` | yes | yes | yes | yes | yes | yes |  |
 | `bb issue reopen` | yes | yes | yes | yes | yes | yes | `--message`, `--state` |
 | `bb issue view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pipeline cache clear` | yes | yes | yes | yes | yes | yes | `--yes` |

@@ -697,6 +697,32 @@ func TestBitbucketCloudIssueCommentFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudIssueMilestoneList(t *testing.T) {
+	session := newIntegrationSession(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+
+	output := session.Run(t, "", "issue", "milestone", "list", "--repo", session.Workspace+"/"+issueRepo.Slug, "--json", "*")
+	var payload struct {
+		Milestones []bitbucket.IssueMilestone `json:"milestones"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse issue milestone list JSON: %v\n%s", err, output)
+	}
+}
+
+func TestBitbucketCloudIssueComponentList(t *testing.T) {
+	session := newIntegrationSession(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+
+	output := session.Run(t, "", "issue", "component", "list", "--repo", session.Workspace+"/"+issueRepo.Slug, "--json", "*")
+	var payload struct {
+		Components []bitbucket.IssueComponent `json:"components"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse issue component list JSON: %v\n%s", err, output)
+	}
+}
+
 func TestBitbucketCloudPipelineList(t *testing.T) {
 	session := newIntegrationSession(t)
 	pipelines := session.PipelineFixture(t)

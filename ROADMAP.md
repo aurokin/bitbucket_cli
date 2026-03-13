@@ -4,11 +4,9 @@
 
 1. Issue collaboration depth
    - `bb issue attachments`
-   - `bb issue milestones`
-   - `bb issue components`
    - `bb issue import`
    - `bb issue export`
-   - Backed by the official Bitbucket Cloud issue tracker APIs for comments, attachments, milestones, components, and import/export.
+   - Backed by the official Bitbucket Cloud issue tracker APIs for attachments and import/export. Milestone and component inspection are already implemented; Bitbucket Cloud does not expose create/update/delete milestone or component APIs in the official REST surface.
 
 2. Repository administration
    - `bb repo edit`

@@ -21,7 +21,9 @@ func newIssueCmd() *cobra.Command {
 
 	issueCmd.AddCommand(
 		newIssueCommentCmd(),
+		newIssueComponentCmd(),
 		newIssueListCmd(),
+		newIssueMilestoneCmd(),
 		newIssueViewCmd(),
 		newIssueCreateCmd(),
 		newIssueEditCmd(),

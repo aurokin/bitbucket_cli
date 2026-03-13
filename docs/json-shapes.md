@@ -555,6 +555,157 @@ Representative shape:
 }
 ```
 
+## Pull Request Tasks
+
+Representative shapes for pull request task lists and task detail, create, edit, resolve, reopen, and delete payloads.
+
+Commands:
+
+```bash
+bb pr task list 1 --repo workspace-slug/repo-slug --json '*'
+bb pr task create 1 --repo workspace-slug/repo-slug --comment 15 --body 'Handle this thread' --json '*'
+bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "host": "bitbucket.org",
+  "pull_request": 1,
+  "repo": "repo-slug",
+  "state": "OPEN",
+  "tasks": [
+    {
+      "comment": {
+        "id": 1,
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        },
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "content": {
+        "html": "\u003chtml\u003e",
+        "raw": "Example text"
+      },
+      "created_on": "2026-03-11T00:00:00Z",
+      "creator": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      },
+      "id": 1,
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "pending": true,
+      "resolved_by": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      },
+      "resolved_on": "\u003cresolved-on\u003e",
+      "state": "OPEN",
+      "updated_on": "2026-03-11T00:00:00Z"
+    }
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "action": "\u003caction\u003e",
+  "deleted": true,
+  "host": "bitbucket.org",
+  "pull_request": 1,
+  "repo": "repo-slug",
+  "task": {
+    "comment": {
+      "content": {
+        "raw": "Example text"
+      },
+      "created_on": "2026-03-11T00:00:00Z",
+      "deleted": true,
+      "id": 1,
+      "inline": {
+        "path": "file.txt"
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "parent": {
+        "id": 1,
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        },
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "pending": true,
+      "resolution": {
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "updated_on": "2026-03-11T00:00:00Z",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    },
+    "content": {
+      "html": "\u003chtml\u003e",
+      "markup": "\u003cmarkup\u003e",
+      "raw": "Example text"
+    },
+    "created_on": "2026-03-11T00:00:00Z",
+    "creator": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    },
+    "id": 1,
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "pending": true,
+    "resolved_by": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    },
+    "resolved_on": "\u003cresolved-on\u003e",
+    "state": "OPEN",
+    "updated_on": "2026-03-11T00:00:00Z"
+  },
+  "workspace": "workspace-slug"
+}
+```
+
 ## Pull Request Status
 
 Representative shape for the pull request status payload.

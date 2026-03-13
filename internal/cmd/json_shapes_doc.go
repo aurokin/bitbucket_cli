@@ -87,6 +87,16 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: prCommentPayload{},
 		},
 		{
+			Title:       "Pull Request Tasks",
+			Description: "Representative shapes for pull request task lists and task detail, create, edit, resolve, reopen, and delete payloads.",
+			Commands: []string{
+				"bb pr task list 1 --repo workspace-slug/repo-slug --json '*'",
+				"bb pr task create 1 --repo workspace-slug/repo-slug --comment 15 --body 'Handle this thread' --json '*'",
+				"bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug --json '*'",
+			},
+			Type: []any{prTaskListPayload{}, prTaskPayload{}},
+		},
+		{
 			Title:       "Pull Request Status",
 			Description: "Representative shape for the pull request status payload.",
 			Commands: []string{

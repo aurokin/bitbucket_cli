@@ -143,6 +143,7 @@ Agents and scripts should prefer explicit, deterministic invocations:
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
 bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
+bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread" --json '*'
 bb --no-prompt pr create \
   --repo workspace-slug/repo-slug \
   --source feature \
@@ -179,7 +180,7 @@ Automation conventions:
 ## API Notes
 
 - `bb repo *` uses the repository APIs and, where needed, project-linked repository fields exposed by Bitbucket Cloud.
-- `bb pr *` uses the pull request APIs, including diff, comment, merge, and decline operations where Bitbucket documents them.
+- `bb pr *` uses the pull request APIs, including diff, comment, task, merge, and decline operations where Bitbucket documents them.
 - `bb pipeline *` uses the documented pipeline run, step, log, and stop APIs.
 - `bb issue *` uses the Bitbucket Cloud issue tracker APIs and therefore respects Bitbucket issue-tracker availability limits.
 - `bb browse` prefers deterministic URL building, but its repository and source behavior is still grounded in the documented repository and source API model.
@@ -219,6 +220,7 @@ Automation conventions:
 - `bb pr view`
 - `bb pr diff`
 - `bb pr comment`
+- `bb pr task`
 - `bb pr create`
 - `bb pr checkout`
 - `bb pr merge`

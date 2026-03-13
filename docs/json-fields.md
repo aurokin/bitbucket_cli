@@ -19,6 +19,9 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb pr view` | `author`, `close_source_branch`, `comment_count`, `created_on`, `description`, `destination`, `draft`, `id`, `links`, `merge_commit`, `participants`, `queued`, `reviewers`, `source`, `state`, `task_count`, `title`, `updated_on` | `bb pr view --json author,close_source_branch,comment_count` |
 | `bb pr comment view` | `action`, `comment`, `deleted`, `host`, `pull_request`, `repo`, `resolution`, `workspace` | `bb pr comment view --json action,comment,deleted` |
 | `bb pr comment resolve` | `action`, `comment`, `deleted`, `host`, `pull_request`, `repo`, `resolution`, `workspace` | `bb pr comment resolve --json action,comment,deleted` |
+| `bb pr task list` | `host`, `pull_request`, `repo`, `state`, `tasks`, `workspace` | `bb pr task list --json host,pull_request,repo` |
+| `bb pr task view` | `action`, `deleted`, `host`, `pull_request`, `repo`, `task`, `workspace` | `bb pr task view --json action,deleted,host` |
+| `bb pr task resolve` | `action`, `deleted`, `host`, `pull_request`, `repo`, `task`, `workspace` | `bb pr task resolve --json action,deleted,host` |
 | `bb pr status` | `created`, `current_branch`, `current_branch_error`, `current_branch_name`, `current_user`, `host`, `repo`, `review_requested`, `warnings`, `workspace` | `bb pr status --json created,current_branch,current_branch_error` |
 | `bb pr diff` | `host`, `id`, `patch`, `repo`, `stats`, `title`, `workspace` | `bb pr diff --json host,id,patch` |
 | `bb issue list` | `assignee`, `content`, `created_on`, `id`, `kind`, `links`, `priority`, `reporter`, `state`, `title`, `updated_on` | `bb issue list --json assignee,content,created_on` |

@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 )
@@ -19,6 +22,16 @@ type resolvedPullRequestCommandTarget struct {
 type resolvedPullRequestCommentCommandTarget struct {
 	Client *bitbucket.Client
 	Target resolvedPullRequestCommentTarget
+}
+
+type resolvedPullRequestTaskTarget struct {
+	PRTarget resolvedPullRequestTarget
+	TaskID   int
+}
+
+type resolvedPullRequestTaskCommandTarget struct {
+	Client *bitbucket.Client
+	Target resolvedPullRequestTaskTarget
 }
 
 func resolveRepoCommandTarget(ctx context.Context, host, workspace, repo string, allowLocal bool) (resolvedRepoCommandTarget, error) {
@@ -114,4 +127,36 @@ func resolvePullRequestCommentCommandTarget(ctx context.Context, host, workspace
 		Client: client,
 		Target: target,
 	}, nil
+}
+
+func resolvePullRequestTaskCommandTarget(ctx context.Context, host, workspace, repo, prRef, taskRef string, allowLocal bool) (resolvedPullRequestTaskCommandTarget, error) {
+	taskID, err := parsePullRequestTaskID(taskRef)
+	if err != nil {
+		return resolvedPullRequestTaskCommandTarget{}, err
+	}
+
+	resolved, err := resolvePullRequestCommandTarget(ctx, host, workspace, repo, prRef, allowLocal)
+	if err != nil {
+		return resolvedPullRequestTaskCommandTarget{}, err
+	}
+
+	return resolvedPullRequestTaskCommandTarget{
+		Client: resolved.Client,
+		Target: resolvedPullRequestTaskTarget{
+			PRTarget: resolved.Target,
+			TaskID:   taskID,
+		},
+	}, nil
+}
+
+func parsePullRequestTaskID(raw string) (int, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return 0, fmt.Errorf("pull request task reference is required")
+	}
+	id, err := strconv.Atoi(value)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("pull request task must be provided as a numeric task ID")
+	}
+	return id, nil
 }

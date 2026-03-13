@@ -91,6 +91,15 @@ bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-reques
 bb pr comment reopen 15 --pr 1 --repo workspace-slug/repo-slug
 ```
 
+## Track Follow-Up With A Pull Request Task
+
+```bash
+bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread"
+bb pr task list 1 --repo workspace-slug/repo-slug
+bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug
+bb pr task reopen 3 --pr 1 --repo workspace-slug/repo-slug
+```
+
 ## Create And Land A Pull Request
 
 From a local checkout:

@@ -37,6 +37,24 @@ type MergePullRequestOptions struct {
 	PollTimeout       time.Duration
 }
 
+type ListPullRequestTasksOptions struct {
+	State string
+	Limit int
+	Query string
+	Sort  string
+}
+
+type CreatePullRequestTaskOptions struct {
+	Body      string
+	CommentID int
+	Pending   bool
+}
+
+type UpdatePullRequestTaskOptions struct {
+	Body  string
+	State string
+}
+
 type PullRequest struct {
 	ID                int                      `json:"id"`
 	Title             string                   `json:"title"`
@@ -158,6 +176,36 @@ type PullRequestCommentResolve struct {
 	Type      string           `json:"type,omitempty"`
 	User      PullRequestActor `json:"user,omitempty"`
 	CreatedOn string           `json:"created_on,omitempty"`
+}
+
+type PullRequestTask struct {
+	ID         int                    `json:"id"`
+	State      string                 `json:"state,omitempty"`
+	Content    PullRequestTaskContent `json:"content"`
+	Creator    PullRequestActor       `json:"creator"`
+	Pending    bool                   `json:"pending,omitempty"`
+	ResolvedOn string                 `json:"resolved_on,omitempty"`
+	ResolvedBy PullRequestActor       `json:"resolved_by,omitempty"`
+	CreatedOn  string                 `json:"created_on,omitempty"`
+	UpdatedOn  string                 `json:"updated_on,omitempty"`
+	Links      PullRequestTaskLinks   `json:"links,omitempty"`
+	Comment    *PullRequestComment    `json:"comment,omitempty"`
+}
+
+type PullRequestTaskContent struct {
+	Raw    string `json:"raw,omitempty"`
+	Markup string `json:"markup,omitempty"`
+	HTML   string `json:"html,omitempty"`
+}
+
+type PullRequestTaskLinks struct {
+	Self Link `json:"self,omitempty"`
+	HTML Link `json:"html,omitempty"`
+}
+
+type pullRequestTaskListResponse struct {
+	Values []PullRequestTask `json:"values"`
+	Next   string            `json:"next,omitempty"`
 }
 
 type mergeTaskStatusResponse struct {
@@ -629,6 +677,207 @@ func (c *Client) ReopenPullRequestComment(ctx context.Context, workspace, repoSl
 	return requireSuccess(resp)
 }
 
+func (c *Client) ListPullRequestTasks(ctx context.Context, workspace, repoSlug string, pullRequestID int, options ListPullRequestTasksOptions) ([]PullRequestTask, error) {
+	if workspace == "" || repoSlug == "" {
+		return nil, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return nil, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if options.Limit <= 0 {
+		options.Limit = 20
+	}
+
+	path, err := listPullRequestTasksPath(workspace, repoSlug, pullRequestID, options)
+	if err != nil {
+		return nil, err
+	}
+
+	nextPath := path
+	all := make([]PullRequestTask, 0)
+
+	for nextPath != "" && len(all) < options.Limit {
+		resp, err := c.Do(ctx, http.MethodGet, nextPath, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var page pullRequestTaskListResponse
+		func() {
+			defer resp.Body.Close()
+			if err != nil {
+				return
+			}
+			err = requireSuccess(resp)
+			if err != nil {
+				return
+			}
+			err = json.NewDecoder(resp.Body).Decode(&page)
+		}()
+		if err != nil {
+			return nil, fmt.Errorf("decode pull request task list: %w", err)
+		}
+
+		all = append(all, page.Values...)
+		nextPath = page.Next
+	}
+
+	if len(all) > options.Limit {
+		all = all[:options.Limit]
+	}
+
+	return all, nil
+}
+
+func (c *Client) GetPullRequestTask(ctx context.Context, workspace, repoSlug string, pullRequestID, taskID int) (PullRequestTask, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestTask{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if taskID <= 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request task ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, taskID)
+	resp, err := c.Do(ctx, http.MethodGet, path, nil, nil)
+	if err != nil {
+		return PullRequestTask{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestTask{}, err
+	}
+
+	var task PullRequestTask
+	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
+		return PullRequestTask{}, fmt.Errorf("decode pull request task: %w", err)
+	}
+
+	return task, nil
+}
+
+func (c *Client) CreatePullRequestTask(ctx context.Context, workspace, repoSlug string, pullRequestID int, options CreatePullRequestTaskOptions) (PullRequestTask, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestTask{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if strings.TrimSpace(options.Body) == "" {
+		return PullRequestTask{}, fmt.Errorf("task body is required")
+	}
+	if options.CommentID < 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request comment ID must be greater than zero")
+	}
+
+	body := map[string]any{
+		"content": map[string]string{
+			"raw": strings.TrimSpace(options.Body),
+		},
+	}
+	if options.CommentID > 0 {
+		body["comment"] = map[string]int{"id": options.CommentID}
+	}
+	if options.Pending {
+		body["pending"] = true
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return PullRequestTask{}, fmt.Errorf("marshal pull request task request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID)
+	resp, err := c.Do(ctx, http.MethodPost, path, payload, nil)
+	if err != nil {
+		return PullRequestTask{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestTask{}, err
+	}
+
+	var task PullRequestTask
+	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
+		return PullRequestTask{}, fmt.Errorf("decode created pull request task: %w", err)
+	}
+
+	return task, nil
+}
+
+func (c *Client) UpdatePullRequestTask(ctx context.Context, workspace, repoSlug string, pullRequestID, taskID int, options UpdatePullRequestTaskOptions) (PullRequestTask, error) {
+	if workspace == "" || repoSlug == "" {
+		return PullRequestTask{}, fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if taskID <= 0 {
+		return PullRequestTask{}, fmt.Errorf("pull request task ID must be greater than zero")
+	}
+	if strings.TrimSpace(options.Body) == "" && strings.TrimSpace(options.State) == "" {
+		return PullRequestTask{}, fmt.Errorf("task update requires --body and/or --state")
+	}
+
+	body := map[string]any{}
+	if strings.TrimSpace(options.Body) != "" {
+		body["content"] = map[string]string{
+			"raw": strings.TrimSpace(options.Body),
+		}
+	}
+	if strings.TrimSpace(options.State) != "" {
+		body["state"] = strings.TrimSpace(options.State)
+	}
+
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return PullRequestTask{}, fmt.Errorf("marshal pull request task update request: %w", err)
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, taskID)
+	resp, err := c.Do(ctx, http.MethodPut, path, payload, nil)
+	if err != nil {
+		return PullRequestTask{}, err
+	}
+	defer resp.Body.Close()
+
+	if err := requireSuccess(resp); err != nil {
+		return PullRequestTask{}, err
+	}
+
+	var task PullRequestTask
+	if err := json.NewDecoder(resp.Body).Decode(&task); err != nil {
+		return PullRequestTask{}, fmt.Errorf("decode updated pull request task: %w", err)
+	}
+
+	return task, nil
+}
+
+func (c *Client) DeletePullRequestTask(ctx context.Context, workspace, repoSlug string, pullRequestID, taskID int) error {
+	if workspace == "" || repoSlug == "" {
+		return fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return fmt.Errorf("pull request ID must be greater than zero")
+	}
+	if taskID <= 0 {
+		return fmt.Errorf("pull request task ID must be greater than zero")
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks/%d", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, taskID)
+	resp, err := c.Do(ctx, http.MethodDelete, path, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return requireSuccess(resp)
+}
+
 func (c *Client) DeclinePullRequest(ctx context.Context, workspace, repoSlug string, id int) (PullRequest, error) {
 	if workspace == "" || repoSlug == "" {
 		return PullRequest{}, fmt.Errorf("workspace and repository are required")
@@ -729,4 +978,41 @@ func listPullRequestsPath(workspace, repoSlug string, options ListPullRequestsOp
 	}
 
 	return fmt.Sprintf("/repositories/%s/%s/pullrequests?%s", url.PathEscape(workspace), url.PathEscape(repoSlug), values.Encode()), nil
+}
+
+func listPullRequestTasksPath(workspace, repoSlug string, pullRequestID int, options ListPullRequestTasksOptions) (string, error) {
+	if workspace == "" || repoSlug == "" {
+		return "", fmt.Errorf("workspace and repository are required")
+	}
+	if pullRequestID <= 0 {
+		return "", fmt.Errorf("pull request ID must be greater than zero")
+	}
+
+	values := url.Values{}
+	pagelen := options.Limit
+	if pagelen <= 0 {
+		pagelen = 20
+	}
+	if pagelen > 100 {
+		pagelen = 100
+	}
+	values.Set("pagelen", strconv.Itoa(pagelen))
+
+	query := strings.TrimSpace(options.Query)
+	if state := strings.TrimSpace(options.State); state != "" && !strings.EqualFold(state, "ALL") {
+		stateQuery := fmt.Sprintf("state=\"%s\"", state)
+		if query == "" {
+			query = stateQuery
+		} else {
+			query = fmt.Sprintf("(%s) AND %s", query, stateQuery)
+		}
+	}
+	if query != "" {
+		values.Set("q", query)
+	}
+	if sort := strings.TrimSpace(options.Sort); sort != "" {
+		values.Set("sort", sort)
+	}
+
+	return fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks?%s", url.PathEscape(workspace), url.PathEscape(repoSlug), pullRequestID, values.Encode()), nil
 }

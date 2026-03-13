@@ -106,6 +106,12 @@ bb pr comment edit 15 --pr 1 --repo workspace-slug/repo-slug --body "Updated fee
 bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
 bb pr comment reopen 15 --pr 1 --repo workspace-slug/repo-slug --json '*'
 bb --no-prompt pr comment delete 15 --pr 1 --repo workspace-slug/repo-slug --yes --json '*'
+bb pr task list 1 --repo workspace-slug/repo-slug --json '*'
+bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread" --json '*'
+bb pr task view 3 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb pr task reopen 3 --pr 1 --repo workspace-slug/repo-slug --json '*'
+bb --no-prompt pr task delete 3 --pr 1 --repo workspace-slug/repo-slug --yes --json '*'
 bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title "Add feature" --json id,title,state
 bb pr merge https://bitbucket.org/workspace-slug/repo-slug/pull-requests/2#comment-15 --json id,title,state
 bb pr merge 2 --repo workspace-slug/repo-slug --json id,title,state

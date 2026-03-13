@@ -44,6 +44,13 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb pr list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb pr merge` | yes | yes | yes | yes | yes | yes | `--close-source-branch`, `--message`, `--strategy` |
 | `bb pr status` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb pr task create` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--comment`, `--pending` |
+| `bb pr task delete` | yes | yes | yes | yes | yes | yes | `--pr`, `--yes` |
+| `bb pr task edit` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--pr` |
+| `bb pr task list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
+| `bb pr task reopen` | yes | yes | yes | yes | yes | yes | `--pr` |
+| `bb pr task resolve` | yes | yes | yes | yes | yes | yes | `--pr` |
+| `bb pr task view` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr view` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo clone` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo create` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--private`, `--project-key`, `--reuse-existing` |

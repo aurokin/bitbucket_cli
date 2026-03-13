@@ -52,6 +52,14 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb pr list`
   - `bb pr merge`
   - `bb pr status`
+  - `bb pr task`
+    - `bb pr task create`
+    - `bb pr task delete`
+    - `bb pr task edit`
+    - `bb pr task list`
+    - `bb pr task reopen`
+    - `bb pr task resolve`
+    - `bb pr task view`
   - `bb pr view`
 - `bb repo`
   - `bb repo clone`
@@ -863,6 +871,7 @@ Subcommands:
 - `bb pr list`: List pull requests for a repository
 - `bb pr merge`: Merge a pull request
 - `bb pr status`: Show pull request status for a repository
+- `bb pr task`: Work with pull request tasks
 - `bb pr view`: View a pull request
 
 ## `bb pr checkout`
@@ -1273,6 +1282,253 @@ Flags:
 - `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
 - `--limit`: Maximum number of open pull requests to inspect for status
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task`
+
+Work with pull request tasks
+
+List, inspect, create, edit, delete, resolve, and reopen Bitbucket pull request tasks. Tasks can be attached to specific pull request comments when the Bitbucket Cloud REST API supports it.
+
+Usage:
+
+```text
+bb pr task
+```
+
+Examples:
+
+```bash
+bb pr task list 1 --repo workspace-slug/repo-slug
+bb pr task create 1 --repo workspace-slug/repo-slug --body 'Follow up on reviewer feedback'
+bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body 'Handle this thread'
+bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pr task create`: Create a task on a pull request
+- `bb pr task delete`: Delete a pull request task
+- `bb pr task edit`: Edit a pull request task
+- `bb pr task list`: List tasks on a pull request
+- `bb pr task reopen`: Reopen a pull request task
+- `bb pr task resolve`: Resolve a pull request task
+- `bb pr task view`: View a pull request task
+
+## `bb pr task create`
+
+Create a task on a pull request
+
+Create a Bitbucket pull request task using --body, --body-file, or --body-file - for stdin. Use --comment to attach the task to a specific pull request comment when Bitbucket Cloud supports that linkage.
+
+Usage:
+
+```text
+bb pr task create <pr-id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task create 1 --repo workspace-slug/repo-slug --body 'Follow up on review feedback'
+bb pr task create 1 --repo workspace-slug/repo-slug --comment 15 --body-file task.md --json '*'
+bb pr task create https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body 'Handle this thread'
+```
+
+Flags:
+
+- `--body-file`: Read the task body from a file, or '-' for stdin
+- `--body`: Task body text
+- `--comment`: Optional pull request comment as a numeric ID or Bitbucket pull request comment URL
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pending`: Mark the created task as pending
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task delete`
+
+Delete a pull request task
+
+Delete a Bitbucket pull request task. Humans must confirm the exact repository, pull request, and task unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pr task delete <task-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task delete 3 --pr 1 --repo workspace-slug/repo-slug --yes
+bb --no-prompt pr task delete 3 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pr task edit`
+
+Edit a pull request task
+
+Edit the body of a Bitbucket pull request task. Tasks are addressed by numeric task ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr task edit <task-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task edit 3 --pr 1 --repo workspace-slug/repo-slug --body 'Updated follow-up'
+bb pr task edit 3 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --body-file task.md --json '*'
+```
+
+Flags:
+
+- `--body-file`: Read the task body from a file, or '-' for stdin
+- `--body`: Task body text
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task list`
+
+List tasks on a pull request
+
+List tasks on a Bitbucket pull request. Accepts a numeric pull request ID or Bitbucket pull request URL. Defaults to unresolved tasks; pass --state all to see everything.
+
+Usage:
+
+```text
+bb pr task list <pr-id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task list 1 --repo workspace-slug/repo-slug
+bb pr task list https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --state all --json '*'
+bb pr task list 1 --repo workspace-slug/repo-slug --state resolved --limit 50
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of tasks to list
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--state`: Task state filter: unresolved, resolved, or all
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task reopen`
+
+Reopen a pull request task
+
+Reopen a Bitbucket pull request task by updating its task state to UNRESOLVED. Tasks are addressed by numeric task ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr task reopen <task-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task reopen 3 --pr 1 --repo workspace-slug/repo-slug
+bb pr task reopen 3 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task resolve`
+
+Resolve a pull request task
+
+Resolve a Bitbucket pull request task by updating its task state to RESOLVED. Tasks are addressed by numeric task ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr task resolve <task-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task resolve 3 --pr 1 --repo workspace-slug/repo-slug
+bb pr task resolve 3 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pr task view`
+
+View a pull request task
+
+View a specific Bitbucket pull request task. Tasks are addressed by numeric task ID together with --pr <id-or-url>.
+
+Usage:
+
+```text
+bb pr task view <task-id> [flags]
+```
+
+Examples:
+
+```bash
+bb pr task view 3 --pr 1 --repo workspace-slug/repo-slug
+bb pr task view 3 --pr https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--pr`: Parent pull request as an ID or Bitbucket pull request URL
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 

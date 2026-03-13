@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -196,6 +197,143 @@ func TestBitbucketCloudPRComment(t *testing.T) {
 
 	if payload.ID == 0 || payload.Content.Raw != commentBody {
 		t.Fatalf("unexpected pr comment payload %+v", payload)
+	}
+}
+
+func TestBitbucketCloudPRTaskFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+
+	commentBody := fmt.Sprintf("integration task comment %d", time.Now().UTC().UnixNano())
+	comment, err := session.Client.CreatePullRequestComment(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, commentBody)
+	if err != nil {
+		t.Fatalf("create fixture pull request comment: %v", err)
+	}
+	commentURL := comment.Links.HTML.Href
+	if commentURL == "" {
+		commentURL = fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d#comment-%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, comment.ID)
+	}
+	prURL := fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID)
+	taskBody := fmt.Sprintf("integration task %d", time.Now().UTC().UnixNano())
+
+	createOutput := session.Run(t, "", "pr", "task", "create", prURL, "--comment", commentURL, "--body", taskBody, "--json", "*")
+
+	var created struct {
+		Workspace   string `json:"workspace"`
+		Repo        string `json:"repo"`
+		PullRequest int    `json:"pull_request"`
+		Task        struct {
+			ID      int    `json:"id"`
+			State   string `json:"state"`
+			Content struct {
+				Raw string `json:"raw"`
+			} `json:"content"`
+			Comment *struct {
+				ID int `json:"id"`
+			} `json:"comment"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse pr task create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Task.ID == 0 || created.Task.Content.Raw != taskBody || created.Task.Comment == nil || created.Task.Comment.ID != comment.ID {
+		t.Fatalf("unexpected pr task create payload %+v", created)
+	}
+
+	listOutput := session.Run(t, "", "pr", "task", "list", prURL, "--json", "*")
+	var listed struct {
+		Workspace   string `json:"workspace"`
+		Repo        string `json:"repo"`
+		PullRequest int    `json:"pull_request"`
+		Tasks       []struct {
+			ID int `json:"id"`
+		} `json:"tasks"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse pr task list JSON: %v\n%s", err, listOutput)
+	}
+	var found bool
+	for _, task := range listed.Tasks {
+		if task.ID == created.Task.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected created task %d in task list payload %+v", created.Task.ID, listed)
+	}
+
+	viewOutput := session.Run(t, "", "pr", "task", "view", strconv.Itoa(created.Task.ID), "--pr", prURL, "--json", "*")
+	var viewed struct {
+		Task struct {
+			ID int `json:"id"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse pr task view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Task.ID != created.Task.ID {
+		t.Fatalf("unexpected pr task view payload %+v", viewed)
+	}
+
+	editedBody := taskBody + " updated"
+	editOutput := session.Run(t, "", "pr", "task", "edit", strconv.Itoa(created.Task.ID), "--pr", prURL, "--body", editedBody, "--json", "*")
+	var edited struct {
+		Task struct {
+			Content struct {
+				Raw string `json:"raw"`
+			} `json:"content"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(editOutput, &edited); err != nil {
+		t.Fatalf("parse pr task edit JSON: %v\n%s", err, editOutput)
+	}
+	if edited.Task.Content.Raw != editedBody {
+		t.Fatalf("unexpected pr task edit payload %+v", edited)
+	}
+
+	resolveOutput := session.Run(t, "", "pr", "task", "resolve", strconv.Itoa(created.Task.ID), "--pr", prURL, "--json", "*")
+	var resolved struct {
+		Task struct {
+			State string `json:"state"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(resolveOutput, &resolved); err != nil {
+		t.Fatalf("parse pr task resolve JSON: %v\n%s", err, resolveOutput)
+	}
+	if resolved.Task.State != "RESOLVED" {
+		t.Fatalf("unexpected pr task resolve payload %+v", resolved)
+	}
+
+	reopenOutput := session.Run(t, "", "pr", "task", "reopen", strconv.Itoa(created.Task.ID), "--pr", prURL, "--json", "*")
+	var reopened struct {
+		Task struct {
+			State string `json:"state"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(reopenOutput, &reopened); err != nil {
+		t.Fatalf("parse pr task reopen JSON: %v\n%s", err, reopenOutput)
+	}
+	if reopened.Task.State != "UNRESOLVED" {
+		t.Fatalf("unexpected pr task reopen payload %+v", reopened)
+	}
+
+	deleteOutput := session.Run(t, "", "pr", "task", "delete", strconv.Itoa(created.Task.ID), "--pr", prURL, "--yes", "--json", "*")
+	var deleted struct {
+		Deleted bool `json:"deleted"`
+		Task    struct {
+			ID int `json:"id"`
+		} `json:"task"`
+	}
+	if err := json.Unmarshal(deleteOutput, &deleted); err != nil {
+		t.Fatalf("parse pr task delete JSON: %v\n%s", err, deleteOutput)
+	}
+	if !deleted.Deleted || deleted.Task.ID != created.Task.ID {
+		t.Fatalf("unexpected pr task delete payload %+v", deleted)
+	}
+
+	if _, err := session.Client.GetPullRequestTask(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, created.Task.ID); err == nil {
+		t.Fatalf("expected deleted task %d to be unavailable", created.Task.ID)
 	}
 }
 

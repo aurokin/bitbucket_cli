@@ -641,6 +641,209 @@ func TestReopenPullRequestComment(t *testing.T) {
 	}
 }
 
+func TestListPullRequestTasks(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/tasks" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if got := r.URL.Query().Get("q"); got != "state=\"UNRESOLVED\"" {
+			t.Fatalf("unexpected task query %q", got)
+		}
+		if got := r.URL.Query().Get("pagelen"); got != "10" {
+			t.Fatalf("unexpected pagelen %q", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"id":3,"state":"UNRESOLVED","content":{"raw":"Follow up"},"creator":{"display_name":"Auro"},"comment":{"id":15,"content":{"raw":"Looks good"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7?_task=3"}}}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	tasks, err := client.ListPullRequestTasks(context.Background(), "acme", "widgets", 7, ListPullRequestTasksOptions{
+		State: "UNRESOLVED",
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListPullRequestTasks returned error: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+	if tasks[0].ID != 3 || tasks[0].Comment == nil || tasks[0].Comment.ID != 15 {
+		t.Fatalf("unexpected task %+v", tasks[0])
+	}
+}
+
+func TestGetPullRequestTask(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/tasks/3" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":3,"state":"UNRESOLVED","content":{"raw":"Follow up"},"creator":{"display_name":"Auro"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7?_task=3"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	task, err := client.GetPullRequestTask(context.Background(), "acme", "widgets", 7, 3)
+	if err != nil {
+		t.Fatalf("GetPullRequestTask returned error: %v", err)
+	}
+	if task.ID != 3 || task.Content.Raw != "Follow up" {
+		t.Fatalf("unexpected task %+v", task)
+	}
+}
+
+func TestCreatePullRequestTask(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/tasks" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if body["content"].(map[string]any)["raw"] != "Follow up" {
+			t.Fatalf("unexpected task body %#v", body)
+		}
+		comment := body["comment"].(map[string]any)
+		if comment["id"].(float64) != 15 {
+			t.Fatalf("unexpected comment reference %#v", comment)
+		}
+		if body["pending"] != true {
+			t.Fatalf("expected pending task body, got %#v", body)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":3,"state":"UNRESOLVED","pending":true,"content":{"raw":"Follow up"},"creator":{"display_name":"Auro"},"comment":{"id":15,"content":{"raw":"Looks good"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7?_task=3"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	task, err := client.CreatePullRequestTask(context.Background(), "acme", "widgets", 7, CreatePullRequestTaskOptions{
+		Body:      "Follow up",
+		CommentID: 15,
+		Pending:   true,
+	})
+	if err != nil {
+		t.Fatalf("CreatePullRequestTask returned error: %v", err)
+	}
+	if task.ID != 3 || task.Comment == nil || task.Comment.ID != 15 {
+		t.Fatalf("unexpected task %+v", task)
+	}
+}
+
+func TestUpdatePullRequestTask(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/tasks/3" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		if body["content"].(map[string]any)["raw"] != "Ship it" {
+			t.Fatalf("unexpected task body %#v", body)
+		}
+		if body["state"] != "RESOLVED" {
+			t.Fatalf("unexpected task state %#v", body)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":3,"state":"RESOLVED","content":{"raw":"Ship it"},"creator":{"display_name":"Auro"},"resolved_by":{"display_name":"Reviewer"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7?_task=3"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	task, err := client.UpdatePullRequestTask(context.Background(), "acme", "widgets", 7, 3, UpdatePullRequestTaskOptions{
+		Body:  "Ship it",
+		State: "RESOLVED",
+	})
+	if err != nil {
+		t.Fatalf("UpdatePullRequestTask returned error: %v", err)
+	}
+	if task.State != "RESOLVED" || task.Content.Raw != "Ship it" {
+		t.Fatalf("unexpected task %+v", task)
+	}
+}
+
+func TestDeletePullRequestTask(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/tasks/3" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := NewClient("bitbucket.org", config.HostConfig{
+		Username: "auro@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	if err := client.DeletePullRequestTask(context.Background(), "acme", "widgets", 7, 3); err != nil {
+		t.Fatalf("DeletePullRequestTask returned error: %v", err)
+	}
+}
+
 func TestDeclinePullRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

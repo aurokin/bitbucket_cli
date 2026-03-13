@@ -187,6 +187,65 @@ func TestPRCommentDeleteHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPRTaskHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "task", "--help")
+	for _, fragment := range []string{
+		"bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body 'Handle this thread'",
+		"Available Commands:",
+		"resolve     Resolve a pull request task",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr task help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRTaskViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "task", "view", "--help")
+	for _, fragment := range []string{
+		"numeric task ID together with --pr <id-or-url>",
+		"--pr string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr task view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRTaskCreateHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "task", "create", "--help")
+	for _, fragment := range []string{
+		"--comment string",
+		"--body-file string",
+		"attach the task to a specific pull request comment",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr task create help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRTaskDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "task", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"--pr string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr task delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPipelineListHelpRegression(t *testing.T) {
 	t.Parallel()
 

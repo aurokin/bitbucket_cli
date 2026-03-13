@@ -43,10 +43,11 @@ func newPRCloseCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "close <id-or-url>",
 		Short: "Close a pull request without merging it",
-		Long:  "Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request.",
+		Long:  "Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.",
 		Example: "  bb pr close 1\n" +
 			"  bb pr close 1 --repo workspace-slug/repo-slug\n" +
-			"  bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json",
+			"  bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json\n" +
+			"  bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

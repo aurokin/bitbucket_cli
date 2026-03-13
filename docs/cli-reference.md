@@ -864,7 +864,7 @@ Subcommands:
 
 Check out a pull request locally
 
-Fetch the pull request source branch from the current repository's remote and switch to it locally.
+Fetch the pull request source branch from the current repository's remote and switch to it locally. Accepts a numeric ID, pull request URL, or pull request comment URL.
 
 Usage:
 
@@ -878,6 +878,7 @@ Examples:
 bb pr checkout 1
 bb pr checkout 1 --repo workspace-slug/repo-slug
 bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
+bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
 ```
 
 Flags:
@@ -891,7 +892,7 @@ Flags:
 
 Close a pull request without merging it
 
-Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request.
+Close a pull request without merging it. In Bitbucket Cloud this maps to declining the pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.
 
 Usage:
 
@@ -905,6 +906,7 @@ Examples:
 bb pr close 1
 bb pr close 1 --repo workspace-slug/repo-slug
 bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json
+bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
 ```
 
 Flags:
@@ -1048,7 +1050,7 @@ Flags:
 
 Merge a pull request
 
-Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request.
+Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.
 
 Usage:
 
@@ -1063,6 +1065,7 @@ bb pr merge 7
 bb pr merge 7 --repo workspace-slug/repo-slug
 bb pr merge 7 --strategy merge_commit
 bb pr merge 7 --message 'Ship feature' --close-source-branch --json
+bb pr merge https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15
 ```
 
 Flags:

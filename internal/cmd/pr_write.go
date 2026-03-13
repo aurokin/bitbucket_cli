@@ -19,10 +19,11 @@ func newPRCheckoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "checkout <id-or-url>",
 		Short: "Check out a pull request locally",
-		Long:  "Fetch the pull request source branch from the current repository's remote and switch to it locally.",
+		Long:  "Fetch the pull request source branch from the current repository's remote and switch to it locally. Accepts a numeric ID, pull request URL, or pull request comment URL.",
 		Example: "  bb pr checkout 1\n" +
 			"  bb pr checkout 1 --repo workspace-slug/repo-slug\n" +
-			"  bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1",
+			"  bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1\n" +
+			"  bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repoContext, err := resolveLocalRepoContext(context.Background())
@@ -101,11 +102,12 @@ func newPRMergeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "merge <id-or-url>",
 		Short: "Merge a pull request",
-		Long:  "Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request.",
+		Long:  "Merge an open pull request in Bitbucket Cloud. bb uses the destination branch default merge strategy when Bitbucket exposes one, or falls back to the repository default when Bitbucket does not include strategy metadata on the pull request. Accepts a numeric ID, pull request URL, or pull request comment URL.",
 		Example: "  bb pr merge 7\n" +
 			"  bb pr merge 7 --repo workspace-slug/repo-slug\n" +
 			"  bb pr merge 7 --strategy merge_commit\n" +
-			"  bb pr merge 7 --message 'Ship feature' --close-source-branch --json",
+			"  bb pr merge 7 --message 'Ship feature' --close-source-branch --json\n" +
+			"  bb pr merge https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

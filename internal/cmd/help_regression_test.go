@@ -81,6 +81,51 @@ func TestPRDiffHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPRCloseHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "close", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"bb pr close https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr close help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRCheckoutHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "checkout", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr checkout help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRMergeHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "merge", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"bb pr merge https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr merge help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPipelineListHelpRegression(t *testing.T) {
 	t.Parallel()
 

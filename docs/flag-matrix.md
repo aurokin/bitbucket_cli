@@ -104,6 +104,10 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb repo hook list` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb repo hook view` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo list` | yes | yes | yes | yes |  | yes | `--limit`, `--query`, `--sort` |
+| `bb repo permissions group list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb repo permissions group view` | yes | yes | yes | yes | yes | yes |  |
+| `bb repo permissions user list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb repo permissions user view` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo view` | yes | yes | yes | yes | yes | yes |  |
 | `bb resolve` | yes | yes | yes |  |  |  |  |
 | `bb search issues` | yes | yes | yes | yes | yes | yes | `--limit` |

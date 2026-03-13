@@ -2,13 +2,7 @@
 
 ## Next Commands
 
-1. Repository administration
-   - `bb repo hooks`
-   - `bb repo deploy-key`
-   - `bb repo permissions`
-   - Backed by the official Bitbucket Cloud repository, webhook, deploy key, and permission APIs.
-
-2. Commit and code insight surfaces
+1. Commit and code insight surfaces
    - `bb commit view`
    - `bb commit diff`
    - `bb commit comments`
@@ -47,5 +41,6 @@
 6. Platform-limit follow-up
    - Keep Bitbucket Cloud issue import/export out of scope while the documented endpoints reject API-token auth.
    - Keep repository deploy-key updates out of scope while Bitbucket rejects live deploy-key update requests; use delete plus create for rotation.
+   - Keep repository permission mutation out of scope while Bitbucket's permission write/delete behavior remains app-password-oriented in the published docs and unverified for API-token auth.
    - Continue documenting official Bitbucket Cloud limits instead of faking unsupported behavior.
    - Keep unsupported items like PR reopen, PR comment likes, and undocumented pipeline rerun out of scope unless Atlassian adds official API support.

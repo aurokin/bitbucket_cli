@@ -1497,6 +1497,69 @@ func TestBitbucketCloudRepoDeployKeyFlow(t *testing.T) {
 	)
 }
 
+func TestBitbucketCloudRepoPermissionInspection(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	repoTarget := session.Workspace + "/" + fixture.PrimaryRepo.Slug
+
+	userListOutput, err := session.RunAllowFailure(t, "", "repo", "permissions", "user", "list", "--repo", repoTarget, "--json", "*")
+	if err != nil {
+		if bytes.Contains(userListOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository permission inspection requires broader repository admin scopes:\n%s", userListOutput)
+		}
+		t.Fatalf("bb repo permissions user list failed: %v\n%s", err, userListOutput)
+	}
+
+	var listedUsers struct {
+		Permissions []bitbucket.RepositoryUserPermission `json:"permissions"`
+	}
+	if err := json.Unmarshal(userListOutput, &listedUsers); err != nil {
+		t.Fatalf("parse repo permission user list JSON: %v\n%s", err, userListOutput)
+	}
+
+	groupListOutput, err := session.RunAllowFailure(t, "", "repo", "permissions", "group", "list", "--repo", repoTarget, "--json", "*")
+	if err != nil {
+		if bytes.Contains(groupListOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository group permission inspection requires broader repository admin scopes:\n%s", groupListOutput)
+		}
+		t.Fatalf("bb repo permissions group list failed: %v\n%s", err, groupListOutput)
+	}
+
+	var listedGroups struct {
+		Permissions []bitbucket.RepositoryGroupPermission `json:"permissions"`
+	}
+	if err := json.Unmarshal(groupListOutput, &listedGroups); err != nil {
+		t.Fatalf("parse repo permission group list JSON: %v\n%s", err, groupListOutput)
+	}
+
+	currentUser, err := session.Client.CurrentUser(context.Background())
+	if err != nil {
+		t.Fatalf("resolve current user: %v", err)
+	}
+
+	var hasUserPermission bool
+	for _, permission := range listedUsers.Permissions {
+		if permission.User.AccountID == currentUser.AccountID {
+			hasUserPermission = true
+			break
+		}
+	}
+	if !hasUserPermission {
+		t.Skipf("repository %s does not expose an explicit permission entry for current user %s", repoTarget, currentUser.AccountID)
+	}
+
+	viewOutput := session.Run(t, "", "repo", "permissions", "user", "view", currentUser.AccountID, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Permission bitbucket.RepositoryUserPermission `json:"permission"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse repo permission user view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Permission.User.AccountID != currentUser.AccountID {
+		t.Fatalf("unexpected repo permission user view payload %+v", viewed)
+	}
+}
+
 func TestBitbucketCloudBrowse(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)

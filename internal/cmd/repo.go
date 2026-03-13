@@ -26,6 +26,7 @@ func newRepoCmd() *cobra.Command {
 		newRepoListCmd(),
 		newRepoHookCmd(),
 		newRepoDeployKeyCmd(),
+		newRepoPermissionsCmd(),
 		newRepoCreateCmd(),
 		newRepoEditCmd(),
 		newRepoForkCmd(),

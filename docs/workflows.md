@@ -68,10 +68,13 @@ bb repo edit --repo workspace-slug/repo-slug --description "Updated description"
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing
 bb repo hook list --repo workspace-slug/repo-slug
 bb repo deploy-key list --repo workspace-slug/repo-slug
+bb repo permissions user list --repo workspace-slug/repo-slug
 bb repo clone workspace-slug/repo-slug
 ```
 
 Bitbucket rejected deploy-key updates in the live API behavior we verified, so rotate deploy keys by deleting and re-creating them instead of expecting an in-place edit flow.
+
+Repository permission mutation also stays out of scope for now. Bitbucket's permission write/delete docs still describe app-password-only behavior in places, so `bb` only exposes explicit permission inspection until the API-token path is verified live.
 
 ## Inspect Pipelines
 

@@ -125,6 +125,13 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
     - `bb repo hook list`
     - `bb repo hook view`
   - `bb repo list`
+  - `bb repo permissions`
+    - `bb repo permissions group`
+      - `bb repo permissions group list`
+      - `bb repo permissions group view`
+    - `bb repo permissions user`
+      - `bb repo permissions user list`
+      - `bb repo permissions user view`
   - `bb repo view`
 - `bb resolve`
 - `bb search`
@@ -2941,6 +2948,7 @@ Subcommands:
 - `bb repo fork`: Fork a repository
 - `bb repo hook`: Work with repository webhooks
 - `bb repo list`: List repositories in a workspace
+- `bb repo permissions`: Inspect explicit repository permissions
 - `bb repo view`: Show repository information
 
 ## `bb repo clone`
@@ -3455,6 +3463,173 @@ Flags:
 - `--query`: Bitbucket repository query filter
 - `--sort`: Bitbucket repository sort expression
 - `--workspace`: Workspace slug to list repositories from
+
+## `bb repo permissions`
+
+Inspect explicit repository permissions
+
+Inspect explicit Bitbucket repository user and group permissions. Bitbucket's write/delete permission APIs remain out of scope until the API-token path is verified live.
+
+Aliases: `permission`
+
+Usage:
+
+```text
+bb repo permissions
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb repo permissions group`: Inspect explicit repository group permissions
+- `bb repo permissions user`: Inspect explicit repository user permissions
+
+## `bb repo permissions group`
+
+Inspect explicit repository group permissions
+
+Usage:
+
+```text
+bb repo permissions group
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb repo permissions group list`: List explicit repository group permissions
+- `bb repo permissions group view`: View one explicit repository group permission
+
+## `bb repo permissions group list`
+
+List explicit repository group permissions
+
+Usage:
+
+```text
+bb repo permissions group list [flags]
+```
+
+Examples:
+
+```bash
+bb repo permissions group list --repo workspace-slug/repo-slug
+bb repo permissions group list --repo workspace-slug/repo-slug --json permissions
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of explicit repository group permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo permissions group view`
+
+View one explicit repository group permission
+
+Usage:
+
+```text
+bb repo permissions group view <group-slug> [flags]
+```
+
+Examples:
+
+```bash
+bb repo permissions group view developers --repo workspace-slug/repo-slug
+bb repo permissions group view developers --repo workspace-slug/repo-slug --json permission
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo permissions user`
+
+Inspect explicit repository user permissions
+
+Usage:
+
+```text
+bb repo permissions user
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb repo permissions user list`: List explicit repository user permissions
+- `bb repo permissions user view`: View one explicit repository user permission
+
+## `bb repo permissions user list`
+
+List explicit repository user permissions
+
+Usage:
+
+```text
+bb repo permissions user list [flags]
+```
+
+Examples:
+
+```bash
+bb repo permissions user list --repo workspace-slug/repo-slug
+bb repo permissions user list --repo workspace-slug/repo-slug --json permissions
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of explicit repository user permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo permissions user view`
+
+View one explicit repository user permission
+
+Usage:
+
+```text
+bb repo permissions user view <account-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo permissions user view 557058:example --repo workspace-slug/repo-slug
+bb repo permissions user view 557058:example --repo workspace-slug/repo-slug --json permission
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb repo view`
 

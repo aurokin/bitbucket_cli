@@ -158,6 +158,22 @@ func TestRepoDeployKeyHelpRegression(t *testing.T) {
 	}
 }
 
+func TestRepoPermissionsHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "permissions", "--help")
+	for _, fragment := range []string{
+		"Inspect explicit Bitbucket repository user and group permissions",
+		"Available Commands:",
+		"user        Inspect explicit repository user permissions",
+		"group       Inspect explicit repository group permissions",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo permissions help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

@@ -97,7 +97,9 @@ bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json host,workspa
 ```bash
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,author
 bb pr view 1 --repo workspace-slug/repo-slug --json '*'
+bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json id,title,state
 bb pr diff 1 --repo workspace-slug/repo-slug --json patch,stats
+bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json patch,stats
 bb pr comment 1 --repo workspace-slug/repo-slug --body "Please add a regression test." --json id,content,links
 bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title "Add feature" --json id,title,state
 bb pr merge 2 --repo workspace-slug/repo-slug --json id,title,state

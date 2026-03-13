@@ -17,9 +17,11 @@ func newPRViewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "view <id-or-url>",
 		Short: "View a pull request",
+		Long:  "View a pull request by numeric ID, pull request URL, or pull request comment URL. Comment URLs resolve to the parent pull request.",
 		Example: "  bb pr view 1\n" +
 			"  bb pr view 1 --json title,state,source,destination\n" +
-			"  bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1",
+			"  bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1\n" +
+			"  bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

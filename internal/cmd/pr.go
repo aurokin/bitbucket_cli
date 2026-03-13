@@ -186,10 +186,11 @@ func newPRDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff <id-or-url>",
 		Short: "View a pull request diff",
-		Long:  "Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats.",
+		Long:  "Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats. Accepts a numeric ID, pull request URL, or pull request comment URL.",
 		Example: "  bb pr diff 1\n" +
 			"  bb pr diff 1 --repo workspace-slug/repo-slug --stat\n" +
-			"  bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json patch,stats",
+			"  bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json patch,stats\n" +
+			"  bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --stat",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()

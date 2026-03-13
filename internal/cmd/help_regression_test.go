@@ -51,6 +51,36 @@ func TestPRCreateHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPRViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "view", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPRDiffHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pr", "diff", "--help")
+	for _, fragment := range []string{
+		"pull request comment URL",
+		"#comment-15",
+		"bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --stat",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pr diff help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPipelineListHelpRegression(t *testing.T) {
 	t.Parallel()
 

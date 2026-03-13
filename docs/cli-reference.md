@@ -987,7 +987,7 @@ Flags:
 
 View a pull request diff
 
-Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats.
+Show the patch for a pull request by default. Use --stat for a concise per-file summary, or --json for structured output that includes both the patch and diff stats. Accepts a numeric ID, pull request URL, or pull request comment URL.
 
 Usage:
 
@@ -1001,6 +1001,7 @@ Examples:
 bb pr diff 1
 bb pr diff 1 --repo workspace-slug/repo-slug --stat
 bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1 --json patch,stats
+bb pr diff https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --stat
 ```
 
 Flags:
@@ -1110,6 +1111,8 @@ Flags:
 
 View a pull request
 
+View a pull request by numeric ID, pull request URL, or pull request comment URL. Comment URLs resolve to the parent pull request.
+
 Usage:
 
 ```text
@@ -1122,6 +1125,7 @@ Examples:
 bb pr view 1
 bb pr view 1 --json title,state,source,destination
 bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1
+bb pr view https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15
 ```
 
 Flags:

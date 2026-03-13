@@ -129,6 +129,7 @@ func TestWritePipelineViewSummary(t *testing.T) {
 	payload := pipelineViewPayload{
 		Workspace: "acme",
 		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
 		Pipeline: bitbucket.Pipeline{
 			BuildNumber: 42,
 			UUID:        "{pipeline-42}",
@@ -151,6 +152,7 @@ func TestWritePipelineViewSummary(t *testing.T) {
 	got := buf.String()
 	for _, expected := range []string{
 		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
 		"Pipeline: #42",
 		"State:",
 		"https://bitbucket.org/acme/widgets/pipelines/results/42",
@@ -160,5 +162,24 @@ func TestWritePipelineViewSummary(t *testing.T) {
 		if !strings.Contains(got, expected) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
+	}
+}
+
+func TestPipelinePayloadsPreserveWarnings(t *testing.T) {
+	t.Parallel()
+
+	view := pipelineViewPayload{Warnings: []string{"warning"}}
+	if len(view.Warnings) != 1 {
+		t.Fatalf("expected pipeline view warnings to be preserved")
+	}
+
+	logPayload := pipelineLogPayload{Warnings: []string{"warning"}}
+	if len(logPayload.Warnings) != 1 {
+		t.Fatalf("expected pipeline log warnings to be preserved")
+	}
+
+	stop := pipelineStopPayload{Warnings: []string{"warning"}}
+	if len(stop.Warnings) != 1 {
+		t.Fatalf("expected pipeline stop warnings to be preserved")
 	}
 }

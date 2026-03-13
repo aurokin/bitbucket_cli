@@ -252,6 +252,9 @@ Representative shapes:
     },
     "uuid": "{uuid}"
   },
+  "warnings": [
+    "\u003citem\u003e"
+  ],
   "workspace": "workspace-slug"
 }
 ```
@@ -294,6 +297,9 @@ Representative shapes:
   },
   "repo": "repo-slug",
   "stopped": true,
+  "warnings": [
+    "\u003citem\u003e"
+  ],
   "workspace": "workspace-slug"
 }
 ```
@@ -345,6 +351,9 @@ Representative shapes:
       },
       "uuid": "{uuid}"
     }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
   ],
   "workspace": "workspace-slug"
 }

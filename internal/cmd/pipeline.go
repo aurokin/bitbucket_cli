@@ -17,6 +17,7 @@ type pipelineViewPayload struct {
 	Host      string                   `json:"host"`
 	Workspace string                   `json:"workspace"`
 	Repo      string                   `json:"repo"`
+	Warnings  []string                 `json:"warnings,omitempty"`
 	Pipeline  bitbucket.Pipeline       `json:"pipeline"`
 	Steps     []bitbucket.PipelineStep `json:"steps"`
 }
@@ -25,6 +26,7 @@ type pipelineLogPayload struct {
 	Host      string                 `json:"host"`
 	Workspace string                 `json:"workspace"`
 	Repo      string                 `json:"repo"`
+	Warnings  []string               `json:"warnings,omitempty"`
 	Pipeline  bitbucket.Pipeline     `json:"pipeline"`
 	Step      bitbucket.PipelineStep `json:"step"`
 	Log       string                 `json:"log"`
@@ -34,6 +36,7 @@ type pipelineStopPayload struct {
 	Host      string             `json:"host"`
 	Workspace string             `json:"workspace"`
 	Repo      string             `json:"repo"`
+	Warnings  []string           `json:"warnings,omitempty"`
 	Pipeline  bitbucket.Pipeline `json:"pipeline"`
 	Stopped   bool               `json:"stopped"`
 }
@@ -94,12 +97,18 @@ func newPipelineListCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, pipelines, func(w io.Writer) error {
 				if len(pipelines) == 0 {
+					if err := writeWarnings(w, target.Warnings); err != nil {
+						return err
+					}
 					if _, err := fmt.Fprintf(w, "No pipelines found for %s/%s.\n", target.Workspace, target.Repo); err != nil {
 						return err
 					}
 					return nil
 				}
 				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeWarnings(w, target.Warnings); err != nil {
 					return err
 				}
 				if err := writePipelineListTable(w, pipelines); err != nil {
@@ -160,6 +169,7 @@ func newPipelineViewCmd() *cobra.Command {
 				Host:      target.Host,
 				Workspace: target.Workspace,
 				Repo:      target.Repo,
+				Warnings:  append([]string(nil), target.Warnings...),
 				Pipeline:  pipeline,
 				Steps:     steps,
 			}
@@ -233,6 +243,7 @@ func newPipelineLogCmd() *cobra.Command {
 				Host:      target.Host,
 				Workspace: target.Workspace,
 				Repo:      target.Repo,
+				Warnings:  append([]string(nil), target.Warnings...),
 				Pipeline:  pipeline,
 				Step:      step,
 				Log:       logOutput,
@@ -240,6 +251,9 @@ func newPipelineLogCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeWarnings(w, target.Warnings); err != nil {
 					return err
 				}
 				if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", pipeline.BuildNumber); err != nil {
@@ -332,12 +346,16 @@ func newPipelineStopCmd() *cobra.Command {
 				Host:      target.Host,
 				Workspace: target.Workspace,
 				Repo:      target.Repo,
+				Warnings:  append([]string(nil), target.Warnings...),
 				Pipeline:  stoppedPipeline,
 				Stopped:   true,
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeWarnings(w, target.Warnings); err != nil {
 					return err
 				}
 				if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", stoppedPipeline.BuildNumber); err != nil {
@@ -399,6 +417,9 @@ func writePipelineListTable(w io.Writer, pipelines []bitbucket.Pipeline) error {
 
 func writePipelineViewSummary(w io.Writer, payload pipelineViewPayload) error {
 	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
 		return err
 	}
 	if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", payload.Pipeline.BuildNumber); err != nil {

@@ -866,6 +866,35 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	if !strings.Contains(string(searchPRsOutput), "Query: fixture") {
 		t.Fatalf("expected query line in search prs output:\n%s", searchPRsOutput)
 	}
+	if !strings.Contains(string(searchPRsOutput), "tsk") || !strings.Contains(string(searchPRsOutput), "cmt") {
+		t.Fatalf("expected task/comment count columns in search prs output:\n%s", searchPRsOutput)
+	}
+
+	commentBody := fmt.Sprintf("integration resolve comment %d", time.Now().UTC().UnixNano())
+	comment, err := session.Client.CreatePullRequestComment(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, commentBody)
+	if err != nil {
+		t.Fatalf("create smoke pull request comment: %v", err)
+	}
+	commentURL := comment.Links.HTML.Href
+	if commentURL == "" {
+		commentURL = fmt.Sprintf("https://bitbucket.org/%s/%s/pull-requests/%d#comment-%d", session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, comment.ID)
+	}
+
+	resolveOutput := session.Run(t, "", "resolve", commentURL)
+	if !strings.Contains(string(resolveOutput), "Type: pull-request-comment") {
+		t.Fatalf("expected pull-request-comment type in resolve output:\n%s", resolveOutput)
+	}
+	if !strings.Contains(string(resolveOutput), "Next: bb pr comment view "+strconv.Itoa(comment.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected resolve next step for comment URL:\n%s", resolveOutput)
+	}
+
+	prCommentViewOutput := session.Run(t, "", "pr", "comment", "view", commentURL)
+	if !strings.Contains(string(prCommentViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in pr comment view output:\n%s", prCommentViewOutput)
+	}
+	if !strings.Contains(string(prCommentViewOutput), "Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID)) {
+		t.Fatalf("expected pull request id in pr comment view output:\n%s", prCommentViewOutput)
+	}
 }
 
 func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {

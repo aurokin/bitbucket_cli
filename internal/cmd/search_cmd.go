@@ -148,22 +148,7 @@ func newSearchPRsCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, prs, func(w io.Writer) error {
-				if len(prs) == 0 {
-					if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0]); err != nil {
-						return err
-					}
-					return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
-				}
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Query", args[0]); err != nil {
-					return err
-				}
-				if err := writePRListTable(w, prs); err != nil {
-					return err
-				}
-				return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
+				return writeSearchPRSummary(w, target, args[0], prs)
 			})
 		},
 	}
@@ -214,6 +199,9 @@ func newSearchIssuesCmd() *cobra.Command {
 
 			return output.Render(cmd.OutOrStdout(), opts, issues, func(w io.Writer) error {
 				if len(issues) == 0 {
+					if err := writeWarnings(w, target.Warnings); err != nil {
+						return err
+					}
 					if _, err := fmt.Fprintf(w, "No issues found for %s/%s matching %q.\n", target.Workspace, target.Repo, args[0]); err != nil {
 						return err
 					}
@@ -221,6 +209,9 @@ func newSearchIssuesCmd() *cobra.Command {
 				}
 
 				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+					return err
+				}
+				if err := writeWarnings(w, target.Warnings); err != nil {
 					return err
 				}
 				if err := writeLabelValue(w, "Query", args[0]); err != nil {
@@ -298,6 +289,31 @@ func searchPRsNextStep(workspace, repo string, prs []bitbucket.PullRequest) stri
 		return fmt.Sprintf("bb pr view <id> --repo %s/%s", workspace, repo)
 	}
 	return fmt.Sprintf("bb pr list --repo %s/%s", workspace, repo)
+}
+
+func writeSearchPRSummary(w io.Writer, target resolvedRepoTarget, query string, prs []bitbucket.PullRequest) error {
+	if len(prs) == 0 {
+		if err := writeWarnings(w, target.Warnings); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "No pull requests found for %s/%s matching %q.\n", target.Workspace, target.Repo, query); err != nil {
+			return err
+		}
+		return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
+	}
+	if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.Warnings); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Query", query); err != nil {
+		return err
+	}
+	if err := writePRListTable(w, prs); err != nil {
+		return err
+	}
+	return writeNextStep(w, searchPRsNextStep(target.Workspace, target.Repo, prs))
 }
 
 func searchIssuesNextStep(workspace, repo string, issues []bitbucket.Issue) string {

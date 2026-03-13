@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -54,5 +55,72 @@ func TestSearchNextSteps(t *testing.T) {
 	}
 	if got := searchIssuesNextStep("acme", "widgets", []bitbucket.Issue{{ID: 9}}); got != "bb issue view 9 --repo acme/widgets" {
 		t.Fatalf("unexpected issue single next step %q", got)
+	}
+}
+
+func TestWriteSearchPRSummaryIncludesWarningsAndCounts(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	prs := []bitbucket.PullRequest{
+		{
+			ID:           7,
+			Title:        "Fixture PR",
+			State:        "OPEN",
+			TaskCount:    2,
+			CommentCount: 4,
+			Author:       bitbucket.PullRequestActor{DisplayName: "Example User"},
+			Source:       bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "feature/tasks"}},
+			Destination:  bitbucket.PullRequestRef{Branch: bitbucket.PullRequestBranch{Name: "main"}},
+		},
+	}
+
+	if err := writeSearchPRSummary(&buf, target, "fixture", prs); err != nil {
+		t.Fatalf("writeSearchPRSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Query: fixture",
+		"tsk",
+		"cmt",
+		"Next: bb pr view 7 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWriteSearchPRSummaryEmptyIncludesWarnings(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+
+	if err := writeSearchPRSummary(&buf, target, "fixture", nil); err != nil {
+		t.Fatalf("writeSearchPRSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Warning: local repository context unavailable",
+		`No pull requests found for acme/widgets matching "fixture".`,
+		"Next: bb pr list --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
 	}
 }

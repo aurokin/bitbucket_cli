@@ -183,4 +183,12 @@ func TestParsePullRequestTaskID(t *testing.T) {
 	if _, err := parsePullRequestTaskID("https://bitbucket.org/acme/widgets/pull-requests/7"); err == nil {
 		t.Fatalf("expected non-numeric task id error")
 	}
+
+	if _, err := parsePullRequestTaskID("0"); err == nil || !strings.Contains(err.Error(), "numeric task ID") {
+		t.Fatalf("expected positive task id error, got %v", err)
+	}
+
+	if _, err := parsePullRequestTaskID(""); err == nil || !strings.Contains(err.Error(), "reference is required") {
+		t.Fatalf("expected missing task reference error, got %v", err)
+	}
 }

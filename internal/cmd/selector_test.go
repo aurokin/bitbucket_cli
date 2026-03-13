@@ -581,6 +581,24 @@ func TestResolvePullRequestCommentTarget(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects invalid numeric comment id", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "0", false)
+		if err == nil || err.Error() != `invalid pull request comment ID "0"` {
+			t.Fatalf("expected invalid comment id error, got %v", err)
+		}
+	})
+
+	t.Run("rejects non-comment bitbucket url", func(t *testing.T) {
+		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7", false)
+		if err == nil || err.Error() != `pull request comment URL "https://bitbucket.org/acme/widgets/pull-requests/7" must point to a Bitbucket pull request comment` {
+			t.Fatalf("expected non-comment URL rejection, got %v", err)
+		}
+	})
+
 	t.Run("rejects mismatched pr ref and comment url", func(t *testing.T) {
 		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 

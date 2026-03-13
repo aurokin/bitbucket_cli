@@ -8,6 +8,7 @@
 ```text
 Co-Authored-By: Codex by OpenAI <codex@openai.com>
 ```
+- Push after every commit: `git push origin master`
 
 ## Key Conventions
 - Prefer real Bitbucket Cloud behavior over fake `gh` parity.
@@ -29,6 +30,8 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - Keep live Bitbucket integration tests manual-only. Do not add them to `go test ./...` or CI.
 - Reuse the existing Bitbucket fixture project and repositories when they already exist.
 - Reuse or create sacrificial fixtures for destructive flows. Do not delete the primary fixtures by default.
+- When changing human-readable output, add regression tests for field order and `Next:` guidance, then run the relevant manual Bitbucket smoke when the path is user-facing.
+- When changing URL or entity resolution, add regression coverage for messy Bitbucket URLs and canonical URL behavior.
 
 ## Documentation
 - Keep `README.md` task-oriented for humans.

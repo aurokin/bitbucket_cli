@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -76,5 +77,51 @@ func TestRunExtensionCommand(t *testing.T) {
 	}
 	if !reflect.DeepEqual(gotArgs, []string{"one", "two"}) {
 		t.Fatalf("unexpected args %v", gotArgs)
+	}
+}
+
+func TestAliasSetCommandOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	output := renderCommand(t, "alias", "set", "pv", "pr", "view")
+	for _, expected := range []string{
+		"Set alias pv=pr view",
+		"Next: bb alias get pv",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, output)
+		}
+	}
+	assertOrderedSubstrings(t, output,
+		"Set alias pv=pr view",
+		"Next: bb alias get pv",
+	)
+}
+
+func TestAliasDeleteCommandOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+	_ = renderCommand(t, "alias", "set", "pv", "pr", "view")
+
+	output := renderCommand(t, "alias", "delete", "pv")
+	for _, expected := range []string{
+		"Deleted alias pv",
+		"Next: bb alias list",
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, output)
+		}
+	}
+	assertOrderedSubstrings(t, output,
+		"Deleted alias pv",
+		"Next: bb alias list",
+	)
+}
+
+func TestAliasListEmptyOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	output := renderCommand(t, "alias", "list")
+	if !strings.Contains(output, "No aliases configured.") {
+		t.Fatalf("expected empty alias output, got %q", output)
 	}
 }

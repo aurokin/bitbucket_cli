@@ -34,9 +34,24 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb issue reopen`
   - `bb issue view`
 - `bb pipeline`
+  - `bb pipeline cache`
+    - `bb pipeline cache clear`
+    - `bb pipeline cache delete`
+    - `bb pipeline cache list`
   - `bb pipeline list`
   - `bb pipeline log`
   - `bb pipeline run`
+  - `bb pipeline runner`
+    - `bb pipeline runner delete`
+    - `bb pipeline runner list`
+    - `bb pipeline runner view`
+  - `bb pipeline schedule`
+    - `bb pipeline schedule create`
+    - `bb pipeline schedule delete`
+    - `bb pipeline schedule disable`
+    - `bb pipeline schedule enable`
+    - `bb pipeline schedule list`
+    - `bb pipeline schedule view`
   - `bb pipeline stop`
   - `bb pipeline test-reports`
   - `bb pipeline variable`
@@ -738,13 +753,109 @@ Flags:
 
 Subcommands:
 
+- `bb pipeline cache`: Inspect and clear pipeline caches
 - `bb pipeline list`: List pipeline runs for a repository
 - `bb pipeline log`: Show the log for one pipeline step
 - `bb pipeline run`: Trigger a pipeline run
+- `bb pipeline runner`: Inspect repository pipeline runners
+- `bb pipeline schedule`: Manage pipeline schedules
 - `bb pipeline stop`: Stop a running pipeline
 - `bb pipeline test-reports`: View pipeline test reports
 - `bb pipeline variable`: Manage repository pipeline variables
 - `bb pipeline view`: View one pipeline run
+
+## `bb pipeline cache`
+
+Inspect and clear pipeline caches
+
+List Bitbucket repository pipeline caches, delete one cache by UUID, or clear caches by name when the official API supports it.
+
+Usage:
+
+```text
+bb pipeline cache
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pipeline cache clear`: Clear pipeline caches by name
+- `bb pipeline cache delete`: Delete one pipeline cache by UUID
+- `bb pipeline cache list`: List pipeline caches
+
+## `bb pipeline cache clear`
+
+Clear pipeline caches by name
+
+Clear Bitbucket pipeline caches by cache name. Humans must confirm the exact repository and cache name unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline cache clear <name> [flags]
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pipeline cache delete`
+
+Delete one pipeline cache by UUID
+
+Delete a Bitbucket pipeline cache by UUID. Humans must confirm the exact repository and cache UUID unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline cache delete <uuid> [flags]
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pipeline cache list`
+
+List pipeline caches
+
+Usage:
+
+```text
+bb pipeline cache list [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
+bb pipeline cache list --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of pipeline caches to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb pipeline list`
 
@@ -833,6 +944,304 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--ref-type`: Reference type to build: branch or tag
 - `--ref`: Branch or tag name to build
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline runner`
+
+Inspect repository pipeline runners
+
+List, inspect, and delete Bitbucket repository pipeline runners. Runner creation and update remain out of scope until the official API request shape is clearer.
+
+Usage:
+
+```text
+bb pipeline runner
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pipeline runner delete`: Delete a pipeline runner
+- `bb pipeline runner list`: List pipeline runners
+- `bb pipeline runner view`: View one pipeline runner
+
+## `bb pipeline runner delete`
+
+Delete a pipeline runner
+
+Delete a Bitbucket repository pipeline runner. Humans must confirm the exact repository and runner UUID unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline runner delete <uuid> [flags]
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pipeline runner list`
+
+List pipeline runners
+
+Usage:
+
+```text
+bb pipeline runner list [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
+bb pipeline runner list --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of pipeline runners to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline runner view`
+
+View one pipeline runner
+
+Usage:
+
+```text
+bb pipeline runner view <uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline runner view '{runner-uuid}' --repo workspace-slug/pipelines-repo-slug
+bb pipeline runner view '{runner-uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline schedule`
+
+Manage pipeline schedules
+
+List, inspect, create, enable, disable, and delete Bitbucket pipeline schedules.
+
+Usage:
+
+```text
+bb pipeline schedule
+```
+
+Examples:
+
+```bash
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'
+bb pipeline schedule disable '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb pipeline schedule create`: Create a pipeline schedule
+- `bb pipeline schedule delete`: Delete a pipeline schedule
+- `bb pipeline schedule disable`: Disable a pipeline schedule
+- `bb pipeline schedule enable`: Enable a pipeline schedule
+- `bb pipeline schedule list`: List pipeline schedules
+- `bb pipeline schedule view`: View one pipeline schedule
+
+## `bb pipeline schedule create`
+
+Create a pipeline schedule
+
+Create a Bitbucket pipeline schedule for a branch. By default bb uses the branch name as the selector pattern and the branches selector type.
+
+Usage:
+
+```text
+bb pipeline schedule create [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'
+bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref release --cron '0 30 9 * * ? *' --enabled=false --json '*'
+bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --selector-type custom --selector-pattern nightly --cron '0 0 1 * * ? *'
+```
+
+Flags:
+
+- `--cron`: Seven-field cron pattern in UTC
+- `--enabled`: Create the schedule enabled
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--ref`: Branch name to run on the schedule
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--selector-pattern`: Pipeline selector pattern; defaults to the ref name
+- `--selector-type`: Pipeline selector type, for example branches or custom
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline schedule delete`
+
+Delete a pipeline schedule
+
+Delete a Bitbucket pipeline schedule. Humans must confirm the exact repository and schedule UUID unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb pipeline schedule delete <uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule delete '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug --yes
+bb --no-prompt pipeline schedule delete '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb pipeline schedule disable`
+
+Disable a pipeline schedule
+
+Usage:
+
+```text
+bb pipeline schedule disable <uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule disable '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule disable '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline schedule enable`
+
+Enable a pipeline schedule
+
+Usage:
+
+```text
+bb pipeline schedule enable <uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule enable '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule enable '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline schedule list`
+
+List pipeline schedules
+
+Usage:
+
+```text
+bb pipeline schedule list [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of pipeline schedules to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb pipeline schedule view`
+
+View one pipeline schedule
+
+Usage:
+
+```text
+bb pipeline schedule view <uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb pipeline schedule view '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule view '{schedule-uuid}' --repo workspace-slug/pipelines-repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 

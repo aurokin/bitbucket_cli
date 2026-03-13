@@ -426,6 +426,81 @@ func TestPipelineVariableDeleteHelpRegression(t *testing.T) {
 	}
 }
 
+func TestPipelineScheduleHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "schedule", "--help")
+	for _, fragment := range []string{
+		"bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'",
+		"Available Commands:",
+		"disable     Disable a pipeline schedule",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline schedule help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineScheduleCreateHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "schedule", "create", "--help")
+	for _, fragment := range []string{
+		"--cron string",
+		"--selector-type string",
+		"Seven-field cron pattern in UTC",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline schedule create help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineScheduleDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "schedule", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"{schedule-uuid}",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline schedule delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineRunnerHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "runner", "--help")
+	for _, fragment := range []string{
+		"List, inspect, and delete Bitbucket repository pipeline runners",
+		"Available Commands:",
+		"view        View one pipeline runner",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline runner help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestPipelineCacheHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "pipeline", "cache", "--help")
+	for _, fragment := range []string{
+		"List Bitbucket repository pipeline caches, delete one cache by UUID, or clear caches by name",
+		"Available Commands:",
+		"clear       Clear pipeline caches by name",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("pipeline cache help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestBrowseHelpRegression(t *testing.T) {
 	t.Parallel()
 

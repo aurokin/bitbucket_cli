@@ -866,6 +866,117 @@ func TestBitbucketCloudPipelineVariableFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudPipelineScheduleFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+	repoTarget := session.Workspace + "/" + pipelines.Repo.Slug
+	cronPattern := "0 0 12 1 1 ? 2099"
+
+	createOutput, err := session.RunAllowFailure(t, "", "pipeline", "schedule", "create", "--repo", repoTarget, "--ref", "main", "--cron", cronPattern, "--enabled=false", "--json", "*")
+	if err != nil {
+		if bytes.Contains(createOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("pipeline schedule create requires broader repository administration scopes:\n%s", createOutput)
+		}
+		t.Fatalf("bb pipeline schedule create failed: %v\n%s", err, createOutput)
+	}
+
+	var created struct {
+		Schedule bitbucket.PipelineSchedule `json:"schedule"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse pipeline schedule create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Schedule.UUID == "" || created.Schedule.CronPattern != cronPattern || created.Schedule.Enabled {
+		t.Fatalf("unexpected created pipeline schedule %+v", created)
+	}
+
+	viewOutput := session.Run(t, "", "pipeline", "schedule", "view", created.Schedule.UUID, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Schedule bitbucket.PipelineSchedule `json:"schedule"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse pipeline schedule view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Schedule.UUID != created.Schedule.UUID {
+		t.Fatalf("unexpected viewed pipeline schedule %+v", viewed)
+	}
+
+	enableOutput := session.Run(t, "", "pipeline", "schedule", "enable", created.Schedule.UUID, "--repo", repoTarget, "--json", "*")
+	var enabled struct {
+		Schedule bitbucket.PipelineSchedule `json:"schedule"`
+	}
+	if err := json.Unmarshal(enableOutput, &enabled); err != nil {
+		t.Fatalf("parse pipeline schedule enable JSON: %v\n%s", err, enableOutput)
+	}
+	if !enabled.Schedule.Enabled {
+		t.Fatalf("expected enabled pipeline schedule, got %+v", enabled)
+	}
+
+	var listed struct {
+		Schedules []bitbucket.PipelineSchedule `json:"schedules"`
+	}
+	var found bool
+	for attempt := 0; attempt < 12; attempt++ {
+		listOutput := session.Run(t, "", "pipeline", "schedule", "list", "--repo", repoTarget, "--json", "*")
+		if err := json.Unmarshal(listOutput, &listed); err != nil {
+			t.Fatalf("parse pipeline schedule list JSON: %v\n%s", err, listOutput)
+		}
+		for _, schedule := range listed.Schedules {
+			if schedule.UUID == created.Schedule.UUID {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if !found {
+		t.Fatalf("expected created pipeline schedule in list %+v", listed.Schedules)
+	}
+
+	deleteOutput := session.Run(t, "", "pipeline", "schedule", "delete", created.Schedule.UUID, "--repo", repoTarget, "--yes", "--json", "*")
+	var deleted struct {
+		Deleted  bool                       `json:"deleted"`
+		Schedule bitbucket.PipelineSchedule `json:"schedule"`
+	}
+	if err := json.Unmarshal(deleteOutput, &deleted); err != nil {
+		t.Fatalf("parse pipeline schedule delete JSON: %v\n%s", err, deleteOutput)
+	}
+	if !deleted.Deleted || deleted.Schedule.UUID != created.Schedule.UUID {
+		t.Fatalf("unexpected deleted pipeline schedule %+v", deleted)
+	}
+}
+
+func TestBitbucketCloudPipelineRunnerList(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+
+	output := session.Run(t, "", "pipeline", "runner", "list", "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--json", "*")
+
+	var payload struct {
+		Runners []bitbucket.PipelineRunner `json:"runners"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline runner list JSON: %v\n%s", err, output)
+	}
+}
+
+func TestBitbucketCloudPipelineCacheList(t *testing.T) {
+	session := newIntegrationSession(t)
+	pipelines := session.PipelineFixture(t)
+
+	output := session.Run(t, "", "pipeline", "cache", "list", "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--json", "*")
+
+	var payload struct {
+		Caches []bitbucket.PipelineCache `json:"caches"`
+	}
+	if err := json.Unmarshal(output, &payload); err != nil {
+		t.Fatalf("parse pipeline cache list JSON: %v\n%s", err, output)
+	}
+}
+
 func TestBitbucketCloudPipelineStop(t *testing.T) {
 	session := newIntegrationSession(t)
 	pipelines := session.PipelineFixture(t)

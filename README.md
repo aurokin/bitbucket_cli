@@ -81,6 +81,9 @@ bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo view --repo workspace-slug/repo-slug
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
+bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
+bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
 bb pr list --repo workspace-slug/repo-slug
 bb issue list --repo workspace-slug/issues-repo-slug
 ```
@@ -135,6 +138,9 @@ bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#commen
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug --json schedules
+bb pipeline cache list --repo workspace-slug/pipelines-repo-slug --json caches
+bb pipeline runner list --repo workspace-slug/pipelines-repo-slug --json runners
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 ```
 
@@ -210,7 +216,7 @@ References:
 
 ## Notes On Pipeline Behavior
 
-- `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: run, list, view, test reports, repository variables, log, and stop.
+- `bb` supports the Bitbucket Cloud pipeline APIs we could verify directly today: run, list, view, test reports, repository variables, schedules, runners, caches, log, and stop.
 - `bb` does not provide pipeline rerun because the current Bitbucket Cloud pipeline REST docs do not expose a rerun endpoint. `bb` does not fake rerun by creating a new run behind your back.
 - Raw step logs are not guaranteed for every Bitbucket pipeline step. When Bitbucket does not expose a log file for a step, `bb pipeline log` fails clearly instead of inventing synthetic output.
 - Test reports are also not guaranteed for every pipeline step. When Bitbucket does not expose test reports for a step, `bb pipeline test-reports` fails clearly instead of inventing synthetic results.

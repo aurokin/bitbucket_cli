@@ -28,9 +28,21 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb issue list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb issue reopen` | yes | yes | yes | yes | yes | yes | `--message`, `--state` |
 | `bb issue view` | yes | yes | yes | yes | yes | yes |  |
+| `bb pipeline cache clear` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline cache delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline cache list` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb pipeline list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |
 | `bb pipeline log` | yes | yes | yes | yes | yes | yes | `--step` |
 | `bb pipeline run` | yes | yes | yes | yes | yes | yes | `--ref-type`, `--ref` |
+| `bb pipeline runner delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline runner list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb pipeline runner view` | yes | yes | yes | yes | yes | yes |  |
+| `bb pipeline schedule create` | yes | yes | yes | yes | yes | yes | `--cron`, `--enabled`, `--ref`, `--selector-pattern`, `--selector-type` |
+| `bb pipeline schedule delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb pipeline schedule disable` | yes | yes | yes | yes | yes | yes |  |
+| `bb pipeline schedule enable` | yes | yes | yes | yes | yes | yes |  |
+| `bb pipeline schedule list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb pipeline schedule view` | yes | yes | yes | yes | yes | yes |  |
 | `bb pipeline stop` | yes | yes | yes | yes | yes | yes | `--yes` |
 | `bb pipeline test-reports` | yes | yes | yes | yes | yes | yes | `--cases`, `--limit`, `--step` |
 | `bb pipeline variable create` | yes | yes | yes | yes | yes | yes | `--key`, `--secured`, `--value-file`, `--value` |

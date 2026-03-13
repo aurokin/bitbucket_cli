@@ -71,6 +71,10 @@ bb repo clone workspace-slug/repo-slug
 ```bash
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
+bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
+bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'
+bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
+bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'

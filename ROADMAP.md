@@ -2,13 +2,7 @@
 
 ## Next Commands
 
-1. Pipeline actions and diagnostics
-   - `bb pipeline schedules`
-   - `bb pipeline runners`
-   - `bb pipeline caches`
-   - Backed by the official Bitbucket Cloud pipeline schedule, runner, and cache APIs.
-
-2. Issue collaboration depth
+1. Issue collaboration depth
    - `bb issue comment`
    - `bb issue attachments`
    - `bb issue milestones`
@@ -17,7 +11,7 @@
    - `bb issue export`
    - Backed by the official Bitbucket Cloud issue tracker APIs for comments, attachments, milestones, components, and import/export.
 
-3. Repository administration
+2. Repository administration
    - `bb repo edit`
    - `bb repo fork`
    - `bb repo list`
@@ -26,7 +20,7 @@
    - `bb repo permissions`
    - Backed by the official Bitbucket Cloud repository, webhook, deploy key, and permission APIs.
 
-4. Commit and code insight surfaces
+3. Commit and code insight surfaces
    - `bb commit view`
    - `bb commit diff`
    - `bb commit comments`

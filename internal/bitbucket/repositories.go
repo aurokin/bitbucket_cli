@@ -76,8 +76,21 @@ type ForkRepositoryOptions struct {
 }
 
 type Workspace struct {
-	Slug string `json:"slug"`
-	Name string `json:"name,omitempty"`
+	Type      string         `json:"type,omitempty"`
+	Slug      string         `json:"slug"`
+	Name      string         `json:"name,omitempty"`
+	UUID      string         `json:"uuid,omitempty"`
+	IsPrivate bool           `json:"is_private,omitempty"`
+	CreatedOn string         `json:"created_on,omitempty"`
+	Links     WorkspaceLinks `json:"links,omitempty"`
+}
+
+type WorkspaceLinks struct {
+	HTML         Link `json:"html,omitempty"`
+	Repositories Link `json:"repositories,omitempty"`
+	Projects     Link `json:"projects,omitempty"`
+	Members      Link `json:"members,omitempty"`
+	Self         Link `json:"self,omitempty"`
 }
 
 type workspaceListResponse struct {

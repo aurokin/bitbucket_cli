@@ -174,6 +174,36 @@ func TestRepoPermissionsHelpRegression(t *testing.T) {
 	}
 }
 
+func TestWorkspaceHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "workspace", "member", "list", "--help")
+	for _, fragment := range []string{
+		"bb workspace member list workspace-slug",
+		"--workspace string",
+		"--query string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("workspace help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestProjectHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "project", "create", "--help")
+	for _, fragment := range []string{
+		"bb project create BBCLI --workspace workspace-slug --name 'bb cli integration'",
+		"--name string",
+		"--visibility string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("project help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

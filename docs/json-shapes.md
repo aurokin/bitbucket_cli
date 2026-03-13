@@ -6,6 +6,290 @@ Generated from the current payload structs and Bitbucket response models. Field 
 
 Use [automation.md](./automation.md) for deterministic command patterns and [cli-reference.md](./cli-reference.md) for the full command surface.
 
+## Workspace Inspection
+
+Representative shapes for workspace list, view, membership, and workspace-scoped repository permission payloads.
+
+Commands:
+
+```bash
+bb workspace list --json '*'
+bb workspace view workspace-slug --json '*'
+bb workspace member view 557058:example --workspace workspace-slug --json '*'
+bb workspace repo-permission list workspace-slug --repo workspace-slug/repo-slug --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "host": "bitbucket.org",
+  "workspaces": [
+    {
+      "created_on": "2026-03-11T00:00:00Z",
+      "is_private": true,
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "name": "Example Name",
+      "slug": "\u003cslug\u003e",
+      "type": "commit_file",
+      "uuid": "{uuid}"
+    }
+  ]
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "workspace": {
+    "created_on": "2026-03-11T00:00:00Z",
+    "is_private": true,
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "members": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "projects": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "repositories": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "name": "Example Name",
+    "slug": "\u003cslug\u003e",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  }
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "membership": {
+    "added_on": "\u003cadded-on\u003e",
+    "last_accessed": "\u003clast-accessed\u003e",
+    "links": {
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "permission": "\u003cpermission\u003e",
+    "type": "commit_file",
+    "user": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user",
+      "uuid": "{uuid}"
+    },
+    "workspace": {
+      "created_on": "2026-03-11T00:00:00Z",
+      "is_private": true,
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "name": "Example Name",
+      "slug": "\u003cslug\u003e",
+      "type": "commit_file",
+      "uuid": "{uuid}"
+    }
+  },
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "permissions": [
+    {
+      "permission": "\u003cpermission\u003e",
+      "repository": {
+        "name": "Example Name"
+      },
+      "type": "commit_file",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    }
+  ],
+  "query": "\u003cquery\u003e",
+  "repo": "repo-slug",
+  "sort": "\u003csort\u003e",
+  "workspace": "workspace-slug"
+}
+```
+
+## Project Inspection And Mutation
+
+Representative shapes for project list, view, create or edit, default reviewer, and permission inspection payloads.
+
+Commands:
+
+```bash
+bb project list workspace-slug --json '*'
+bb project view BBCLI --workspace workspace-slug --json '*'
+bb project create TMP --workspace workspace-slug --name 'Temp project' --json '*'
+bb project default-reviewer list BBCLI --workspace workspace-slug --json '*'
+bb project permissions user view BBCLI 557058:example --workspace workspace-slug --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "host": "bitbucket.org",
+  "projects": [
+    {
+      "description": "Example text",
+      "is_private": true,
+      "key": "BBCLI",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "name": "Example Name",
+      "type": "commit_file",
+      "uuid": "{uuid}"
+    }
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "project": {
+    "description": "Example text",
+    "is_private": true,
+    "key": "BBCLI",
+    "links": {
+      "avatar": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "name": "BBCLI",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  },
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "action": "\u003caction\u003e",
+  "deleted": true,
+  "host": "bitbucket.org",
+  "project": {
+    "description": "Example text",
+    "is_private": true,
+    "key": "BBCLI",
+    "links": {
+      "avatar": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "name": "BBCLI",
+    "type": "commit_file",
+    "uuid": "{uuid}"
+  },
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "default_reviewers": [
+    {
+      "reviewer_type": "\u003creviewer-type\u003e",
+      "type": "commit_file",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    }
+  ],
+  "host": "bitbucket.org",
+  "project_key": "BBCLI",
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "permission": {
+    "links": {
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "permission": "\u003cpermission\u003e",
+    "type": "commit_file",
+    "user": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user",
+      "uuid": "{uuid}"
+    }
+  },
+  "project_key": "BBCLI",
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "permission": {
+    "group": {
+      "full_slug": "\u003cfull-slug\u003e",
+      "name": "Example Name",
+      "slug": "\u003cslug\u003e"
+    },
+    "links": {
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "permission": "\u003cpermission\u003e",
+    "type": "commit_file"
+  },
+  "project_key": "BBCLI",
+  "workspace": "workspace-slug"
+}
+```
+
 ## Repository View
 
 Representative shape for the repository view payload.

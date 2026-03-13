@@ -102,6 +102,16 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb pr task resolve` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr task view` | yes | yes | yes | yes | yes | yes | `--pr` |
 | `bb pr view` | yes | yes | yes | yes | yes | yes |  |
+| `bb project create` | yes | yes | yes | yes |  | yes | `--description`, `--name`, `--visibility` |
+| `bb project default-reviewer list` | yes | yes | yes | yes |  | yes | `--limit` |
+| `bb project delete` | yes | yes | yes | yes |  | yes | `--yes` |
+| `bb project edit` | yes | yes | yes | yes |  | yes | `--description`, `--name`, `--visibility` |
+| `bb project list` | yes | yes | yes | yes |  | yes | `--limit` |
+| `bb project permissions group list` | yes | yes | yes | yes |  | yes | `--limit` |
+| `bb project permissions group view` | yes | yes | yes | yes |  | yes |  |
+| `bb project permissions user list` | yes | yes | yes | yes |  | yes | `--limit` |
+| `bb project permissions user view` | yes | yes | yes | yes |  | yes |  |
+| `bb project view` | yes | yes | yes | yes |  | yes |  |
 | `bb repo clone` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo create` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--private`, `--project-key`, `--reuse-existing` |
 | `bb repo delete` | yes | yes | yes | yes | yes | yes | `--yes` |
@@ -132,3 +142,10 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb tag list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
 | `bb tag view` | yes | yes | yes | yes | yes | yes |  |
 | `bb version` | yes | yes | yes |  |  |  |  |
+| `bb workspace list` | yes | yes | yes | yes |  |  |  |
+| `bb workspace member list` | yes | yes | yes | yes |  | yes | `--limit`, `--query` |
+| `bb workspace member view` | yes | yes | yes | yes |  | yes |  |
+| `bb workspace permission list` | yes | yes | yes | yes |  | yes | `--limit`, `--query` |
+| `bb workspace permission view` | yes | yes | yes | yes |  | yes |  |
+| `bb workspace repo-permission list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
+| `bb workspace view` | yes | yes | yes | yes |  | yes |  |

@@ -12,6 +12,8 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 - Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
 - Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Workspaces: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/
+- Projects: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-projects/
 - Users: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 
 ## Install And Update
@@ -70,6 +72,15 @@ bb api /user --jq '{display_name, account_id}'
 Use the generated [flag matrix](./flag-matrix.md), [CLI reference](./cli-reference.md), [JSON fields](./json-fields.md), and [JSON shapes](./json-shapes.md) for exhaustive details. Keep automation examples short and deterministic:
 
 ```bash
+bb workspace list --json workspaces
+bb workspace view workspace-slug --json workspace
+bb workspace member list workspace-slug --json members
+bb workspace repo-permission list workspace-slug --repo workspace-slug/repo-slug --json permissions
+bb project list workspace-slug --json projects
+bb project view BBCLI --workspace workspace-slug --json project
+bb project create TMP --workspace workspace-slug --name "Temp project" --json project,action
+bb project edit TMP --workspace workspace-slug --description "Updated by automation" --json project,action
+bb project permissions user list BBCLI --workspace workspace-slug --json permissions
 bb repo list workspace-slug --json repos
 bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
 bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
@@ -137,5 +148,7 @@ Bitbucket Cloud currently rejects API-token auth for the documented issue import
 Bitbucket also rejected deploy-key updates in the live API behavior we verified. Rotate deploy keys by deleting and creating them instead of expecting an in-place update command.
 
 Repository permission mutation also remains out of scope until the API-token path is verified live. Use the read-only permission inspection commands for now.
+
+Project permission mutation also remains out of scope until the API-token path is verified live. Use the read-only project permission inspection commands for now.
 
 Commit reports also remain read-only in `bb` today. The CLI does not offer commit report mutation until the API-token path is verified cleanly enough to support as a documented workflow.

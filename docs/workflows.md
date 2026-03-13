@@ -12,6 +12,8 @@ Use the generated [CLI reference](./cli-reference.md) for the full command surfa
 - Repositories: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/
 - Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Workspaces: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/
+- Projects: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-projects/
 
 ## Install
 
@@ -75,6 +77,25 @@ bb repo clone workspace-slug/repo-slug
 Bitbucket rejected deploy-key updates in the live API behavior we verified, so rotate deploy keys by deleting and re-creating them instead of expecting an in-place edit flow.
 
 Repository permission mutation also stays out of scope for now. Bitbucket's permission write/delete docs still describe app-password-only behavior in places, so `bb` only exposes explicit permission inspection until the API-token path is verified live.
+
+## Inspect Workspaces And Projects
+
+```bash
+bb workspace list
+bb workspace view workspace-slug
+bb workspace member list workspace-slug
+bb workspace permission list workspace-slug
+bb workspace repo-permission list workspace-slug --repo workspace-slug/repo-slug
+bb project list workspace-slug
+bb project view BBCLI --workspace workspace-slug
+bb project default-reviewer list BBCLI --workspace workspace-slug
+bb project permissions user list BBCLI --workspace workspace-slug
+bb project create TMP --workspace workspace-slug --name "Temp project"
+bb project edit TMP --workspace workspace-slug --description "Updated by automation"
+bb project delete TMP --workspace workspace-slug --yes
+```
+
+Project permission mutation also stays out of scope for now. `bb` only exposes explicit project permission inspection until the API-token path is verified live for documented write behavior.
 
 ## Manage Branches And Tags
 

@@ -1,6 +1,6 @@
 ---
 name: bb-cli
-description: Bitbucket Cloud CLI skill for this repository's `bb` command. Use when a task mentions Bitbucket, Bitbucket Cloud, `bb`, or Bitbucket web URLs like `https://bitbucket.org/...`, including repository, pull request, pull request comment, issue, commit, and source links. Covers installation, API-token authentication, URL resolution, browse flows, repositories, pull requests, comments, tasks, pipelines, issues, search, status, structured output, and official Bitbucket Cloud REST API fallback with `bb api`.
+description: Bitbucket Cloud CLI skill for this repository's `bb` command. Use when a task mentions Bitbucket, Bitbucket Cloud, `bb`, or Bitbucket web URLs like `https://bitbucket.org/...`, including workspace, project, repository, pull request, pull request comment, issue, commit, and source links. Covers installation, API-token authentication, URL resolution, browse flows, workspaces, projects, repositories, pull requests, comments, tasks, pipelines, issues, search, status, structured output, and official Bitbucket Cloud REST API fallback with `bb api`.
 ---
 
 # bb CLI
@@ -11,7 +11,7 @@ Use this skill for Bitbucket Cloud work through this repository's `bb` CLI.
 
 - The task mentions Bitbucket, Bitbucket Cloud, or `bb`
 - The task includes a `bitbucket.org/...` URL
-- The task is about PRs, PR comments, PR tasks, issues, pipelines, search, status, or browsing in Bitbucket Cloud
+- The task is about workspaces, projects, repositories, PRs, PR comments, PR tasks, issues, pipelines, search, status, or browsing in Bitbucket Cloud
 - The task needs structured Bitbucket CLI output for an agent
 - The task needs official Bitbucket Cloud REST API fallback through `bb api`
 
@@ -83,6 +83,16 @@ bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,s
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
 ```
 
+Inspect workspace or project state:
+
+```bash
+bb workspace list --json workspaces
+bb workspace member list workspace-slug --json members
+bb project list workspace-slug --json projects
+bb project view BBCLI --workspace workspace-slug --json project
+bb project permissions user list BBCLI --workspace workspace-slug --json permissions
+```
+
 Inspect pull requests:
 
 ```bash
@@ -137,6 +147,7 @@ bb api /2.0/repositories/workspace-slug/repo-slug/pullrequests --jq '.values[] |
 - Bitbucket Cloud does not support reopening a declined PR, so `bb` does not provide a fake `pr reopen`.
 - Bitbucket Cloud does not expose PR comment likes/reactions through the official Cloud REST API.
 - Browser login is intentionally out of scope; auth is API-token-first.
+- Project permission mutation is intentionally out of scope until the API-token path is verified cleanly enough to support as a documented workflow.
 - If a pipeline step has no exposed raw log file, `bb pipeline log` should fail clearly instead of fabricating output.
 
 ## API Grounding
@@ -150,5 +161,7 @@ Use the official Bitbucket Cloud REST API docs first when behavior is unclear:
 - Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
 - Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Workspaces: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/
+- Projects: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-projects/
 - Users: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 - Source: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/

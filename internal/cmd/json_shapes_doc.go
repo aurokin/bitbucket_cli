@@ -23,6 +23,29 @@ type jsonShapeSection struct {
 func GenerateJSONShapesDoc() (string, error) {
 	sections := []jsonShapeSection{
 		{
+			Title:       "Workspace Inspection",
+			Description: "Representative shapes for workspace list, view, membership, and workspace-scoped repository permission payloads.",
+			Commands: []string{
+				"bb workspace list --json '*'",
+				"bb workspace view workspace-slug --json '*'",
+				"bb workspace member view 557058:example --workspace workspace-slug --json '*'",
+				"bb workspace repo-permission list workspace-slug --repo workspace-slug/repo-slug --json '*'",
+			},
+			Type: []any{workspaceListPayload{}, workspacePayload{}, workspaceMembershipPayload{}, workspaceRepoPermissionListPayload{}},
+		},
+		{
+			Title:       "Project Inspection And Mutation",
+			Description: "Representative shapes for project list, view, create or edit, default reviewer, and permission inspection payloads.",
+			Commands: []string{
+				"bb project list workspace-slug --json '*'",
+				"bb project view BBCLI --workspace workspace-slug --json '*'",
+				"bb project create TMP --workspace workspace-slug --name 'Temp project' --json '*'",
+				"bb project default-reviewer list BBCLI --workspace workspace-slug --json '*'",
+				"bb project permissions user view BBCLI 557058:example --workspace workspace-slug --json '*'",
+			},
+			Type: []any{projectListPayload{}, projectPayload{}, projectMutationPayload{}, projectDefaultReviewerListPayload{}, projectUserPermissionPayload{}, projectGroupPermissionPayload{}},
+		},
+		{
 			Title:       "Repository View",
 			Description: "Representative shape for the repository view payload.",
 			Commands: []string{

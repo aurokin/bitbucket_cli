@@ -16,6 +16,16 @@ type jsonFieldDocEntry struct {
 
 func GenerateJSONFieldsDoc() (string, error) {
 	entries := []jsonFieldDocEntry{
+		{Command: "bb workspace list", Type: workspaceListPayload{}},
+		{Command: "bb workspace view", Type: workspacePayload{}},
+		{Command: "bb workspace member view", Type: workspaceMembershipPayload{}},
+		{Command: "bb workspace repo-permission list", Type: workspaceRepoPermissionListPayload{}},
+		{Command: "bb project list", Type: projectListPayload{}},
+		{Command: "bb project view", Type: projectPayload{}},
+		{Command: "bb project create", Type: projectMutationPayload{}},
+		{Command: "bb project default-reviewer list", Type: projectDefaultReviewerListPayload{}},
+		{Command: "bb project permissions user view", Type: projectUserPermissionPayload{}},
+		{Command: "bb project permissions group view", Type: projectGroupPermissionPayload{}},
 		{Command: "bb repo view", Type: repoViewPayload{}},
 		{Command: "bb repo clone", Type: repoClonePayload{}},
 		{Command: "bb repo delete", Type: repoDeletePayload{}},

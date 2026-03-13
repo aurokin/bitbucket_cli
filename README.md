@@ -77,6 +77,14 @@ Create or rotate the token here:
 Prefer explicit repository targets when you are outside a checkout or writing automation:
 
 ```bash
+bb workspace list
+bb workspace member list workspace-slug
+bb workspace permission list workspace-slug
+bb workspace repo-permission list workspace-slug --repo workspace-slug/repo-slug
+bb project list workspace-slug
+bb project view BBCLI --workspace workspace-slug
+bb project default-reviewer list BBCLI --workspace workspace-slug
+bb project permissions user list BBCLI --workspace workspace-slug
 bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo list workspace-slug
 bb repo view --repo workspace-slug/repo-slug
@@ -131,6 +139,8 @@ Main API groups used by `bb`:
 - Pull requests: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/
 - Pipelines: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/
 - Issue tracker: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-issue-tracker/
+- Workspaces: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/
+- Projects: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-projects/
 - Users and current-account validation: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 - Source browsing and file-oriented repository URLs: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/
 
@@ -148,6 +158,9 @@ bb status
 For agents and scripts:
 
 ```bash
+bb workspace list --json workspaces
+bb project list workspace-slug --json projects
+bb project permissions user list BBCLI --workspace workspace-slug --json permissions
 bb repo list workspace-slug --json repos
 bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing --json repository
@@ -196,7 +209,7 @@ Key behavior:
 
 Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
 
-- auth, api, branch, browse, commit, resolve, and tag
+- auth, api, branch, browse, commit, project, resolve, tag, and workspace
 - repo, pipeline, pr, and issue
 - search, status, config, alias, and extension
 
@@ -219,6 +232,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Config defaults for prompt behavior and default output format, plus aliases and extension discovery
 - Structured automation paths with `--json`
 - Flexible repository targeting with local git inference, `workspace/repo`, and Bitbucket/GitHub-style URLs
+- Workspace and project inspection plus project creation, editing, and deletion
 
 ### What `bb` Offers That `gh` Does Not
 
@@ -258,6 +272,7 @@ References:
 
 - `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
 - `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
+- Project permission mutation stays out of scope for now. `bb` only exposes explicit project permission inspection until the API-token path is verified cleanly enough to support a documented write workflow.
 - `bb` intentionally supports API-token login only. Browser login is out of scope unless Bitbucket Cloud exposes a cleaner CLI-safe auth path.
 - `bb` does not wrap Bitbucket issue import or export jobs today. Atlassian documents those endpoints, but the current Bitbucket Cloud issue import/export endpoints reject API-token auth, so `bb` leaves them out instead of shipping a broken wrapper.
 - `bb repo deploy-key` supports list, view, create, and delete. Bitbucket rejected deploy-key updates in the live API behavior we verified, so key rotation should use delete plus create instead of an `edit` command.

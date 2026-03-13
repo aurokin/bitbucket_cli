@@ -6,6 +6,16 @@ Use this file to discover top-level field names for `--json` selection.
 
 | Command | Top-level fields | Example |
 |---|---|---|
+| `bb workspace list` | `host`, `workspaces` | `bb workspace list --json host,workspaces` |
+| `bb workspace view` | `host`, `workspace` | `bb workspace view --json host,workspace` |
+| `bb workspace member view` | `host`, `membership`, `workspace` | `bb workspace member view --json host,membership,workspace` |
+| `bb workspace repo-permission list` | `host`, `permissions`, `query`, `repo`, `sort`, `workspace` | `bb workspace repo-permission list --json host,permissions,query` |
+| `bb project list` | `host`, `projects`, `workspace` | `bb project list --json host,projects,workspace` |
+| `bb project view` | `host`, `project`, `workspace` | `bb project view --json host,project,workspace` |
+| `bb project create` | `action`, `deleted`, `host`, `project`, `workspace` | `bb project create --json action,deleted,host` |
+| `bb project default-reviewer list` | `default_reviewers`, `host`, `project_key`, `workspace` | `bb project default-reviewer list --json default_reviewers,host,project_key` |
+| `bb project permissions user view` | `host`, `permission`, `project_key`, `workspace` | `bb project permissions user view --json host,permission,project_key` |
+| `bb project permissions group view` | `host`, `permission`, `project_key`, `workspace` | `bb project permissions group view --json host,permission,project_key` |
 | `bb repo view` | `description`, `full_name`, `host`, `html_url`, `https_clone`, `local_clone_url`, `main_branch`, `name`, `private`, `project_key`, `project_name`, `remote`, `repo`, `root`, `ssh_clone`, `warnings`, `workspace` | `bb repo view --json description,full_name,host` |
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |

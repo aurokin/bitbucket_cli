@@ -124,6 +124,21 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
     - `bb pr task resolve`
     - `bb pr task view`
   - `bb pr view`
+- `bb project`
+  - `bb project create`
+  - `bb project default-reviewer`
+    - `bb project default-reviewer list`
+  - `bb project delete`
+  - `bb project edit`
+  - `bb project list`
+  - `bb project permissions`
+    - `bb project permissions group`
+      - `bb project permissions group list`
+      - `bb project permissions group view`
+    - `bb project permissions user`
+      - `bb project permissions user list`
+      - `bb project permissions user view`
+  - `bb project view`
 - `bb repo`
   - `bb repo clone`
   - `bb repo create`
@@ -162,6 +177,17 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb tag list`
   - `bb tag view`
 - `bb version`
+- `bb workspace`
+  - `bb workspace list`
+  - `bb workspace member`
+    - `bb workspace member list`
+    - `bb workspace member view`
+  - `bb workspace permission`
+    - `bb workspace permission list`
+    - `bb workspace permission view`
+  - `bb workspace repo-permission`
+    - `bb workspace repo-permission list`
+  - `bb workspace view`
 
 ## `bb alias`
 
@@ -3424,6 +3450,383 @@ Flags:
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
+## `bb project`
+
+Work with Bitbucket projects
+
+Inspect and manage Bitbucket projects backed by the official Bitbucket Cloud project APIs.
+
+Aliases: `projects`
+
+Usage:
+
+```text
+bb project
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb project create`: Create a project in a workspace
+- `bb project default-reviewer`: Inspect project default reviewers
+- `bb project delete`: Delete an empty Bitbucket project
+- `bb project edit`: Edit project metadata
+- `bb project list`: List projects in a workspace
+- `bb project permissions`: Inspect explicit project permissions
+- `bb project view`: Show project information
+
+## `bb project create`
+
+Create a project in a workspace
+
+Usage:
+
+```text
+bb project create <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project create BBCLI --workspace workspace-slug --name 'bb cli integration'
+bb project create DEMO --workspace workspace-slug --name 'Demo' --visibility private --json '*'
+bb project create TMP --name 'Temp project'
+```
+
+Flags:
+
+- `--description`: Project description
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--name`: Project display name
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--visibility`: Project visibility: private or public
+- `--workspace`: Workspace slug to create the project in
+
+## `bb project default-reviewer`
+
+Inspect project default reviewers
+
+Aliases: `default-reviewers`
+
+Usage:
+
+```text
+bb project default-reviewer
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb project default-reviewer list`: List default reviewers in a project
+
+## `bb project default-reviewer list`
+
+List default reviewers in a project
+
+Usage:
+
+```text
+bb project default-reviewer list <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project default-reviewer list BBCLI --workspace workspace-slug
+bb project default-reviewer list BBCLI --workspace workspace-slug --json default_reviewers
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of default reviewers to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project delete`
+
+Delete an empty Bitbucket project
+
+Delete an empty Bitbucket project. Bitbucket requires projects to be empty before deletion.
+
+Usage:
+
+```text
+bb project delete <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project delete TMP --workspace workspace-slug --yes
+bb --no-prompt project delete TMP --workspace workspace-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+- `--yes`: Skip the confirmation prompt
+
+## `bb project edit`
+
+Edit project metadata
+
+Usage:
+
+```text
+bb project edit <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project edit BBCLI --workspace workspace-slug --description 'Updated by automation'
+bb project edit BBCLI --workspace workspace-slug --visibility public --json '*'
+bb project edit BBCLI --name 'New project name'
+```
+
+Flags:
+
+- `--description`: New project description
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--name`: New project display name
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--visibility`: New project visibility: private or public
+- `--workspace`: Workspace slug to inspect
+
+## `bb project list`
+
+List projects in a workspace
+
+List Bitbucket projects in one workspace. If you have access to exactly one workspace, the workspace can be omitted.
+
+Usage:
+
+```text
+bb project list [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb project list workspace-slug
+bb project list --workspace workspace-slug --limit 50
+bb project list workspace-slug --json projects
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of projects to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project permissions`
+
+Inspect explicit project permissions
+
+Inspect explicit Bitbucket project user and group permissions. Project permission writes remain out of scope until the API-token path is verified live.
+
+Aliases: `permission`
+
+Usage:
+
+```text
+bb project permissions
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb project permissions group`: Inspect explicit project group permissions
+- `bb project permissions user`: Inspect explicit project user permissions
+
+## `bb project permissions group`
+
+Inspect explicit project group permissions
+
+Usage:
+
+```text
+bb project permissions group
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb project permissions group list`: List explicit project group permissions
+- `bb project permissions group view`: View one explicit project group permission
+
+## `bb project permissions group list`
+
+List explicit project group permissions
+
+Usage:
+
+```text
+bb project permissions group list <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project permissions group list BBCLI --workspace workspace-slug
+bb project permissions group list BBCLI --workspace workspace-slug --json permissions
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of explicit project group permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project permissions group view`
+
+View one explicit project group permission
+
+Usage:
+
+```text
+bb project permissions group view <project-key> <group-slug> [flags]
+```
+
+Examples:
+
+```bash
+bb project permissions group view BBCLI developers --workspace workspace-slug
+bb project permissions group view BBCLI developers --workspace workspace-slug --json permission
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project permissions user`
+
+Inspect explicit project user permissions
+
+Usage:
+
+```text
+bb project permissions user
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb project permissions user list`: List explicit project user permissions
+- `bb project permissions user view`: View one explicit project user permission
+
+## `bb project permissions user list`
+
+List explicit project user permissions
+
+Usage:
+
+```text
+bb project permissions user list <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project permissions user list BBCLI --workspace workspace-slug
+bb project permissions user list BBCLI --workspace workspace-slug --json permissions
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of explicit project user permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project permissions user view`
+
+View one explicit project user permission
+
+Usage:
+
+```text
+bb project permissions user view <project-key> <account-id> [flags]
+```
+
+Examples:
+
+```bash
+bb project permissions user view BBCLI 557058:example --workspace workspace-slug
+bb project permissions user view BBCLI 557058:example --workspace workspace-slug --json permission
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb project view`
+
+Show project information
+
+Usage:
+
+```text
+bb project view <project-key> [flags]
+```
+
+Examples:
+
+```bash
+bb project view BBCLI --workspace workspace-slug
+bb project view BBCLI --workspace workspace-slug --json project
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
 ## `bb repo`
 
 Work with Bitbucket repositories
@@ -4487,3 +4890,284 @@ Flags:
 - `--jq`: Filter JSON output using a jq expression
 - `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb workspace`
+
+Work with Bitbucket workspaces
+
+Inspect Bitbucket workspaces, members, and workspace-scoped permissions backed by the official Bitbucket Cloud workspace APIs.
+
+Aliases: `workspaces`
+
+Usage:
+
+```text
+bb workspace
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb workspace list`: List accessible workspaces
+- `bb workspace member`: Inspect workspace members
+- `bb workspace permission`: Inspect workspace user permissions
+- `bb workspace repo-permission`: Inspect effective repository permissions in a workspace
+- `bb workspace view`: Show workspace information
+
+## `bb workspace list`
+
+List accessible workspaces
+
+Usage:
+
+```text
+bb workspace list [flags]
+```
+
+Examples:
+
+```bash
+bb workspace list
+bb workspace list --json workspaces
+bb workspace list --jq '.workspaces[].slug'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb workspace member`
+
+Inspect workspace members
+
+Aliases: `members`
+
+Usage:
+
+```text
+bb workspace member
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb workspace member list`: List members in a workspace
+- `bb workspace member view`: View one workspace member
+
+## `bb workspace member list`
+
+List members in a workspace
+
+Usage:
+
+```text
+bb workspace member list [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb workspace member list workspace-slug
+bb workspace member list --workspace workspace-slug --query 'user.account_id="123"'
+bb workspace member list workspace-slug --json members
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of workspace members to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket workspace membership query filter
+- `--workspace`: Workspace slug to inspect
+
+## `bb workspace member view`
+
+View one workspace member
+
+Usage:
+
+```text
+bb workspace member view <account-id-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb workspace member view 557058:example --workspace workspace-slug
+bb workspace member view '{account-uuid}' --workspace workspace-slug --json membership
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb workspace permission`
+
+Inspect workspace user permissions
+
+Inspect workspace memberships and their effective workspace permission levels.
+
+Aliases: `permissions`
+
+Usage:
+
+```text
+bb workspace permission
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb workspace permission list`: List user permissions in a workspace
+- `bb workspace permission view`: View one workspace user permission
+
+## `bb workspace permission list`
+
+List user permissions in a workspace
+
+Usage:
+
+```text
+bb workspace permission list [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb workspace permission list workspace-slug
+bb workspace permission list --workspace workspace-slug --query 'permission="owner"'
+bb workspace permission list workspace-slug --json members
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of workspace permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket workspace permission query filter
+- `--workspace`: Workspace slug to inspect
+
+## `bb workspace permission view`
+
+View one workspace user permission
+
+Usage:
+
+```text
+bb workspace permission view <account-id-or-uuid> [flags]
+```
+
+Examples:
+
+```bash
+bb workspace permission view 557058:example --workspace workspace-slug
+bb workspace permission view '{account-uuid}' --workspace workspace-slug --json membership
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect
+
+## `bb workspace repo-permission`
+
+Inspect effective repository permissions in a workspace
+
+Aliases: `repo-permissions`
+
+Usage:
+
+```text
+bb workspace repo-permission
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb workspace repo-permission list`: List effective repository permissions in a workspace
+
+## `bb workspace repo-permission list`
+
+List effective repository permissions in a workspace
+
+List effective repository permissions across a workspace or for one repository within a workspace. Bitbucket only exposes list endpoints for this surface.
+
+Usage:
+
+```text
+bb workspace repo-permission list [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb workspace repo-permission list workspace-slug
+bb workspace repo-permission list workspace-slug --repo repo-slug
+bb workspace repo-permission list --workspace workspace-slug --repo workspace-slug/repo-slug --json permissions
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of workspace repository permissions to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket workspace repository permission query filter
+- `--repo`: Optional repository filter as <repo>, <workspace>/<repo>, or a repository URL
+- `--sort`: Bitbucket workspace repository permission sort expression
+- `--workspace`: Workspace slug to inspect
+
+## `bb workspace view`
+
+Show workspace information
+
+Show Bitbucket workspace information. If exactly one workspace is accessible, the workspace slug can be omitted.
+
+Usage:
+
+```text
+bb workspace view [workspace] [flags]
+```
+
+Examples:
+
+```bash
+bb workspace view workspace-slug
+bb workspace view --workspace workspace-slug --json workspace
+bb workspace view --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--workspace`: Workspace slug to inspect

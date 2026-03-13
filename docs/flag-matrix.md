@@ -14,6 +14,10 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb auth login` |  |  | yes | yes |  |  | `--default`, `--token`, `--username`, `--with-token` |
 | `bb auth logout` |  |  | yes | yes |  |  |  |
 | `bb auth status` | yes | yes | yes | yes |  |  | `--check` |
+| `bb branch create` | yes | yes | yes | yes | yes | yes | `--target` |
+| `bb branch delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb branch list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
+| `bb branch view` | yes | yes | yes | yes | yes | yes |  |
 | `bb browse` | yes | yes | yes | yes | yes | yes | `--branch`, `--commit`, `--issue`, `--no-browser`, `--pipelines`, `--pr`, `--settings` |
 | `bb commit approve` | yes | yes | yes | yes | yes | yes |  |
 | `bb commit comment list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
@@ -123,4 +127,8 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb search prs` | yes | yes | yes | yes | yes | yes | `--limit` |
 | `bb search repos` | yes | yes | yes | yes |  | yes | `--limit` |
 | `bb status` | yes | yes | yes | yes |  | yes | `--limit`, `--repo-limit` |
+| `bb tag create` | yes | yes | yes | yes | yes | yes | `--message`, `--target` |
+| `bb tag delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb tag list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
+| `bb tag view` | yes | yes | yes | yes | yes | yes |  |
 | `bb version` | yes | yes | yes |  |  |  |  |

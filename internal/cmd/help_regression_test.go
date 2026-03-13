@@ -475,6 +475,36 @@ func TestCommitReportViewHelpRegression(t *testing.T) {
 	}
 }
 
+func TestBranchDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "branch", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"--repo string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("branch delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestTagCreateHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "tag", "create", "--help")
+	for _, fragment := range []string{
+		"defaults the target to the current branch",
+		"--target string",
+		"--message string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("tag create help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRTaskCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

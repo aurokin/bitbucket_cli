@@ -35,7 +35,12 @@ type RepositoryProject struct {
 }
 
 type RepositoryBranch struct {
-	Name string `json:"name,omitempty"`
+	Name                 string           `json:"name,omitempty"`
+	Type                 string           `json:"type,omitempty"`
+	Target               RepositoryCommit `json:"target,omitempty"`
+	Links                RefLinks         `json:"links,omitempty"`
+	MergeStrategies      []string         `json:"merge_strategies,omitempty"`
+	DefaultMergeStrategy string           `json:"default_merge_strategy,omitempty"`
 }
 
 type RepositoryLinks struct {

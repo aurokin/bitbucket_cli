@@ -84,6 +84,8 @@ bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-
 bb repo hook list --repo workspace-slug/repo-slug
 bb repo deploy-key list --repo workspace-slug/repo-slug
 bb repo permissions user list --repo workspace-slug/repo-slug
+bb branch list --repo workspace-slug/repo-slug
+bb tag list --repo workspace-slug/repo-slug
 bb commit view abc1234 --repo workspace-slug/repo-slug
 bb commit statuses abc1234 --repo workspace-slug/repo-slug
 bb commit report list abc1234 --repo workspace-slug/repo-slug
@@ -153,6 +155,8 @@ bb repo hook list --repo workspace-slug/repo-slug --json hooks
 bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb repo permissions user list --repo workspace-slug/repo-slug --json permissions
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb branch list --repo workspace-slug/repo-slug --json branches
+bb tag list --repo workspace-slug/repo-slug --json tags
 bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json commit
 bb commit statuses abc1234 --repo workspace-slug/repo-slug --json statuses
 bb commit report list abc1234 --repo workspace-slug/repo-slug --json reports
@@ -192,7 +196,7 @@ Key behavior:
 
 Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
 
-- auth, api, browse, resolve, and commit
+- auth, api, branch, browse, commit, resolve, and tag
 - repo, pipeline, pr, and issue
 - search, status, config, alias, and extension
 
@@ -203,6 +207,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Authenticated API access through `gh api` / `bb api`
 - Browser navigation through `gh browse` / `bb browse`
 - Repository listing, inspection, creation, editing, forking, webhook/deploy-key administration, cloning, and deletion
+- Branch and tag listing, inspection, creation, and deletion
 - Pipeline run triggering, listing, inspection, test reports, and repository variable management
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Repository commit viewing, diffing, approval, status inspection, comment inspection, and code-insight report inspection

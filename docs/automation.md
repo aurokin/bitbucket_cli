@@ -77,6 +77,10 @@ bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-
 bb repo hook list --repo workspace-slug/repo-slug --json hooks
 bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb repo permissions user list --repo workspace-slug/repo-slug --json permissions
+bb branch list --repo workspace-slug/repo-slug --json branches
+bb branch create feature/demo --repo workspace-slug/repo-slug --target main --json branch
+bb tag list --repo workspace-slug/repo-slug --json tags
+bb tag create v1.0.0 --repo workspace-slug/repo-slug --target main --message "release" --json tag
 bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json commit
 bb commit diff abc1234 --repo workspace-slug/repo-slug --json stats
 bb commit statuses abc1234 --repo workspace-slug/repo-slug --json statuses

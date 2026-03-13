@@ -76,6 +76,247 @@ Representative shapes:
 }
 ```
 
+## Branches And Tags
+
+Representative shapes for branch and tag list, view, create, and delete payloads.
+
+Commands:
+
+```bash
+bb branch list --repo workspace-slug/repo-slug --json '*'
+bb branch create feature/demo --repo workspace-slug/repo-slug --target main --json '*'
+bb tag list --repo workspace-slug/repo-slug --json '*'
+bb tag create v1.0.0 --repo workspace-slug/repo-slug --target main --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "branches": [
+    {
+      "default_merge_strategy": "merge_commit",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "merge_strategies": [
+        "merge_commit"
+      ],
+      "name": "Example Name",
+      "target": {
+        "author": {
+          "raw": "Example text",
+          "user": {
+            "account_id": "account-id",
+            "display_name": "Example User",
+            "nickname": "example-user"
+          }
+        },
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        }
+      },
+      "type": "commit_file"
+    }
+  ],
+  "host": "bitbucket.org",
+  "query": "\u003cquery\u003e",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "action": "\u003caction\u003e",
+  "branch": {
+    "default_merge_strategy": "merge_commit",
+    "links": {
+      "commits": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "merge_strategies": [
+      "merge_commit"
+    ],
+    "name": "main",
+    "target": {
+      "author": {
+        "raw": "Example text",
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "date": "\u003cdate\u003e",
+      "hash": "abc123def456",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "message": "Example text",
+      "summary": {
+        "raw": "Example text"
+      }
+    },
+    "type": "commit_file"
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "branch": "\u003cbranch\u003e",
+  "deleted": true,
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "host": "bitbucket.org",
+  "query": "\u003cquery\u003e",
+  "repo": "repo-slug",
+  "tags": [
+    {
+      "date": "\u003cdate\u003e",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "message": "Example text",
+      "name": "Example Name",
+      "tagger": {
+        "raw": "Example text",
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "target": {
+        "author": {
+          "raw": "Example text",
+          "user": {
+            "account_id": "account-id",
+            "display_name": "Example User",
+            "nickname": "example-user"
+          }
+        },
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/workspace-slug/repo-slug"
+          }
+        }
+      },
+      "type": "commit_file"
+    }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "action": "\u003caction\u003e",
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "tag": {
+    "date": "\u003cdate\u003e",
+    "links": {
+      "commits": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "message": "Example text",
+    "name": "Example Name",
+    "tagger": {
+      "raw": "Example text",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    },
+    "target": {
+      "author": {
+        "raw": "Example text",
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "date": "\u003cdate\u003e",
+      "hash": "abc123def456",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "message": "Example text",
+      "summary": {
+        "raw": "Example text"
+      }
+    },
+    "type": "commit_file"
+  },
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "deleted": true,
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "tag": "\u003ctag\u003e",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
 ## Browse
 
 Representative shape for browse payloads when printing or emitting JSON instead of opening the browser.
@@ -1142,7 +1383,44 @@ Representative shapes:
     }
   },
   "mainbranch": {
-    "name": "Example Name"
+    "default_merge_strategy": "merge_commit",
+    "links": {
+      "commits": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      },
+      "self": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "merge_strategies": [
+      "merge_commit"
+    ],
+    "name": "Example Name",
+    "target": {
+      "author": {
+        "raw": "Example text",
+        "user": {
+          "account_id": "account-id",
+          "display_name": "Example User",
+          "nickname": "example-user"
+        }
+      },
+      "date": "\u003cdate\u003e",
+      "hash": "abc123def456",
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/workspace-slug/repo-slug"
+        }
+      },
+      "message": "Example text",
+      "summary": {
+        "raw": "Example text"
+      }
+    },
+    "type": "commit_file"
   },
   "name": "Example Name",
   "parent": {

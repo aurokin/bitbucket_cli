@@ -40,6 +40,17 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: []any{repoClonePayload{}, repoDeletePayload{}},
 		},
 		{
+			Title:       "Branches And Tags",
+			Description: "Representative shapes for branch and tag list, view, create, and delete payloads.",
+			Commands: []string{
+				"bb branch list --repo workspace-slug/repo-slug --json '*'",
+				"bb branch create feature/demo --repo workspace-slug/repo-slug --target main --json '*'",
+				"bb tag list --repo workspace-slug/repo-slug --json '*'",
+				"bb tag create v1.0.0 --repo workspace-slug/repo-slug --target main --json '*'",
+			},
+			Type: []any{branchListPayload{}, branchPayload{}, branchDeletePayload{}, tagListPayload{}, tagPayload{}, tagDeletePayload{}},
+		},
+		{
 			Title:       "Browse",
 			Description: "Representative shape for browse payloads when printing or emitting JSON instead of opening the browser.",
 			Commands: []string{

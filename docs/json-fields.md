@@ -9,6 +9,12 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb repo view` | `description`, `full_name`, `host`, `html_url`, `https_clone`, `local_clone_url`, `main_branch`, `name`, `private`, `project_key`, `project_name`, `remote`, `repo`, `root`, `ssh_clone`, `warnings`, `workspace` | `bb repo view --json description,full_name,host` |
 | `bb repo clone` | `clone_url`, `directory`, `host`, `name`, `repo`, `workspace` | `bb repo clone --json clone_url,directory,host` |
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |
+| `bb branch list` | `branches`, `host`, `query`, `repo`, `warnings`, `workspace` | `bb branch list --json branches,host,query` |
+| `bb branch view` | `action`, `branch`, `host`, `repo`, `warnings`, `workspace` | `bb branch view --json action,branch,host` |
+| `bb branch delete` | `branch`, `deleted`, `host`, `repo`, `warnings`, `workspace` | `bb branch delete --json branch,deleted,host` |
+| `bb tag list` | `host`, `query`, `repo`, `tags`, `warnings`, `workspace` | `bb tag list --json host,query,repo` |
+| `bb tag view` | `action`, `host`, `repo`, `tag`, `warnings`, `workspace` | `bb tag view --json action,host,repo` |
+| `bb tag delete` | `deleted`, `host`, `repo`, `tag`, `warnings`, `workspace` | `bb tag delete --json deleted,host,repo` |
 | `bb browse` | `commit`, `host`, `issue`, `line`, `opened`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `warnings`, `workspace` | `bb browse --json commit,host,issue` |
 | `bb resolve` | `canonical_url`, `comment`, `commit`, `host`, `issue`, `line`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `workspace` | `bb resolve --json canonical_url,comment,commit` |
 | `bb commit view` | `commit`, `host`, `repo`, `warnings`, `workspace` | `bb commit view --json commit,host,repo` |

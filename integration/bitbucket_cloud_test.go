@@ -32,6 +32,8 @@ const (
 	fixtureForkRepoName       = "bb-cli-integration-primary-fork"
 	fixtureDeleteRepoSlug     = "bb-cli-delete-command-target"
 	fixturePipelineStopBranch = "bb-cli-pipeline-stop"
+	fixtureBranchName         = "bb-cli-temp-branch"
+	fixtureTagName            = "bb-cli-temp-tag"
 	fixtureFeatureBranch      = "bb-cli-int-feature"
 	fixturePRTitle            = "bb cli integration fixture pull request"
 	fixtureCreatePRBranch     = "bb-cli-create-command-branch"
@@ -1697,6 +1699,109 @@ func TestBitbucketCloudCommitReports(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudBranchFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	repoTarget := session.Workspace + "/" + fixture.PrimaryRepo.Slug
+
+	listOutput := session.Run(t, fixture.PrimaryRepoDir, "branch", "list", "--json", "*")
+	var listed struct {
+		Branches []bitbucket.RepositoryBranch `json:"branches"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse branch list JSON: %v\n%s", err, listOutput)
+	}
+	if len(listed.Branches) == 0 {
+		t.Fatalf("expected at least one branch in fixture repo")
+	}
+
+	viewOutput := session.Run(t, "", "branch", "view", "main", "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Branch bitbucket.RepositoryBranch `json:"branch"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse branch view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Branch.Name != "main" {
+		t.Fatalf("unexpected branch view payload %+v", viewed)
+	}
+
+	deleteBranchIfExists(t, session.Client, session.Workspace, fixture.PrimaryRepo.Slug, fixtureBranchName)
+	createOutput := session.Run(t, fixture.PrimaryRepoDir, "branch", "create", fixtureBranchName, "--target", "main", "--json", "*")
+	var created struct {
+		Action string                     `json:"action"`
+		Branch bitbucket.RepositoryBranch `json:"branch"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse branch create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Action != "created" || created.Branch.Name != fixtureBranchName {
+		t.Fatalf("unexpected branch create payload %+v", created)
+	}
+
+	deleteHuman, err := session.RunAllowFailure(t, "", "branch", "delete", fixtureBranchName, "--repo", repoTarget, "--yes")
+	if err != nil {
+		t.Fatalf("bb branch delete failed: %v\n%s", err, deleteHuman)
+	}
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+repoTarget,
+		"Branch: "+fixtureBranchName,
+		"Action: deleted",
+		"Status: deleted",
+		"Next: bb branch list --repo "+repoTarget,
+	)
+}
+
+func TestBitbucketCloudTagFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	repoTarget := session.Workspace + "/" + fixture.PrimaryRepo.Slug
+
+	listOutput := session.Run(t, fixture.PrimaryRepoDir, "tag", "list", "--json", "*")
+	var listed struct {
+		Tags []bitbucket.RepositoryTag `json:"tags"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse tag list JSON: %v\n%s", err, listOutput)
+	}
+
+	deleteTagIfExists(t, session.Client, session.Workspace, fixture.PrimaryRepo.Slug, fixtureTagName)
+	createOutput := session.Run(t, fixture.PrimaryRepoDir, "tag", "create", fixtureTagName, "--target", "main", "--message", "bb cli integration tag", "--json", "*")
+	var created struct {
+		Action string                  `json:"action"`
+		Tag    bitbucket.RepositoryTag `json:"tag"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse tag create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Action != "created" || created.Tag.Name != fixtureTagName {
+		t.Fatalf("unexpected tag create payload %+v", created)
+	}
+
+	viewOutput := session.Run(t, "", "tag", "view", fixtureTagName, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Tag bitbucket.RepositoryTag `json:"tag"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse tag view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Tag.Name != fixtureTagName {
+		t.Fatalf("unexpected tag view payload %+v", viewed)
+	}
+
+	deleteHuman, err := session.RunAllowFailure(t, "", "tag", "delete", fixtureTagName, "--repo", repoTarget, "--yes")
+	if err != nil {
+		t.Fatalf("bb tag delete failed: %v\n%s", err, deleteHuman)
+	}
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+repoTarget,
+		"Tag: "+fixtureTagName,
+		"Action: deleted",
+		"Status: deleted",
+		"Next: bb tag list --repo "+repoTarget,
+	)
+}
+
 func TestBitbucketCloudBrowse(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)
@@ -1890,6 +1995,14 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected pr view next step:\n%s", prViewOutput)
 	}
 
+	branchViewOutput := session.Run(t, fixture.PrimaryRepoDir, "branch", "view", "main")
+	if !strings.Contains(string(branchViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in branch view output:\n%s", branchViewOutput)
+	}
+	if !strings.Contains(string(branchViewOutput), "Next: bb browse --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug+" --branch main --no-browser") {
+		t.Fatalf("expected branch view next step:\n%s", branchViewOutput)
+	}
+
 	commitViewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash)
 	if !strings.Contains(string(commitViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
 		t.Fatalf("expected repo header in commit view output:\n%s", commitViewOutput)
@@ -2006,6 +2119,17 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if browse.Type != "pull-request" || browse.PR != fixture.PrimaryPRID || browse.URL == "" {
 		t.Fatalf("unexpected browse payload %+v", browse)
+	}
+
+	branchListOutput := session.Run(t, fixture.PrimaryRepoDir, "branch", "list", "--json", "branches")
+	var branchList struct {
+		Branches []bitbucket.RepositoryBranch `json:"branches"`
+	}
+	if err := json.Unmarshal(branchListOutput, &branchList); err != nil {
+		t.Fatalf("parse branch list JSON: %v\n%s", err, branchListOutput)
+	}
+	if len(branchList.Branches) == 0 {
+		t.Fatalf("expected at least one branch in generated docs smoke %+v", branchList)
 	}
 
 	commitViewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash, "--json", "commit")
@@ -2825,6 +2949,36 @@ func createCommitReportFixture(ctx context.Context, client *bitbucket.Client, wo
 		return bitbucket.CommitReport{}, err
 	}
 	return report, nil
+}
+
+func deleteBranchIfExists(t *testing.T, client *bitbucket.Client, workspace, repoSlug, name string) {
+	t.Helper()
+
+	_, err := client.GetBranch(context.Background(), workspace, repoSlug, name)
+	if err != nil {
+		if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == http.StatusNotFound {
+			return
+		}
+		t.Fatalf("check branch %s: %v", name, err)
+	}
+	if err := client.DeleteBranch(context.Background(), workspace, repoSlug, name); err != nil {
+		t.Fatalf("delete branch %s: %v", name, err)
+	}
+}
+
+func deleteTagIfExists(t *testing.T, client *bitbucket.Client, workspace, repoSlug, name string) {
+	t.Helper()
+
+	_, err := client.GetTag(context.Background(), workspace, repoSlug, name)
+	if err != nil {
+		if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == http.StatusNotFound {
+			return
+		}
+		t.Fatalf("check tag %s: %v", name, err)
+	}
+	if err := client.DeleteTag(context.Background(), workspace, repoSlug, name); err != nil {
+		t.Fatalf("delete tag %s: %v", name, err)
+	}
 }
 
 func ensureBranchCommit(t *testing.T, repoDir, branchName, fileName, content string) {

@@ -16,6 +16,11 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb auth login`
   - `bb auth logout`
   - `bb auth status`
+- `bb branch`
+  - `bb branch create`
+  - `bb branch delete`
+  - `bb branch list`
+  - `bb branch view`
 - `bb browse`
 - `bb commit`
   - `bb commit approve`
@@ -151,6 +156,11 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb search prs`
   - `bb search repos`
 - `bb status`
+- `bb tag`
+  - `bb tag create`
+  - `bb tag delete`
+  - `bb tag list`
+  - `bb tag view`
 - `bb version`
 
 ## `bb alias`
@@ -373,6 +383,147 @@ Flags:
 - `--jq`: Filter JSON output using a jq expression
 - `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb branch`
+
+Work with repository branches
+
+List, inspect, create, and delete Bitbucket repository branches.
+
+Usage:
+
+```text
+bb branch
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb branch create`: Create a branch
+- `bb branch delete`: Delete a branch
+- `bb branch list`: List repository branches
+- `bb branch view`: View one branch
+
+## `bb branch create`
+
+Create a branch
+
+Create a Bitbucket branch from one commit hash or branch name. When run inside a matching checkout, bb defaults the target to the current branch if --target is omitted.
+
+Usage:
+
+```text
+bb branch create <name> [flags]
+```
+
+Examples:
+
+```bash
+bb branch create feature/demo --repo workspace-slug/repo-slug --target main
+bb branch create feature/demo --repo workspace-slug/repo-slug --target abc1234 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--target`: Source commit hash or branch name to branch from
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb branch delete`
+
+Delete a branch
+
+Delete a Bitbucket branch. Humans must confirm the exact repository and branch unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb branch delete <name> [flags]
+```
+
+Examples:
+
+```bash
+bb branch delete feature/demo --repo workspace-slug/repo-slug --yes
+bb --no-prompt branch delete feature/demo --repo workspace-slug/repo-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb branch list`
+
+List repository branches
+
+List open branches in a Bitbucket repository.
+
+Usage:
+
+```text
+bb branch list [repository] [flags]
+```
+
+Examples:
+
+```bash
+bb branch list workspace-slug/repo-slug
+bb branch list --repo workspace-slug/repo-slug --limit 50
+bb branch list --repo workspace-slug/repo-slug --query 'name ~ "release"' --json branches
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of branches to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket branch query filter
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--sort`: Bitbucket branch sort expression
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb branch view`
+
+View one branch
+
+View one Bitbucket repository branch.
+
+Usage:
+
+```text
+bb branch view <name> [flags]
+```
+
+Examples:
+
+```bash
+bb branch view main --repo workspace-slug/repo-slug
+bb branch view feature/demo --repo workspace-slug/repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb browse`
 
@@ -4171,6 +4322,148 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo-limit`: Maximum repositories to scan per workspace
 - `--workspace`: Limit status aggregation to one workspace
+
+## `bb tag`
+
+Work with repository tags
+
+List, inspect, create, and delete Bitbucket repository tags.
+
+Usage:
+
+```text
+bb tag
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb tag create`: Create a tag
+- `bb tag delete`: Delete a tag
+- `bb tag list`: List repository tags
+- `bb tag view`: View one tag
+
+## `bb tag create`
+
+Create a tag
+
+Create a Bitbucket tag from one commit hash or branch name. When run inside a matching checkout, bb defaults the target to the current branch if --target is omitted.
+
+Usage:
+
+```text
+bb tag create <name> [flags]
+```
+
+Examples:
+
+```bash
+bb tag create v1.0.0 --repo workspace-slug/repo-slug --target main --message 'release'
+bb tag create v1.0.0 --repo workspace-slug/repo-slug --target abc1234 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--message`: Optional tag message for annotated tags
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--target`: Source commit hash or branch name to tag
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb tag delete`
+
+Delete a tag
+
+Delete a Bitbucket tag. Humans must confirm the exact repository and tag unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb tag delete <name> [flags]
+```
+
+Examples:
+
+```bash
+bb tag delete v1.0.0 --repo workspace-slug/repo-slug --yes
+bb --no-prompt tag delete v1.0.0 --repo workspace-slug/repo-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb tag list`
+
+List repository tags
+
+List tags in a Bitbucket repository.
+
+Usage:
+
+```text
+bb tag list [repository] [flags]
+```
+
+Examples:
+
+```bash
+bb tag list workspace-slug/repo-slug
+bb tag list --repo workspace-slug/repo-slug --limit 50
+bb tag list --repo workspace-slug/repo-slug --query 'name ~ "v1"' --json tags
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of tags to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket tag query filter
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--sort`: Bitbucket tag sort expression
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb tag view`
+
+View one tag
+
+View one Bitbucket repository tag.
+
+Usage:
+
+```text
+bb tag view <name> [flags]
+```
+
+Examples:
+
+```bash
+bb tag view v1.0.0 --repo workspace-slug/repo-slug
+bb tag view release-2026 --repo workspace-slug/repo-slug --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb version`
 

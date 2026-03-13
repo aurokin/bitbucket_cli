@@ -1,4 +1,4 @@
 interface:
   display_name: "bb CLI"
-  short_description: "Bitbucket Cloud CLI workflows and URL handling"
-  default_prompt: "Use $bb-cli when the task involves the bb Bitbucket Cloud CLI, Bitbucket workflows, or Bitbucket web URLs; prefer bb resolve first for pasted URLs."
+  short_description: "Bitbucket Cloud CLI workflows, URL resolution, and API-token auth"
+  default_prompt: "Use $bb-cli when the task involves the bb Bitbucket Cloud CLI, Bitbucket workflows, or Bitbucket web URLs. Prefer bb resolve first for pasted URLs, prefer --repo plus --json for deterministic flows, and fall back to bb api for official endpoints that are not wrapped yet."

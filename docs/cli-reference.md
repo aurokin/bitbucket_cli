@@ -27,6 +27,9 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb extension exec`
   - `bb extension list`
 - `bb issue`
+  - `bb issue attachment`
+    - `bb issue attachment list`
+    - `bb issue attachment upload`
   - `bb issue close`
   - `bb issue comment`
     - `bb issue comment create`
@@ -561,7 +564,7 @@ Flags:
 
 Work with repository issues
 
-List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments.
+List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments, attachments, milestones, and components.
 
 Usage:
 
@@ -575,6 +578,7 @@ Flags:
 
 Subcommands:
 
+- `bb issue attachment`: Work with issue attachments
 - `bb issue close`: Close an issue
 - `bb issue comment`: Work with issue comments
 - `bb issue component`: List and view issue components
@@ -584,6 +588,89 @@ Subcommands:
 - `bb issue milestone`: List and view issue milestones
 - `bb issue reopen`: Reopen an issue
 - `bb issue view`: View one issue
+
+## `bb issue attachment`
+
+Work with issue attachments
+
+List and upload Bitbucket issue attachments. Attachment import and export jobs remain separate platform workflows.
+
+Usage:
+
+```text
+bb issue attachment
+```
+
+Examples:
+
+```bash
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug
+bb issue attachment upload 1 ./trace.txt --repo workspace-slug/issues-repo-slug
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb issue attachment list`: List attachments on an issue
+- `bb issue attachment upload`: Upload attachments to an issue
+
+## `bb issue attachment list`
+
+List attachments on an issue
+
+Usage:
+
+```text
+bb issue attachment list <issue-id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug
+bb issue attachment list https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of issue attachments to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue attachment upload`
+
+Upload attachments to an issue
+
+Upload one or more files to a Bitbucket issue. Existing attachments with the same name are replaced by Bitbucket Cloud.
+
+Usage:
+
+```text
+bb issue attachment upload <issue-id-or-url> <file>... [flags]
+```
+
+Examples:
+
+```bash
+bb issue attachment upload 1 ./trace.txt --repo workspace-slug/issues-repo-slug
+bb issue attachment upload https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 ./trace.txt ./screenshot.png --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb issue close`
 

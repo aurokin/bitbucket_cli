@@ -34,6 +34,7 @@ type IssueActor struct {
 }
 
 type IssueLinks struct {
+	Self Link `json:"self,omitempty"`
 	HTML Link `json:"html"`
 }
 

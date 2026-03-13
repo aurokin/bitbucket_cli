@@ -87,6 +87,7 @@ bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
 bb pr list --repo workspace-slug/repo-slug
 bb issue list --repo workspace-slug/issues-repo-slug
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug
 bb issue milestone list --repo workspace-slug/issues-repo-slug
 bb issue component list --repo workspace-slug/issues-repo-slug
 ```
@@ -146,6 +147,7 @@ bb pipeline cache list --repo workspace-slug/pipelines-repo-slug --json caches
 bb pipeline runner list --repo workspace-slug/pipelines-repo-slug --json runners
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug --json comments
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug --json attachments
 bb issue milestone list --repo workspace-slug/issues-repo-slug --json milestones
 bb issue component list --repo workspace-slug/issues-repo-slug --json components
 ```
@@ -234,6 +236,7 @@ References:
 - `bb status` is intentionally bounded. When a workspace scan hits `--repo-limit`, an item section hits `--limit`, or issue tracking is disabled on some repositories, the output includes notes telling you to continue with `bb pr list --repo <workspace>/<repo>` or `bb issue list --repo <workspace>/<repo>`.
 - `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
 - `bb` intentionally supports API-token login only. Browser login is out of scope unless Bitbucket Cloud exposes a cleaner CLI-safe auth path.
+- `bb` does not wrap Bitbucket issue import or export jobs today. Atlassian documents those endpoints, but the current Bitbucket Cloud issue import/export endpoints reject API-token auth, so `bb` leaves them out instead of shipping a broken wrapper.
 - `bb config` exposes the keys that affect runtime today: `prompt`, `browser`, and `output.format`. Editor and pager configuration are still not wired up.
 - Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.
 - Live Bitbucket integration tests and human-output smoke tests are manual-only. They are never part of `go test ./...` or CI.

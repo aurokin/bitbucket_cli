@@ -891,6 +891,9 @@ Representative shape:
   "links": {
     "html": {
       "href": "https://bitbucket.org/workspace-slug/repo-slug"
+    },
+    "self": {
+      "href": "https://bitbucket.org/workspace-slug/repo-slug"
     }
   },
   "priority": "\u003cpriority\u003e",
@@ -1044,6 +1047,9 @@ Representative shapes:
   "kind": "\u003ckind\u003e",
   "links": {
     "html": {
+      "href": "https://bitbucket.org/workspace-slug/repo-slug"
+    },
+    "self": {
       "href": "https://bitbucket.org/workspace-slug/repo-slug"
     }
   },

@@ -16,10 +16,11 @@ func newIssueCmd() *cobra.Command {
 	issueCmd := &cobra.Command{
 		Use:   "issue",
 		Short: "Work with repository issues",
-		Long:  "List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments.",
+		Long:  "List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments, attachments, milestones, and components.",
 	}
 
 	issueCmd.AddCommand(
+		newIssueAttachmentCmd(),
 		newIssueCommentCmd(),
 		newIssueComponentCmd(),
 		newIssueListCmd(),

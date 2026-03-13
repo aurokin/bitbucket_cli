@@ -22,6 +22,8 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb config unset` |  |  | yes |  |  |  |  |
 | `bb extension exec` |  |  | yes |  |  |  |  |
 | `bb extension list` | yes | yes | yes |  |  |  |  |
+| `bb issue attachment list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb issue attachment upload` | yes | yes | yes | yes | yes | yes |  |
 | `bb issue close` | yes | yes | yes | yes | yes | yes | `--message`, `--state` |
 | `bb issue comment create` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body` |
 | `bb issue comment delete` | yes | yes | yes | yes | yes | yes | `--issue`, `--yes` |

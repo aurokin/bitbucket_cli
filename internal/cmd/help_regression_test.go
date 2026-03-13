@@ -50,6 +50,22 @@ func TestConfigSetHelpRegression(t *testing.T) {
 	}
 }
 
+func TestIssueAttachmentHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "attachment", "--help")
+	for _, fragment := range []string{
+		"bb issue attachment list 1 --repo workspace-slug/issues-repo-slug",
+		"bb issue attachment upload 1 ./trace.txt --repo workspace-slug/issues-repo-slug",
+		"Available Commands:",
+		"upload      Upload attachments to an issue",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue attachment help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestRepoViewHelpRegression(t *testing.T) {
 	t.Parallel()
 

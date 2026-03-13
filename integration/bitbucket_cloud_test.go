@@ -697,6 +697,52 @@ func TestBitbucketCloudIssueCommentFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudIssueAttachmentFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
+	repoTarget := session.Workspace + "/" + issueRepo.Slug
+	issueURL := fmt.Sprintf("https://bitbucket.org/%s/%s/issues/%d", session.Workspace, issueRepo.Slug, issueID)
+
+	tempDir := t.TempDir()
+	fileName := fmt.Sprintf("bb-cli-attachment-%d.txt", time.Now().UTC().UnixNano())
+	filePath := filepath.Join(tempDir, fileName)
+	if err := os.WriteFile(filePath, []byte("bb cli issue attachment integration flow\n"), 0o644); err != nil {
+		t.Fatalf("write attachment fixture: %v", err)
+	}
+
+	uploadHuman := session.Run(t, "", "issue", "attachment", "upload", fmt.Sprintf("%d", issueID), filePath, "--repo", repoTarget)
+	assertContainsOrdered(t, string(uploadHuman),
+		"Repository: "+repoTarget,
+		"Issue: "+strconv.Itoa(issueID),
+		"Action: uploaded",
+		"Files: "+fileName,
+		"Next: bb issue attachment list "+strconv.Itoa(issueID)+" --repo "+repoTarget,
+	)
+
+	listOutput := session.Run(t, "", "issue", "attachment", "list", issueURL, "--json", "*")
+	var listed struct {
+		Issue       int                         `json:"issue"`
+		Attachments []bitbucket.IssueAttachment `json:"attachments"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse issue attachment list JSON: %v\n%s", err, listOutput)
+	}
+	if listed.Issue != issueID {
+		t.Fatalf("unexpected issue attachment payload %+v", listed)
+	}
+	var found bool
+	for _, attachment := range listed.Attachments {
+		if attachment.Name == fileName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected uploaded attachment %q in %+v", fileName, listed.Attachments)
+	}
+}
+
 func TestBitbucketCloudIssueMilestoneList(t *testing.T) {
 	session := newIntegrationSession(t)
 	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)

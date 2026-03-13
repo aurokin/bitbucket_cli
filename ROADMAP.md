@@ -2,13 +2,7 @@
 
 ## Next Commands
 
-1. Issue collaboration depth
-   - `bb issue attachments`
-   - `bb issue import`
-   - `bb issue export`
-   - Backed by the official Bitbucket Cloud issue tracker APIs for attachments and import/export. Milestone and component inspection are already implemented; Bitbucket Cloud does not expose create/update/delete milestone or component APIs in the official REST surface.
-
-2. Repository administration
+1. Repository administration
    - `bb repo edit`
    - `bb repo fork`
    - `bb repo list`
@@ -17,7 +11,7 @@
    - `bb repo permissions`
    - Backed by the official Bitbucket Cloud repository, webhook, deploy key, and permission APIs.
 
-3. Commit and code insight surfaces
+2. Commit and code insight surfaces
    - `bb commit view`
    - `bb commit diff`
    - `bb commit comments`
@@ -54,5 +48,6 @@
    - Snippet comments, history, file views, and watch support.
 
 6. Platform-limit follow-up
+   - Keep Bitbucket Cloud issue import/export out of scope while the documented endpoints reject API-token auth.
    - Continue documenting official Bitbucket Cloud limits instead of faking unsupported behavior.
    - Keep unsupported items like PR reopen, PR comment likes, and undocumented pipeline rerun out of scope unless Atlassian adds official API support.

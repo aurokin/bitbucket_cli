@@ -93,6 +93,8 @@ bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --dest
 bb issue list --repo workspace-slug/issues-repo-slug --json id,title,state
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug --json comments
 bb issue comment create https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --body "Needs follow-up." --json comment
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug --json attachments
+bb issue attachment upload 1 ./trace.txt --repo workspace-slug/issues-repo-slug --json '*'
 bb issue milestone list --repo workspace-slug/issues-repo-slug --json milestones
 bb issue component list --repo workspace-slug/issues-repo-slug --json components
 bb search repos bb-cli --workspace workspace-slug --json name,slug,project
@@ -113,3 +115,5 @@ Live Bitbucket integration tests remain manual-only. They are useful when you ne
 ```bash
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudHumanOutputSmoke -v
 ```
+
+Bitbucket Cloud currently rejects API-token auth for the documented issue import/export job endpoints. Keep automation on attachments, comments, milestones, and components unless Atlassian changes the auth behavior.

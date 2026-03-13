@@ -141,11 +141,15 @@ bb issue create --repo workspace-slug/issues-repo-slug --title "Broken flow" --b
 bb issue view 1 --repo workspace-slug/issues-repo-slug
 bb issue comment create 1 --repo workspace-slug/issues-repo-slug --body "Needs follow-up."
 bb issue comment list 1 --repo workspace-slug/issues-repo-slug
+bb issue attachment upload 1 ./trace.txt --repo workspace-slug/issues-repo-slug
+bb issue attachment list 1 --repo workspace-slug/issues-repo-slug
 bb issue milestone list --repo workspace-slug/issues-repo-slug
 bb issue component list --repo workspace-slug/issues-repo-slug
 bb issue edit 1 --repo workspace-slug/issues-repo-slug --priority major
 bb issue close 1 --repo workspace-slug/issues-repo-slug --message "Fixed in main."
 ```
+
+Bitbucket Cloud documents issue import and export jobs, but the current endpoints reject API-token auth. `bb` leaves those workflows out instead of wrapping a path that cannot succeed with the CLI's supported auth model.
 
 ## Search For Work
 

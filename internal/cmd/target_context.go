@@ -24,6 +24,26 @@ type resolvedPullRequestCommentCommandTarget struct {
 	Target resolvedPullRequestCommentTarget
 }
 
+type resolvedCommitTarget struct {
+	RepoTarget resolvedRepoTarget
+	Commit     string
+}
+
+type resolvedCommitCommandTarget struct {
+	Client *bitbucket.Client
+	Target resolvedCommitTarget
+}
+
+type resolvedCommitCommentTarget struct {
+	CommitTarget resolvedCommitTarget
+	CommentID    int
+}
+
+type resolvedCommitCommentCommandTarget struct {
+	Client *bitbucket.Client
+	Target resolvedCommitCommentTarget
+}
+
 type resolvedPullRequestTaskTarget struct {
 	PRTarget resolvedPullRequestTarget
 	TaskID   int
@@ -126,6 +146,73 @@ func resolvePullRequestCommentCommandTarget(ctx context.Context, host, workspace
 	return resolvedPullRequestCommentCommandTarget{
 		Client: client,
 		Target: target,
+	}, nil
+}
+
+func resolveCommitCommandTarget(ctx context.Context, host, workspace, repo, ref string, allowLocal bool) (resolvedCommitCommandTarget, error) {
+	selector, err := parseRepoSelector(host, workspace, repo)
+	if err != nil {
+		return resolvedCommitCommandTarget{}, err
+	}
+
+	commitRef := strings.TrimSpace(ref)
+	if commitRef == "" {
+		return resolvedCommitCommandTarget{}, fmt.Errorf("commit reference is required")
+	}
+
+	if entity, err := parseBitbucketEntityURL(commitRef); err == nil {
+		if entity.Type != "commit" {
+			return resolvedCommitCommandTarget{}, fmt.Errorf("commit must be provided as a commit SHA or commit URL")
+		}
+		selector, err = mergeRepoSelectors(selector, repoSelector{
+			Host:      entity.Host,
+			Workspace: entity.Workspace,
+			Repo:      entity.Repo,
+			Explicit:  true,
+		})
+		if err != nil {
+			return resolvedCommitCommandTarget{}, err
+		}
+		commitRef = entity.Commit
+	}
+
+	resolvedHost, client, err := resolveAuthenticatedClient(selector.Host)
+	if err != nil {
+		return resolvedCommitCommandTarget{}, err
+	}
+
+	selector.Host = resolvedHost
+	repoTarget, err := resolveRepoTarget(ctx, selector, client, allowLocal)
+	if err != nil {
+		return resolvedCommitCommandTarget{}, err
+	}
+
+	return resolvedCommitCommandTarget{
+		Client: client,
+		Target: resolvedCommitTarget{
+			RepoTarget: repoTarget,
+			Commit:     commitRef,
+		},
+	}, nil
+}
+
+func resolveCommitCommentCommandTarget(ctx context.Context, host, workspace, repo, commitRef, commentRef string, allowLocal bool) (resolvedCommitCommentCommandTarget, error) {
+	commentID, err := parsePositiveID(commentRef, "commit comment")
+	if err != nil {
+		return resolvedCommitCommentCommandTarget{}, fmt.Errorf("commit comment must be provided as a numeric comment ID")
+	}
+
+	resolved, err := resolveCommitCommandTarget(ctx, host, workspace, repo, commitRef, allowLocal)
+	if err != nil {
+		return resolvedCommitCommentCommandTarget{}, err
+	}
+
+	return resolvedCommitCommentCommandTarget{
+		Client: resolved.Client,
+		Target: resolvedCommitCommentTarget{
+			CommitTarget: resolved.Target,
+			CommentID:    commentID,
+		},
 	}, nil
 }
 

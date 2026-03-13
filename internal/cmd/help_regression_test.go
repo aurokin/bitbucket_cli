@@ -430,6 +430,51 @@ func TestPRTaskViewHelpRegression(t *testing.T) {
 	}
 }
 
+func TestCommitViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "commit", "view", "--help")
+	for _, fragment := range []string{
+		"commit SHA or a commit URL",
+		"/commits/abc1234",
+		"--repo string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("commit view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestCommitCommentViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "commit", "comment", "view", "--help")
+	for _, fragment := range []string{
+		"Pass the commit with --commit as a SHA or commit URL",
+		"--commit string",
+		"/commits/abc1234",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("commit comment view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestCommitReportViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "commit", "report", "view", "--help")
+	for _, fragment := range []string{
+		"code-insight report",
+		"--commit string",
+		"/commits/abc1234",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("commit report view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRTaskCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

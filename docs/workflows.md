@@ -76,6 +76,21 @@ Bitbucket rejected deploy-key updates in the live API behavior we verified, so r
 
 Repository permission mutation also stays out of scope for now. Bitbucket's permission write/delete docs still describe app-password-only behavior in places, so `bb` only exposes explicit permission inspection until the API-token path is verified live.
 
+## Inspect A Commit
+
+```bash
+bb commit view abc1234 --repo workspace-slug/repo-slug
+bb commit diff abc1234 --repo workspace-slug/repo-slug --stat
+bb commit statuses abc1234 --repo workspace-slug/repo-slug
+bb commit report list abc1234 --repo workspace-slug/repo-slug
+```
+
+These commands are backed by the official Bitbucket Cloud commits, commit statuses, and reports APIs:
+
+- https://developer.atlassian.com/cloud/bitbucket/rest/api-group-commits/
+- https://developer.atlassian.com/cloud/bitbucket/rest/api-group-commit-statuses/
+- https://developer.atlassian.com/cloud/bitbucket/rest/api-group-reports/
+
 ## Inspect Pipelines
 
 ```bash

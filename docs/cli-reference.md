@@ -17,6 +17,18 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb auth logout`
   - `bb auth status`
 - `bb browse`
+- `bb commit`
+  - `bb commit approve`
+  - `bb commit comment`
+    - `bb commit comment list`
+    - `bb commit comment view`
+  - `bb commit diff`
+  - `bb commit report`
+    - `bb commit report list`
+    - `bb commit report view`
+  - `bb commit statuses`
+  - `bb commit unapprove`
+  - `bb commit view`
 - `bb config`
   - `bb config get`
   - `bb config list`
@@ -398,6 +410,347 @@ Flags:
 - `--pr`: Open one pull request by ID
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--settings`: Open repository settings
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit`
+
+Work with repository commits
+
+Inspect Bitbucket repository commits, diffs, comments, statuses, approvals, and code-insight reports.
+
+Usage:
+
+```text
+bb commit
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb commit approve`: Approve a commit
+- `bb commit comment`: Work with commit comments
+- `bb commit diff`: Show a commit diff
+- `bb commit report`: Work with commit code-insight reports
+- `bb commit statuses`: List commit statuses for a commit
+- `bb commit unapprove`: Withdraw your approval from a commit
+- `bb commit view`: View one commit
+
+## `bb commit approve`
+
+Approve a commit
+
+Approve a commit. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit approve <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit approve abc1234 --repo workspace-slug/repo-slug
+bb commit approve https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit comment`
+
+Work with commit comments
+
+List and inspect Bitbucket commit comments.
+
+Usage:
+
+```text
+bb commit comment
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb commit comment list`: List comments on a commit
+- `bb commit comment view`: View one commit comment
+
+## `bb commit comment list`
+
+List comments on a commit
+
+List comments on a Bitbucket commit. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit comment list <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit comment list abc1234 --repo workspace-slug/repo-slug
+bb commit comment list https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json comments
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of commit comments to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket commit comment query filter
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--sort`: Bitbucket commit comment sort expression
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit comment view`
+
+View one commit comment
+
+View one commit comment. Pass the commit with --commit as a SHA or commit URL.
+
+Usage:
+
+```text
+bb commit comment view <comment-id> [flags]
+```
+
+Examples:
+
+```bash
+bb commit comment view 15 --commit abc1234 --repo workspace-slug/repo-slug
+bb commit comment view 15 --commit https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+```
+
+Flags:
+
+- `--commit`: Commit SHA or commit URL
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit diff`
+
+Show a commit diff
+
+Show a commit patch by default or diff stats with --stat. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit diff <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit diff abc1234 --repo workspace-slug/repo-slug
+bb commit diff abc1234 --repo workspace-slug/repo-slug --stat
+bb commit diff https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json patch,stats
+```
+
+Flags:
+
+- `--binary`: Include binary file changes in the raw diff
+- `--context`: Lines of context to include in the raw diff
+- `--host`: Bitbucket host to use
+- `--ignore-whitespace`: Ignore whitespace changes in the raw diff
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--path`: Limit the raw diff to one or more file paths
+- `--renames`: Perform rename detection in the raw diff
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--stat`: Show per-file diff stats instead of the raw patch
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit report`
+
+Work with commit code-insight reports
+
+List and inspect Bitbucket code-insight reports attached to one commit.
+
+Usage:
+
+```text
+bb commit report
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb commit report list`: List code-insight reports for a commit
+- `bb commit report view`: View one code-insight report
+
+## `bb commit report list`
+
+List code-insight reports for a commit
+
+List Bitbucket code-insight reports for one commit. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit report list <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit report list abc1234 --repo workspace-slug/repo-slug
+bb commit report list https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json reports
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of commit reports to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit report view`
+
+View one code-insight report
+
+View one Bitbucket code-insight report. Pass the commit with --commit as a SHA or commit URL.
+
+Usage:
+
+```text
+bb commit report view <report-id> [flags]
+```
+
+Examples:
+
+```bash
+bb commit report view my-report --commit abc1234 --repo workspace-slug/repo-slug
+bb commit report view my-report --commit https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+```
+
+Flags:
+
+- `--commit`: Commit SHA or commit URL
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit statuses`
+
+List commit statuses for a commit
+
+List Bitbucket commit statuses for a commit. Accepts a commit SHA or a commit URL.
+
+Aliases: `checks`
+
+Usage:
+
+```text
+bb commit statuses <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit statuses abc1234 --repo workspace-slug/repo-slug
+bb commit checks https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json statuses
+bb commit statuses abc1234 --repo workspace-slug/repo-slug --limit 50
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of commit statuses to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--query`: Bitbucket commit status query filter
+- `--refname`: Limit statuses to the given ref name
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--sort`: Bitbucket commit status sort expression
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit unapprove`
+
+Withdraw your approval from a commit
+
+Withdraw your approval from a commit. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit unapprove <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit unapprove abc1234 --repo workspace-slug/repo-slug
+bb commit unapprove https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb commit view`
+
+View one commit
+
+View one Bitbucket commit. Accepts a commit SHA or a commit URL.
+
+Usage:
+
+```text
+bb commit view <hash-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb commit view abc1234 --repo workspace-slug/repo-slug
+bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+bb commit view abc1234
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb config`

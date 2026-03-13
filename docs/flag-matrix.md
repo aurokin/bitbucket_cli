@@ -15,6 +15,15 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb auth logout` |  |  | yes | yes |  |  |  |
 | `bb auth status` | yes | yes | yes | yes |  |  | `--check` |
 | `bb browse` | yes | yes | yes | yes | yes | yes | `--branch`, `--commit`, `--issue`, `--no-browser`, `--pipelines`, `--pr`, `--settings` |
+| `bb commit approve` | yes | yes | yes | yes | yes | yes |  |
+| `bb commit comment list` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--sort` |
+| `bb commit comment view` | yes | yes | yes | yes | yes | yes | `--commit` |
+| `bb commit diff` | yes | yes | yes | yes | yes | yes | `--binary`, `--context`, `--ignore-whitespace`, `--path`, `--renames`, `--stat` |
+| `bb commit report list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb commit report view` | yes | yes | yes | yes | yes | yes | `--commit` |
+| `bb commit statuses` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--refname`, `--sort` |
+| `bb commit unapprove` | yes | yes | yes | yes | yes | yes |  |
+| `bb commit view` | yes | yes | yes | yes | yes | yes |  |
 | `bb config get` | yes | yes | yes |  |  |  |  |
 | `bb config list` | yes | yes | yes |  |  |  |  |
 | `bb config path` |  |  | yes |  |  |  |  |

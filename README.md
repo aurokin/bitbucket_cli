@@ -84,6 +84,9 @@ bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-
 bb repo hook list --repo workspace-slug/repo-slug
 bb repo deploy-key list --repo workspace-slug/repo-slug
 bb repo permissions user list --repo workspace-slug/repo-slug
+bb commit view abc1234 --repo workspace-slug/repo-slug
+bb commit statuses abc1234 --repo workspace-slug/repo-slug
+bb commit report list abc1234 --repo workspace-slug/repo-slug
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
@@ -150,6 +153,9 @@ bb repo hook list --repo workspace-slug/repo-slug --json hooks
 bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb repo permissions user list --repo workspace-slug/repo-slug --json permissions
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json commit
+bb commit statuses abc1234 --repo workspace-slug/repo-slug --json statuses
+bb commit report list abc1234 --repo workspace-slug/repo-slug --json reports
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
@@ -186,7 +192,7 @@ Key behavior:
 
 Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
 
-- auth, api, browse, and resolve
+- auth, api, browse, resolve, and commit
 - repo, pipeline, pr, and issue
 - search, status, config, alias, and extension
 
@@ -199,6 +205,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - Repository listing, inspection, creation, editing, forking, webhook/deploy-key administration, cloning, and deletion
 - Pipeline run triggering, listing, inspection, test reports, and repository variable management
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
+- Repository commit viewing, diffing, approval, status inspection, comment inspection, and code-insight report inspection
 - Issue listing, viewing, creation, editing, and state transitions
 - Issue comment listing, creation, viewing, editing, and deletion
 - Issue milestone and component inspection
@@ -218,7 +225,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 
 - Broader auth account management
 - Releases and broader CI/workflow management such as dispatching, rerunning, and log-heavy workflow tooling
-- Richer repository administration such as rename, archive, sync, webhooks, deploy keys, and permissions
+- Richer repository administration such as rename, archive, and sync
 - Additional pull request flows such as edit, ready, update-branch, and revert
 - Pull request reopen on platforms that actually support it
 
@@ -250,6 +257,7 @@ References:
 - `bb` does not wrap Bitbucket issue import or export jobs today. Atlassian documents those endpoints, but the current Bitbucket Cloud issue import/export endpoints reject API-token auth, so `bb` leaves them out instead of shipping a broken wrapper.
 - `bb repo deploy-key` supports list, view, create, and delete. Bitbucket rejected deploy-key updates in the live API behavior we verified, so key rotation should use delete plus create instead of an `edit` command.
 - `bb repo permissions` currently covers read-only inspection of explicit user and group permissions. Bitbucket’s permission write/delete docs still describe app-password-only behavior in places, so `bb` leaves repository permission mutation out of scope until the API-token path is verified live.
+- `bb commit report` currently covers report inspection only. `bb` does not offer commit report creation, update, or deletion until the API-token path is verified cleanly enough to expose as a supported CLI workflow.
 - `bb config` exposes the keys that affect runtime today: `prompt`, `browser`, and `output.format`. Editor and pager configuration are still not wired up.
 - Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.
 - Live Bitbucket integration tests and human-output smoke tests are manual-only. They are never part of `go test ./...` or CI.

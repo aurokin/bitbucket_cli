@@ -11,6 +11,12 @@ Use this file to discover top-level field names for `--json` selection.
 | `bb repo delete` | `deleted`, `host`, `name`, `repo`, `workspace` | `bb repo delete --json deleted,host,name` |
 | `bb browse` | `commit`, `host`, `issue`, `line`, `opened`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `warnings`, `workspace` | `bb browse --json commit,host,issue` |
 | `bb resolve` | `canonical_url`, `comment`, `commit`, `host`, `issue`, `line`, `path`, `pr`, `ref`, `repo`, `type`, `url`, `workspace` | `bb resolve --json canonical_url,comment,commit` |
+| `bb commit view` | `commit`, `host`, `repo`, `warnings`, `workspace` | `bb commit view --json commit,host,repo` |
+| `bb commit diff` | `commit`, `host`, `patch`, `repo`, `stats`, `warnings`, `workspace` | `bb commit diff --json commit,host,patch` |
+| `bb commit statuses` | `commit`, `host`, `repo`, `statuses`, `warnings`, `workspace` | `bb commit statuses --json commit,host,repo` |
+| `bb commit comment view` | `comment`, `commit`, `host`, `repo`, `warnings`, `workspace` | `bb commit comment view --json comment,commit,host` |
+| `bb commit approve` | `action`, `commit`, `host`, `repo`, `reviewer`, `warnings`, `workspace` | `bb commit approve --json action,commit,host` |
+| `bb commit report view` | `commit`, `host`, `repo`, `report`, `warnings`, `workspace` | `bb commit report view --json commit,host,repo` |
 | `bb pipeline list` | `build_number`, `completed_on`, `created_on`, `creator`, `links`, `state`, `target`, `uuid` | `bb pipeline list --json build_number,completed_on,created_on` |
 | `bb pipeline log` | `host`, `log`, `pipeline`, `repo`, `step`, `warnings`, `workspace` | `bb pipeline log --json host,log,pipeline` |
 | `bb pipeline stop` | `host`, `pipeline`, `repo`, `stopped`, `warnings`, `workspace` | `bb pipeline stop --json host,pipeline,repo` |

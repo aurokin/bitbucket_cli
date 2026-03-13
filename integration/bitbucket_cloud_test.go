@@ -1560,6 +1560,143 @@ func TestBitbucketCloudRepoPermissionInspection(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudCommitRead(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	repoTarget := session.Workspace + "/" + fixture.PrimaryRepo.Slug
+	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
+
+	viewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash, "--json", "*")
+	var viewed struct {
+		Workspace string                     `json:"workspace"`
+		Repo      string                     `json:"repo"`
+		Commit    bitbucket.RepositoryCommit `json:"commit"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse commit view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Workspace != session.Workspace || viewed.Repo != fixture.PrimaryRepo.Slug || viewed.Commit.Hash == "" {
+		t.Fatalf("unexpected commit view payload %+v", viewed)
+	}
+
+	diffOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "diff", commitHash, "--stat", "--json", "*")
+	var diffed struct {
+		Commit string                          `json:"commit"`
+		Stats  []bitbucket.PullRequestDiffStat `json:"stats"`
+	}
+	if err := json.Unmarshal(diffOutput, &diffed); err != nil {
+		t.Fatalf("parse commit diff JSON: %v\n%s", err, diffOutput)
+	}
+	if diffed.Commit != commitHash {
+		t.Fatalf("unexpected commit diff payload %+v", diffed)
+	}
+
+	statusOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "statuses", commitHash, "--json", "*")
+	var statuses struct {
+		Commit   string                   `json:"commit"`
+		Statuses []bitbucket.CommitStatus `json:"statuses"`
+	}
+	if err := json.Unmarshal(statusOutput, &statuses); err != nil {
+		t.Fatalf("parse commit statuses JSON: %v\n%s", err, statusOutput)
+	}
+	if statuses.Commit != commitHash {
+		t.Fatalf("unexpected commit statuses payload %+v", statuses)
+	}
+
+	comment, err := createCommitCommentFixture(context.Background(), session.Client, session.Workspace, fixture.PrimaryRepo.Slug, commitHash, "bb cli commit comment fixture")
+	if err == nil {
+		commentViewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "comment", "view", strconv.Itoa(comment.ID), "--commit", commitHash, "--json", "*")
+		var viewedComment struct {
+			Commit  string                  `json:"commit"`
+			Comment bitbucket.CommitComment `json:"comment"`
+		}
+		if err := json.Unmarshal(commentViewOutput, &viewedComment); err != nil {
+			t.Fatalf("parse commit comment view JSON: %v\n%s", err, commentViewOutput)
+		}
+		if viewedComment.Commit != commitHash || viewedComment.Comment.ID != comment.ID {
+			t.Fatalf("unexpected commit comment view payload %+v", viewedComment)
+		}
+	} else {
+		t.Logf("commit comment seeding unavailable with current Bitbucket behavior: %v", err)
+	}
+
+	humanOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash)
+	assertContainsOrdered(t, string(humanOutput),
+		"Repository: "+repoTarget,
+		"Commit: "+commitHash,
+		"Next: bb commit diff "+commitHash+" --repo "+repoTarget+" --stat",
+	)
+}
+
+func TestBitbucketCloudCommitReview(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
+	repoTarget := session.Workspace + "/" + fixture.PrimaryRepo.Slug
+
+	approveOutput, err := session.RunAllowFailure(t, fixture.PrimaryRepoDir, "commit", "approve", commitHash, "--json", "*")
+	if err != nil {
+		t.Skipf("commit approve is not available for this fixture/account: %v\n%s", err, approveOutput)
+	}
+
+	var approved struct {
+		Commit string `json:"commit"`
+		Action string `json:"action"`
+	}
+	if err := json.Unmarshal(approveOutput, &approved); err != nil {
+		t.Fatalf("parse commit approve JSON: %v\n%s", err, approveOutput)
+	}
+	if approved.Commit != commitHash || approved.Action != "approved" {
+		t.Fatalf("unexpected commit approve payload %+v", approved)
+	}
+
+	unapproveHuman, err := session.RunAllowFailure(t, fixture.PrimaryRepoDir, "commit", "unapprove", commitHash)
+	if err != nil {
+		t.Fatalf("bb commit unapprove failed: %v\n%s", err, unapproveHuman)
+	}
+	assertContainsOrdered(t, string(unapproveHuman),
+		"Repository: "+repoTarget,
+		"Commit: "+commitHash,
+		"Action: unapproved",
+		"Next: bb commit statuses "+commitHash+" --repo "+repoTarget,
+	)
+}
+
+func TestBitbucketCloudCommitReports(t *testing.T) {
+	session := newIntegrationSession(t)
+	fixture := session.Fixture(t)
+	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
+
+	reportID := "bb-cli-commit-report"
+	if _, err := createCommitReportFixture(context.Background(), session.Client, session.Workspace, fixture.PrimaryRepo.Slug, commitHash, reportID); err != nil {
+		t.Skipf("commit report creation is not available for this fixture/account: %v", err)
+	}
+
+	listOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "report", "list", commitHash, "--json", "*")
+	var listed struct {
+		Commit  string                   `json:"commit"`
+		Reports []bitbucket.CommitReport `json:"reports"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse commit report list JSON: %v\n%s", err, listOutput)
+	}
+	if listed.Commit != commitHash || len(listed.Reports) == 0 {
+		t.Fatalf("unexpected commit report list payload %+v", listed)
+	}
+
+	viewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "report", "view", reportID, "--commit", commitHash, "--json", "*")
+	var viewed struct {
+		Commit string                 `json:"commit"`
+		Report bitbucket.CommitReport `json:"report"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse commit report view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Commit != commitHash || viewed.Report.ExternalID != reportID {
+		t.Fatalf("unexpected commit report view payload %+v", viewed)
+	}
+}
+
 func TestBitbucketCloudBrowse(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)
@@ -1658,6 +1795,7 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	pipelineRepo := session.PipelineFixture(t)
 	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
 	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
+	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
 
 	repoViewOutput := session.Run(t, fixture.PrimaryRepoDir, "repo", "view")
 	if !strings.Contains(string(repoViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
@@ -1752,6 +1890,14 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 		t.Fatalf("expected pr view next step:\n%s", prViewOutput)
 	}
 
+	commitViewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash)
+	if !strings.Contains(string(commitViewOutput), "Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected repo header in commit view output:\n%s", commitViewOutput)
+	}
+	if !strings.Contains(string(commitViewOutput), "Next: bb commit diff "+commitHash+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug+" --stat") {
+		t.Fatalf("expected commit view next step:\n%s", commitViewOutput)
+	}
+
 	issueViewOutput := session.Run(t, "", "issue", "view", fmt.Sprintf("%d", issueID), "--repo", session.Workspace+"/"+issueRepo.Slug)
 	if !strings.Contains(string(issueViewOutput), "Repository: "+session.Workspace+"/"+issueRepo.Slug) {
 		t.Fatalf("expected repo header in issue view output:\n%s", issueViewOutput)
@@ -1818,6 +1964,7 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	pipelineRepo := session.PipelineFixture(t)
 	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
 	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
+	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
 
 	authStatusOutput := session.Run(t, "", "auth", "status", "--check", "--json", "default_host,hosts")
 	var authStatus struct {
@@ -1859,6 +2006,17 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	}
 	if browse.Type != "pull-request" || browse.PR != fixture.PrimaryPRID || browse.URL == "" {
 		t.Fatalf("unexpected browse payload %+v", browse)
+	}
+
+	commitViewOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "view", commitHash, "--json", "commit")
+	var commitView struct {
+		Commit bitbucket.RepositoryCommit `json:"commit"`
+	}
+	if err := json.Unmarshal(commitViewOutput, &commitView); err != nil {
+		t.Fatalf("parse commit view JSON: %v\n%s", err, commitViewOutput)
+	}
+	if commitView.Commit.Hash != commitHash {
+		t.Fatalf("unexpected commit view payload %+v", commitView)
 	}
 
 	pipelineViewOutput := session.Run(t, "", "pipeline", "view", fmt.Sprintf("%d", pipelineRepo.Pipeline.BuildNumber), "--repo", session.Workspace+"/"+pipelineRepo.Repo.Slug, "--json", "host,workspace,repo,pipeline,steps")
@@ -2602,6 +2760,71 @@ func ensureClosePullRequest(t *testing.T, client *bitbucket.Client, repoDir, wor
 	}
 
 	return created.ID
+}
+
+func createCommitCommentFixture(ctx context.Context, client *bitbucket.Client, workspace, repoSlug, commitHash, body string) (bitbucket.CommitComment, error) {
+	payload := map[string]any{
+		"content": map[string]string{
+			"raw": body,
+		},
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return bitbucket.CommitComment{}, err
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/commit/%s/comments", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(commitHash))
+	resp, err := client.Do(ctx, http.MethodPost, path, raw, nil)
+	if err != nil {
+		return bitbucket.CommitComment{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return bitbucket.CommitComment{}, bitbucket.NewAPIError(resp.StatusCode, resp.Status, body)
+	}
+
+	var comment bitbucket.CommitComment
+	if err := json.NewDecoder(resp.Body).Decode(&comment); err != nil {
+		return bitbucket.CommitComment{}, err
+	}
+	return comment, nil
+}
+
+func createCommitReportFixture(ctx context.Context, client *bitbucket.Client, workspace, repoSlug, commitHash, reportID string) (bitbucket.CommitReport, error) {
+	payload := map[string]any{
+		"title":       "bb cli commit report",
+		"details":     "seeded by integration",
+		"report_type": "TEST",
+		"reporter":    "bb",
+		"result":      "PASSED",
+		"data": []map[string]any{
+			{"title": "Checks", "type": "NUMBER", "value": 1},
+		},
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return bitbucket.CommitReport{}, err
+	}
+
+	path := fmt.Sprintf("/repositories/%s/%s/commit/%s/reports/%s", url.PathEscape(workspace), url.PathEscape(repoSlug), url.PathEscape(commitHash), url.PathEscape(reportID))
+	resp, err := client.Do(ctx, http.MethodPut, path, raw, nil)
+	if err != nil {
+		return bitbucket.CommitReport{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return bitbucket.CommitReport{}, bitbucket.NewAPIError(resp.StatusCode, resp.Status, body)
+	}
+
+	var report bitbucket.CommitReport
+	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+		return bitbucket.CommitReport{}, err
+	}
+	return report, nil
 }
 
 func ensureBranchCommit(t *testing.T, repoDir, branchName, fileName, content string) {

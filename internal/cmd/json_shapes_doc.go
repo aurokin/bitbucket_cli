@@ -58,6 +58,26 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: resolvedEntity{},
 		},
 		{
+			Title:       "Commit View, Diff, And Statuses",
+			Description: "Representative shapes for commit view, diff, and commit status payloads.",
+			Commands: []string{
+				"bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'",
+				"bb commit diff abc1234 --repo workspace-slug/repo-slug --json '*'",
+				"bb commit statuses abc1234 --repo workspace-slug/repo-slug --json '*'",
+			},
+			Type: []any{commitViewPayload{}, commitDiffPayload{}, commitStatusesPayload{}},
+		},
+		{
+			Title:       "Commit Comments And Reports",
+			Description: "Representative shapes for commit comment inspection, commit approvals, and commit report inspection payloads.",
+			Commands: []string{
+				"bb commit comment view 15 --commit abc1234 --repo workspace-slug/repo-slug --json '*'",
+				"bb commit approve abc1234 --repo workspace-slug/repo-slug --json '*'",
+				"bb commit report view bb-cli-report --commit abc1234 --repo workspace-slug/repo-slug --json '*'",
+			},
+			Type: []any{commitCommentPayload{}, commitReviewPayload{}, commitReportPayload{}},
+		},
+		{
 			Title:       "Pipeline List And View",
 			Description: "Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.",
 			Commands: []string{

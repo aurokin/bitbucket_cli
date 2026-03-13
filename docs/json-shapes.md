@@ -140,6 +140,209 @@ Representative shape:
 }
 ```
 
+## Commit View, Diff, And Statuses
+
+Representative shapes for commit view, diff, and commit status payloads.
+
+Commands:
+
+```bash
+bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json '*'
+bb commit diff abc1234 --repo workspace-slug/repo-slug --json '*'
+bb commit statuses abc1234 --repo workspace-slug/repo-slug --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "commit": {
+    "author": {
+      "raw": "Example text",
+      "user": {
+        "account_id": "account-id",
+        "display_name": "Example User",
+        "nickname": "example-user"
+      }
+    },
+    "date": "\u003cdate\u003e",
+    "hash": "abc123def456",
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "message": "Example text",
+    "summary": {
+      "raw": "Example text"
+    }
+  },
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "patch": "diff --git a/file.txt b/file.txt\n...",
+  "repo": "repo-slug",
+  "stats": [
+    {
+      "lines_added": 1,
+      "lines_removed": 1,
+      "new": {
+        "path": "file.txt"
+      },
+      "old": {
+        "path": "file.txt"
+      },
+      "status": "modified"
+    }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "statuses": [
+    {
+      "created_on": "2026-03-11T00:00:00Z",
+      "description": "Example text",
+      "key": "BBCLI",
+      "links": {},
+      "name": "Example Name",
+      "refname": "\u003crefname\u003e",
+      "state": "OPEN",
+      "updated_on": "2026-03-11T00:00:00Z",
+      "url": "\u003curl\u003e"
+    }
+  ],
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+## Commit Comments And Reports
+
+Representative shapes for commit comment inspection, commit approvals, and commit report inspection payloads.
+
+Commands:
+
+```bash
+bb commit comment view 15 --commit abc1234 --repo workspace-slug/repo-slug --json '*'
+bb commit approve abc1234 --repo workspace-slug/repo-slug --json '*'
+bb commit report view bb-cli-report --commit abc1234 --repo workspace-slug/repo-slug --json '*'
+```
+
+Representative shapes:
+
+```json
+{
+  "comment": {
+    "content": {
+      "raw": "Example text"
+    },
+    "created_on": "2026-03-11T00:00:00Z",
+    "deleted": true,
+    "id": 1,
+    "inline": {
+      "from": 1,
+      "path": "file.txt",
+      "to": 1
+    },
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/workspace-slug/repo-slug"
+      }
+    },
+    "pending": true,
+    "updated_on": "2026-03-11T00:00:00Z",
+    "user": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    }
+  },
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "action": "\u003caction\u003e",
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "reviewer": {
+    "approved": true,
+    "participated_on": "\u003cparticipated-on\u003e",
+    "role": "REVIEWER",
+    "state": "OPEN",
+    "user": {
+      "account_id": "account-id",
+      "display_name": "Example User",
+      "nickname": "example-user"
+    }
+  },
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
+```json
+{
+  "commit": "\u003ccommit\u003e",
+  "host": "bitbucket.org",
+  "repo": "repo-slug",
+  "report": {
+    "created_on": "2026-03-11T00:00:00Z",
+    "data": [
+      {
+        "title": "Example title"
+      }
+    ],
+    "details": "\u003cdetails\u003e",
+    "external_id": "\u003cexternal-id\u003e",
+    "link": "\u003clink\u003e",
+    "logo_url": "\u003clogo-url\u003e",
+    "remote_link_enabled": true,
+    "report_type": "\u003creport-type\u003e",
+    "reporter": "\u003creporter\u003e",
+    "result": "\u003cresult\u003e",
+    "title": "Example title",
+    "updated_on": "2026-03-11T00:00:00Z",
+    "uuid": "{uuid}"
+  },
+  "warnings": [
+    "\u003citem\u003e"
+  ],
+  "workspace": "workspace-slug"
+}
+```
+
 ## Pipeline List And View
 
 Representative shapes for pipeline list items plus pipeline log, stop, and view payloads.

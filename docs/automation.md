@@ -77,6 +77,12 @@ bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-
 bb repo hook list --repo workspace-slug/repo-slug --json hooks
 bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb repo permissions user list --repo workspace-slug/repo-slug --json permissions
+bb commit view https://bitbucket.org/workspace-slug/repo-slug/commits/abc1234 --json commit
+bb commit diff abc1234 --repo workspace-slug/repo-slug --json stats
+bb commit statuses abc1234 --repo workspace-slug/repo-slug --json statuses
+bb commit comment list abc1234 --repo workspace-slug/repo-slug --json comments
+bb commit report list abc1234 --repo workspace-slug/repo-slug --json reports
+bb commit approve abc1234 --repo workspace-slug/repo-slug --json action,commit
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
@@ -127,3 +133,5 @@ Bitbucket Cloud currently rejects API-token auth for the documented issue import
 Bitbucket also rejected deploy-key updates in the live API behavior we verified. Rotate deploy keys by deleting and creating them instead of expecting an in-place update command.
 
 Repository permission mutation also remains out of scope until the API-token path is verified live. Use the read-only permission inspection commands for now.
+
+Commit reports also remain read-only in `bb` today. The CLI does not offer commit report mutation until the API-token path is verified cleanly enough to support as a documented workflow.

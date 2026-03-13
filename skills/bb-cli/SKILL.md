@@ -23,10 +23,12 @@ Use this skill when work centers on this repository's `bb` Bitbucket Cloud CLI, 
 - Keep authentication API-token-first. Do not add browser login unless Bitbucket Cloud exposes a clean CLI-safe flow and the docs are updated.
 - Prefer `--repo <workspace>/<repo>` over local inference.
 - Use `--workspace` only for disambiguation.
+- When a task starts from a Bitbucket web URL, prefer `bb resolve <url>` before choosing the follow-up command.
 - Preserve both human and agent paths: `--json`, `--jq`, and `--no-prompt`.
 - Keep live Bitbucket integration tests manual-only. Do not add them to `go test ./...` or CI.
 - Reuse existing Bitbucket fixture repos when they already exist.
 - Reuse or create sacrificial fixtures for destructive flows.
+- Push after every commit when working in this repository.
 
 ## Pick The Right Reference
 
@@ -64,6 +66,11 @@ bb ... --jq '...'
 - Use `bb api` when the wrapped command surface does not cover an official endpoint yet.
 - If output can be large, prefer `--jq` to return only the needed fields.
 - If a command may prompt, force `--no-prompt`.
+- If the task begins from a pasted Bitbucket URL, resolve it first:
+
+```bash
+bb resolve <url> --json '*'
+```
 
 ## Implementation Workflow
 
@@ -75,6 +82,7 @@ When changing the CLI:
 4. Regenerate generated docs with `go run ./cmd/gen-docs`.
 5. Run `go test ./...`.
 6. Keep live integration tests manual-only.
+7. Push after each commit.
 
 When creating or changing commands:
 
@@ -82,6 +90,9 @@ When creating or changing commands:
 - Prefer repo context in human output.
 - Prefer deterministic JSON for agent-facing flows.
 - Add warnings when local inference degrades instead of silently falling back.
+- When changing human-readable output, add regression tests for field order and `Next:` guidance.
+- When changing URL or entity resolution, add regression coverage for messy Bitbucket URLs and canonical URL behavior.
+- When changing user-facing output or URL handling, run the relevant manual Bitbucket smoke before closing the task.
 
 ## Bitbucket API Grounding
 
@@ -102,6 +113,11 @@ When behavior is unclear, use the official Bitbucket Cloud REST API docs first:
 - Validate the skill itself with `python3 /home/auro/.agents/skills/skill-creator/scripts/quick_validate.py skills/bb-cli`.
 - Validate CLI docs with `go run ./cmd/gen-docs`.
 - Validate code with `go test ./...`.
+- Validate real user-facing output with the manual smoke when relevant:
+
+```bash
+BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudHumanOutputSmoke -v
+```
 
 ## Common Patterns
 

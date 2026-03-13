@@ -1,4 +1,4 @@
 interface:
   display_name: "bb CLI"
-  short_description: "Bitbucket Cloud CLI workflows"
-  default_prompt: "Use $bb-cli to operate the bb Bitbucket Cloud CLI reliably for humans and agents."
+  short_description: "Bitbucket Cloud CLI workflows and URL handling"
+  default_prompt: "Use $bb-cli when the task involves the bb Bitbucket Cloud CLI, Bitbucket workflows, or Bitbucket web URLs."

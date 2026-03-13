@@ -1,11 +1,11 @@
 ---
 name: bb-cli
-description: Bitbucket Cloud CLI reference and workflow guide for this repository's `bb` command. Use when operating, extending, documenting, testing, or troubleshooting `bb`, including installation, API-token authentication, repository targeting, structured output, pull requests, issues, pipelines, browse flows, generated docs, and Bitbucket Cloud REST API alignment.
+description: Bitbucket Cloud CLI reference and workflow guide for this repository's `bb` command. Use when a task mentions Bitbucket, `bb`, Bitbucket Cloud workflows, or Bitbucket web URLs such as `https://bitbucket.org/...`, including pull request URLs and pull request comment links. Also use when operating, extending, documenting, testing, or troubleshooting `bb`, including installation, API-token authentication, repository targeting, structured output, pull requests, issues, pipelines, browse flows, generated docs, and Bitbucket Cloud REST API alignment.
 ---
 
 # bb CLI
 
-Use this skill when work centers on this repository's `bb` Bitbucket Cloud CLI.
+Use this skill when work centers on this repository's `bb` Bitbucket Cloud CLI, when a request explicitly mentions Bitbucket or Bitbucket Cloud, or when the task includes a Bitbucket web URL such as a repository, pull request, pull request comment, issue, commit, or source link.
 
 ## Quick Start
 

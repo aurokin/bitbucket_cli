@@ -501,6 +501,51 @@ func TestPipelineCacheHelpRegression(t *testing.T) {
 	}
 }
 
+func TestIssueCommentHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "comment", "--help")
+	for _, fragment := range []string{
+		"bb issue comment create 1 --repo workspace-slug/issues-repo-slug --body 'Needs follow-up'",
+		"Available Commands:",
+		"delete      Delete an issue comment",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue comment help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestIssueCommentViewHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "comment", "view", "--help")
+	for _, fragment := range []string{
+		"--issue string",
+		"Bitbucket issue URL",
+		"bb issue comment view 3 --issue https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --json '*'",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue comment view help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestIssueCommentDeleteHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "issue", "comment", "delete", "--help")
+	for _, fragment := range []string{
+		"Scripts and agents should use --yes together with --no-prompt",
+		"--yes",
+		"--issue string",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("issue comment delete help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestBrowseHelpRegression(t *testing.T) {
 	t.Parallel()
 

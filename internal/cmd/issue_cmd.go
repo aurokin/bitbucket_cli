@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	"github.com/aurokin/bitbucket_cli/internal/output"
@@ -15,10 +16,11 @@ func newIssueCmd() *cobra.Command {
 	issueCmd := &cobra.Command{
 		Use:   "issue",
 		Short: "Work with repository issues",
-		Long:  "List, view, create, edit, close, and reopen Bitbucket Cloud repository issues.",
+		Long:  "List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments.",
 	}
 
 	issueCmd.AddCommand(
+		newIssueCommentCmd(),
 		newIssueListCmd(),
 		newIssueViewCmd(),
 		newIssueCreateCmd(),
@@ -320,17 +322,44 @@ func resolveIssueTarget(host, workspace, repo string) (resolvedRepoTarget, *bitb
 }
 
 func resolveIssueTargetAndID(host, workspace, repo, rawID string) (resolvedRepoTarget, *bitbucket.Client, int, error) {
-	target, client, err := resolveIssueTarget(host, workspace, repo)
+	target, client, issueID, err := resolveIssueReference(host, workspace, repo, rawID)
 	if err != nil {
 		return resolvedRepoTarget{}, nil, 0, err
 	}
-
-	issueID, err := parsePositiveInt("issue", rawID)
-	if err != nil {
-		return resolvedRepoTarget{}, nil, 0, err
-	}
-
 	return target, client, issueID, nil
+}
+
+func resolveIssueReference(host, workspace, repo, raw string) (resolvedRepoTarget, *bitbucket.Client, int, error) {
+	raw = strings.TrimSpace(raw)
+	if issueID, err := parsePositiveInt("issue", raw); err == nil {
+		target, client, err := resolveIssueTarget(host, workspace, repo)
+		if err != nil {
+			return resolvedRepoTarget{}, nil, 0, err
+		}
+		return target, client, issueID, nil
+	}
+
+	entity, err := parseBitbucketEntityURL(raw)
+	if err != nil || entity.Type != "issue" {
+		return resolvedRepoTarget{}, nil, 0, fmt.Errorf("issue must be provided as an ID or Bitbucket issue URL")
+	}
+
+	resolved, err := resolveRepoCommandTarget(context.Background(), entity.Host, entity.Workspace, entity.Workspace+"/"+entity.Repo, false)
+	if err != nil {
+		return resolvedRepoTarget{}, nil, 0, err
+	}
+
+	if strings.TrimSpace(repo) != "" || strings.TrimSpace(workspace) != "" || strings.TrimSpace(host) != "" {
+		explicit, _, err := resolveIssueTarget(host, workspace, repo)
+		if err != nil {
+			return resolvedRepoTarget{}, nil, 0, err
+		}
+		if explicit.Host != resolved.Target.Host || explicit.Workspace != resolved.Target.Workspace || explicit.Repo != resolved.Target.Repo {
+			return resolvedRepoTarget{}, nil, 0, fmt.Errorf("issue URL %q does not match the explicit repository target", raw)
+		}
+	}
+
+	return resolved.Target, resolved.Client, entity.Issue, nil
 }
 
 func writeIssueMutationSummary(w io.Writer, action, workspace, repo string, issue bitbucket.Issue, includeNext bool) error {

@@ -91,6 +91,8 @@ bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-reques
 bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread" --json '*'
 bb --no-prompt pr create --repo workspace-slug/repo-slug --source feature --destination main --title "Add feature" --json id,title,state
 bb issue list --repo workspace-slug/issues-repo-slug --json id,title,state
+bb issue comment list 1 --repo workspace-slug/issues-repo-slug --json comments
+bb issue comment create https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --body "Needs follow-up." --json comment
 bb search repos bb-cli --workspace workspace-slug --json name,slug,project
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | {id, title, state, task_count, comment_count}'
 bb status --workspace workspace-slug --limit 10 --json authored_prs,review_requested_prs,your_issues,warnings

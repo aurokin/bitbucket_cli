@@ -625,6 +625,78 @@ func TestBitbucketCloudIssueFlow(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudIssueCommentFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
+	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
+	repoTarget := session.Workspace + "/" + issueRepo.Slug
+
+	createOutput := session.Run(t, "", "issue", "comment", "create", fmt.Sprintf("%d", issueID), "--repo", repoTarget, "--body", "bb cli issue comment integration flow", "--json", "*")
+
+	var created struct {
+		Comment bitbucket.IssueComment `json:"comment"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse issue comment create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Comment.ID == 0 || created.Comment.Content.Raw == "" {
+		t.Fatalf("unexpected issue comment create payload %+v", created)
+	}
+
+	listOutput := session.Run(t, "", "issue", "comment", "list", fmt.Sprintf("%d", issueID), "--repo", repoTarget, "--json", "*")
+	var listed struct {
+		Comments []bitbucket.IssueComment `json:"comments"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse issue comment list JSON: %v\n%s", err, listOutput)
+	}
+	var found bool
+	for _, comment := range listed.Comments {
+		if comment.ID == created.Comment.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected created issue comment in list %+v", listed.Comments)
+	}
+
+	issueURL := fmt.Sprintf("https://bitbucket.org/%s/%s/issues/%d", session.Workspace, issueRepo.Slug, issueID)
+	viewOutput := session.Run(t, "", "issue", "comment", "view", fmt.Sprintf("%d", created.Comment.ID), "--issue", issueURL, "--json", "*")
+	var viewed struct {
+		Comment bitbucket.IssueComment `json:"comment"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse issue comment view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Comment.ID != created.Comment.ID {
+		t.Fatalf("unexpected issue comment view payload %+v", viewed)
+	}
+
+	editOutput := session.Run(t, "", "issue", "comment", "edit", fmt.Sprintf("%d", created.Comment.ID), "--issue", issueURL, "--body", "updated issue comment body", "--json", "*")
+	var edited struct {
+		Comment bitbucket.IssueComment `json:"comment"`
+	}
+	if err := json.Unmarshal(editOutput, &edited); err != nil {
+		t.Fatalf("parse issue comment edit JSON: %v\n%s", err, editOutput)
+	}
+	if edited.Comment.Content.Raw != "updated issue comment body" {
+		t.Fatalf("unexpected edited issue comment %+v", edited)
+	}
+
+	deleteOutput := session.Run(t, "", "issue", "comment", "delete", fmt.Sprintf("%d", created.Comment.ID), "--issue", issueURL, "--yes", "--json", "*")
+	var deleted struct {
+		Deleted bool                   `json:"deleted"`
+		Comment bitbucket.IssueComment `json:"comment"`
+	}
+	if err := json.Unmarshal(deleteOutput, &deleted); err != nil {
+		t.Fatalf("parse issue comment delete JSON: %v\n%s", err, deleteOutput)
+	}
+	if !deleted.Deleted || deleted.Comment.ID != created.Comment.ID {
+		t.Fatalf("unexpected deleted issue comment %+v", deleted)
+	}
+}
+
 func TestBitbucketCloudPipelineList(t *testing.T) {
 	session := newIntegrationSession(t)
 	pipelines := session.PipelineFixture(t)

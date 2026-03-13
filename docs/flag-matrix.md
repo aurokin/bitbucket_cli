@@ -23,6 +23,11 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb extension exec` |  |  | yes |  |  |  |  |
 | `bb extension list` | yes | yes | yes |  |  |  |  |
 | `bb issue close` | yes | yes | yes | yes | yes | yes | `--message`, `--state` |
+| `bb issue comment create` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body` |
+| `bb issue comment delete` | yes | yes | yes | yes | yes | yes | `--issue`, `--yes` |
+| `bb issue comment edit` | yes | yes | yes | yes | yes | yes | `--body-file`, `--body`, `--issue` |
+| `bb issue comment list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb issue comment view` | yes | yes | yes | yes | yes | yes | `--issue` |
 | `bb issue create` | yes | yes | yes | yes | yes | yes | `--body`, `--kind`, `--priority`, `--title` |
 | `bb issue edit` | yes | yes | yes | yes | yes | yes | `--body`, `--kind`, `--priority`, `--state`, `--title` |
 | `bb issue list` | yes | yes | yes | yes | yes | yes | `--limit`, `--state` |

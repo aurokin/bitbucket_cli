@@ -28,6 +28,12 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb extension list`
 - `bb issue`
   - `bb issue close`
+  - `bb issue comment`
+    - `bb issue comment create`
+    - `bb issue comment delete`
+    - `bb issue comment edit`
+    - `bb issue comment list`
+    - `bb issue comment view`
   - `bb issue create`
   - `bb issue edit`
   - `bb issue list`
@@ -549,7 +555,7 @@ Flags:
 
 Work with repository issues
 
-List, view, create, edit, close, and reopen Bitbucket Cloud repository issues.
+List, view, create, edit, close, and reopen Bitbucket Cloud repository issues, and manage issue comments.
 
 Usage:
 
@@ -564,6 +570,7 @@ Flags:
 Subcommands:
 
 - `bb issue close`: Close an issue
+- `bb issue comment`: Work with issue comments
 - `bb issue create`: Create an issue
 - `bb issue edit`: Edit an issue
 - `bb issue list`: List issues for a repository
@@ -591,6 +598,180 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--state`: Target issue state
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue comment`
+
+Work with issue comments
+
+List, view, create, edit, and delete Bitbucket issue comments.
+
+Usage:
+
+```text
+bb issue comment
+```
+
+Examples:
+
+```bash
+bb issue comment list 1 --repo workspace-slug/issues-repo-slug
+bb issue comment create 1 --repo workspace-slug/issues-repo-slug --body 'Needs follow-up'
+bb issue comment view 3 --issue 1 --repo workspace-slug/issues-repo-slug
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb issue comment create`: Create an issue comment
+- `bb issue comment delete`: Delete an issue comment
+- `bb issue comment edit`: Edit an issue comment
+- `bb issue comment list`: List comments on an issue
+- `bb issue comment view`: View one issue comment
+
+## `bb issue comment create`
+
+Create an issue comment
+
+Usage:
+
+```text
+bb issue comment create <issue-id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb issue comment create 1 --repo workspace-slug/issues-repo-slug --body 'Needs follow-up'
+bb issue comment create https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --body-file comment.md --json '*'
+printf 'Needs follow-up\n' | bb issue comment create 1 --repo workspace-slug/issues-repo-slug --body-file -
+```
+
+Flags:
+
+- `--body-file`: Read the comment body from a file, or '-' for stdin
+- `--body`: Comment body text
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue comment delete`
+
+Delete an issue comment
+
+Delete a Bitbucket issue comment. Humans must confirm the exact repository, issue, and comment unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb issue comment delete <comment-id> [flags]
+```
+
+Examples:
+
+```bash
+bb issue comment delete 3 --issue 1 --repo workspace-slug/issues-repo-slug --yes
+bb --no-prompt issue comment delete 3 --issue https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--issue`: Issue ID or Bitbucket issue URL
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Skip the confirmation prompt
+
+## `bb issue comment edit`
+
+Edit an issue comment
+
+Usage:
+
+```text
+bb issue comment edit <comment-id> [flags]
+```
+
+Examples:
+
+```bash
+bb issue comment edit 3 --issue 1 --repo workspace-slug/issues-repo-slug --body 'Updated feedback'
+bb issue comment edit 3 --issue https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --body-file comment.md --json '*'
+```
+
+Flags:
+
+- `--body-file`: Read the comment body from a file, or '-' for stdin
+- `--body`: Comment body text
+- `--host`: Bitbucket host to use
+- `--issue`: Issue ID or Bitbucket issue URL
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue comment list`
+
+List comments on an issue
+
+Usage:
+
+```text
+bb issue comment list <issue-id-or-url> [flags]
+```
+
+Examples:
+
+```bash
+bb issue comment list 1 --repo workspace-slug/issues-repo-slug
+bb issue comment list https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of issue comments to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb issue comment view`
+
+View one issue comment
+
+Usage:
+
+```text
+bb issue comment view <comment-id> [flags]
+```
+
+Examples:
+
+```bash
+bb issue comment view 3 --issue 1 --repo workspace-slug/issues-repo-slug
+bb issue comment view 3 --issue https://bitbucket.org/workspace-slug/issues-repo-slug/issues/1 --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--issue`: Issue ID or Bitbucket issue URL
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb issue create`

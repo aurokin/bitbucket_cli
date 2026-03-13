@@ -3,7 +3,6 @@
 ## Next Commands
 
 1. Issue collaboration depth
-   - `bb issue comment`
    - `bb issue attachments`
    - `bb issue milestones`
    - `bb issue components`

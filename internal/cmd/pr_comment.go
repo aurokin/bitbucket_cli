@@ -346,13 +346,13 @@ func writePullRequestCommentSummary(w io.Writer, payload prCommentPayload, optio
 	if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", payload.Comment.ID); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pullRequestCommentState(payload.Comment, options)); err != nil {
-		return err
-	}
 	if payload.Action != "" {
 		if _, err := fmt.Fprintf(tw, "Action:\t%s\n", payload.Action); err != nil {
 			return err
 		}
+	}
+	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pullRequestCommentState(payload.Comment, options)); err != nil {
+		return err
 	}
 	if payload.Comment.User.DisplayName != "" {
 		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", payload.Comment.User.DisplayName); err != nil {

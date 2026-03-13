@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -219,6 +220,34 @@ func TestBuildBrowsePayloadWarnsWhenTreatingPathAsRepoRelativeWithoutLocalContex
 	if len(payload.Warnings) == 0 || !strings.Contains(payload.Warnings[0], "repository-relative") {
 		t.Fatalf("expected repository-relative warning, got %+v", payload)
 	}
+}
+
+func TestWriteBrowseSummaryOrder(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := browsePayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Type:      "pull-request",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		PR:        7,
+		URL:       "https://bitbucket.org/acme/widgets/pull-requests/7",
+		Opened:    false,
+	}
+
+	if err := writeBrowseSummary(&buf, payload); err != nil {
+		t.Fatalf("writeBrowseSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Type: pull-request",
+		"Pull Request: 7",
+		"URL: https://bitbucket.org/acme/widgets/pull-requests/7",
+		"Status: printed",
+	)
 }
 
 func TestValidateBrowseOptionsRejectsConflicts(t *testing.T) {

@@ -31,48 +31,7 @@ func newResolveCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, entity, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", entity.Workspace, entity.Repo); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Type", entity.Type); err != nil {
-					return err
-				}
-				if entity.PR > 0 {
-					if err := writeLabelValue(w, "Pull Request", strconv.Itoa(entity.PR)); err != nil {
-						return err
-					}
-				}
-				if entity.Comment > 0 {
-					if err := writeLabelValue(w, "Comment", strconv.Itoa(entity.Comment)); err != nil {
-						return err
-					}
-				}
-				if entity.Issue > 0 {
-					if err := writeLabelValue(w, "Issue", strconv.Itoa(entity.Issue)); err != nil {
-						return err
-					}
-				}
-				if err := writeLabelValue(w, "Commit", entity.Commit); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Ref", entity.Ref); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Path", entity.Path); err != nil {
-					return err
-				}
-				if entity.Line > 0 {
-					if err := writeLabelValue(w, "Line", strconv.Itoa(entity.Line)); err != nil {
-						return err
-					}
-				}
-				if err := writeLabelValue(w, "URL", entity.URL); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Canonical URL", entity.CanonicalURL); err != nil {
-					return err
-				}
-				return writeNextStep(w, nextResolveCommand(entity))
+				return writeResolveSummary(w, entity)
 			})
 		},
 	}
@@ -108,4 +67,49 @@ func nextResolveCommand(entity resolvedEntity) string {
 	default:
 		return ""
 	}
+}
+
+func writeResolveSummary(w io.Writer, entity resolvedEntity) error {
+	if err := writeTargetHeader(w, "Repository", entity.Workspace, entity.Repo); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Type", entity.Type); err != nil {
+		return err
+	}
+	if entity.PR > 0 {
+		if err := writeLabelValue(w, "Pull Request", strconv.Itoa(entity.PR)); err != nil {
+			return err
+		}
+	}
+	if entity.Comment > 0 {
+		if err := writeLabelValue(w, "Comment", strconv.Itoa(entity.Comment)); err != nil {
+			return err
+		}
+	}
+	if entity.Issue > 0 {
+		if err := writeLabelValue(w, "Issue", strconv.Itoa(entity.Issue)); err != nil {
+			return err
+		}
+	}
+	if err := writeLabelValue(w, "Commit", entity.Commit); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Ref", entity.Ref); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Path", entity.Path); err != nil {
+		return err
+	}
+	if entity.Line > 0 {
+		if err := writeLabelValue(w, "Line", strconv.Itoa(entity.Line)); err != nil {
+			return err
+		}
+	}
+	if err := writeLabelValue(w, "URL", entity.URL); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Canonical URL", entity.CanonicalURL); err != nil {
+		return err
+	}
+	return writeNextStep(w, nextResolveCommand(entity))
 }

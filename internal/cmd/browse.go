@@ -103,46 +103,7 @@ func newBrowseCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), formatOptions, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
-					return err
-				}
-				if err := writeWarnings(w, payload.Warnings); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Type", payload.Type); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Ref", payload.Ref); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Path", payload.Path); err != nil {
-					return err
-				}
-				if payload.Line > 0 {
-					if err := writeLabelValue(w, "Line", strconv.Itoa(payload.Line)); err != nil {
-						return err
-					}
-				}
-				if err := writeLabelValue(w, "Commit", payload.Commit); err != nil {
-					return err
-				}
-				if payload.PR > 0 {
-					if err := writeLabelValue(w, "Pull Request", strconv.Itoa(payload.PR)); err != nil {
-						return err
-					}
-				}
-				if payload.Issue > 0 {
-					if err := writeLabelValue(w, "Issue", strconv.Itoa(payload.Issue)); err != nil {
-						return err
-					}
-				}
-				if err := writeLabelValue(w, "URL", payload.URL); err != nil {
-					return err
-				}
-				if payload.Opened {
-					return writeLabelValue(w, "Status", "opened")
-				}
-				return writeLabelValue(w, "Status", "printed")
+				return writeBrowseSummary(w, payload)
 			})
 		},
 	}
@@ -262,6 +223,49 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 	payload.Path = resolvedPath
 	payload.URL = buildBrowsePathURL(base, ref, resolvedPath, 0)
 	return payload, nil
+}
+
+func writeBrowseSummary(w io.Writer, payload browsePayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Type", payload.Type); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Ref", payload.Ref); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Path", payload.Path); err != nil {
+		return err
+	}
+	if payload.Line > 0 {
+		if err := writeLabelValue(w, "Line", strconv.Itoa(payload.Line)); err != nil {
+			return err
+		}
+	}
+	if err := writeLabelValue(w, "Commit", payload.Commit); err != nil {
+		return err
+	}
+	if payload.PR > 0 {
+		if err := writeLabelValue(w, "Pull Request", strconv.Itoa(payload.PR)); err != nil {
+			return err
+		}
+	}
+	if payload.Issue > 0 {
+		if err := writeLabelValue(w, "Issue", strconv.Itoa(payload.Issue)); err != nil {
+			return err
+		}
+	}
+	if err := writeLabelValue(w, "URL", payload.URL); err != nil {
+		return err
+	}
+	if payload.Opened {
+		return writeLabelValue(w, "Status", "opened")
+	}
+	return writeLabelValue(w, "Status", "printed")
 }
 
 func validateBrowseOptions(raw string, options browseOptions) error {

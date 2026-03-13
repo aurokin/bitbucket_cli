@@ -94,6 +94,11 @@ func TestWriteAuthStatusSummaryWithNoHosts(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"No authenticated hosts.",
+		"Create Token: "+atlassianAPITokenManageURL,
+		"Next: bb auth login",
+	)
 }
 
 func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
@@ -141,4 +146,10 @@ func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
 	}
+	assertOrderedSubstrings(t, got,
+		"host",
+		"bitbucket.org",
+		"example.com",
+		"example.com auth error: 401 Unauthorized",
+	)
 }

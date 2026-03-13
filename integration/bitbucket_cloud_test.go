@@ -198,6 +198,30 @@ func TestBitbucketCloudPRComment(t *testing.T) {
 	if payload.ID == 0 || payload.Content.Raw != commentBody {
 		t.Fatalf("unexpected pr comment payload %+v", payload)
 	}
+
+	editBody := commentBody + " updated"
+	editHuman := session.Run(t, "", "pr", "comment", "edit", strconv.Itoa(payload.ID), "--pr", prURL, "--body", editBody)
+	assertContainsOrdered(t, string(editHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Comment:",
+		"Action:",
+		"edited",
+		"State:",
+		"Next: bb pr comment view "+strconv.Itoa(payload.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
+
+	deleteHuman := session.Run(t, "", "pr", "comment", "delete", strconv.Itoa(payload.ID), "--pr", prURL, "--yes")
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+		"Pull Request: #"+strconv.Itoa(fixture.PrimaryPRID),
+		"Comment:",
+		"Action:",
+		"deleted",
+		"State:",
+		"deleted",
+		"Next: bb pr view "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug,
+	)
 }
 
 func TestBitbucketCloudPRTaskFlow(t *testing.T) {

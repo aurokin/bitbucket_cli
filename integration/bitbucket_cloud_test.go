@@ -305,6 +305,14 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 		t.Fatalf("unexpected pr task resolve payload %+v", resolved)
 	}
 
+	resolveHuman := session.Run(t, "", "pr", "task", "resolve", strconv.Itoa(created.Task.ID), "--pr", prURL)
+	if !strings.Contains(string(resolveHuman), "resolved") {
+		t.Fatalf("expected resolved state in pr task resolve output:\n%s", resolveHuman)
+	}
+	if !strings.Contains(string(resolveHuman), "Next: bb pr task reopen "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected next step in pr task resolve output:\n%s", resolveHuman)
+	}
+
 	reopenOutput := session.Run(t, "", "pr", "task", "reopen", strconv.Itoa(created.Task.ID), "--pr", prURL, "--json", "*")
 	var reopened struct {
 		Task struct {
@@ -316,6 +324,14 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 	}
 	if reopened.Task.State != "UNRESOLVED" {
 		t.Fatalf("unexpected pr task reopen payload %+v", reopened)
+	}
+
+	reopenHuman := session.Run(t, "", "pr", "task", "reopen", strconv.Itoa(created.Task.ID), "--pr", prURL)
+	if !strings.Contains(string(reopenHuman), "open") {
+		t.Fatalf("expected open state in pr task reopen output:\n%s", reopenHuman)
+	}
+	if !strings.Contains(string(reopenHuman), "Next: bb pr task resolve "+strconv.Itoa(created.Task.ID)+" --pr "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected next step in pr task reopen output:\n%s", reopenHuman)
 	}
 
 	deleteOutput := session.Run(t, "", "pr", "task", "delete", strconv.Itoa(created.Task.ID), "--pr", prURL, "--yes", "--json", "*")
@@ -330,6 +346,20 @@ func TestBitbucketCloudPRTaskFlow(t *testing.T) {
 	}
 	if !deleted.Deleted || deleted.Task.ID != created.Task.ID {
 		t.Fatalf("unexpected pr task delete payload %+v", deleted)
+	}
+
+	humanDeleteTask, err := session.Client.CreatePullRequestTask(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, bitbucket.CreatePullRequestTaskOptions{
+		Body: "human delete smoke task",
+	})
+	if err != nil {
+		t.Fatalf("create human delete smoke task: %v", err)
+	}
+	deleteHuman := session.Run(t, "", "pr", "task", "delete", strconv.Itoa(humanDeleteTask.ID), "--pr", prURL, "--yes")
+	if !strings.Contains(string(deleteHuman), "deleted") {
+		t.Fatalf("expected deleted state in pr task delete output:\n%s", deleteHuman)
+	}
+	if !strings.Contains(string(deleteHuman), "Next: bb pr task list "+strconv.Itoa(fixture.PrimaryPRID)+" --repo "+session.Workspace+"/"+fixture.PrimaryRepo.Slug) {
+		t.Fatalf("expected next step in pr task delete output:\n%s", deleteHuman)
 	}
 
 	if _, err := session.Client.GetPullRequestTask(context.Background(), session.Workspace, fixture.PrimaryRepo.Slug, fixture.PrimaryPRID, created.Task.ID); err == nil {

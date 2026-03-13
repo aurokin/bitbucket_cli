@@ -121,20 +121,6 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 
 ## Common Patterns
 
-Installation and update:
-
-```bash
-go install github.com/aurokin/bitbucket_cli/cmd/bb@latest
-bb version
-```
-
-Authentication:
-
-```bash
-bb auth login
-bb auth status --check
-```
-
 Deterministic repo-scoped operation:
 
 ```bash

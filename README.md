@@ -84,6 +84,12 @@ bb pr list --repo workspace-slug/repo-slug
 bb issue list --repo workspace-slug/issues-repo-slug
 ```
 
+If a workflow starts from a pasted Bitbucket URL, normalize it first:
+
+```bash
+bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
+```
+
 ## Implementation
 
 `bb` is implemented against the official Bitbucket Cloud REST API and stays aligned with documented Bitbucket Cloud behavior instead of inventing `gh` parity where the platform does not support it.
@@ -110,58 +116,30 @@ Main API groups used by `bb`:
 - Users and current-account validation: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-users/
 - Source browsing and file-oriented repository URLs: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-source/
 
-## Human Workflows
+## Typical Usage
 
-Humans can lean on local git inference and the default header-first output:
+For humans:
 
 ```bash
-bb browse
-bb browse README.md:12 --no-browser
 bb repo view
-bb pipeline list --repo workspace-slug/pipelines-repo-slug
-bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
-bb pr list
 bb pr view 1
-bb pr diff 1 --stat
 bb issue create --title "Broken flow"
 bb status
 ```
 
-The human-readable path is designed to:
-
-- show repository or workspace context before results
-- surface pull request task and comment counts in PR tables and status views
-- include `Next:` suggestions after most mutations, detail views, and empty states
-- stay compact on wide terminals without dropping key context
-
-## Agent Workflows
-
-Agents and scripts should prefer explicit, deterministic invocations:
+For agents and scripts:
 
 ```bash
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
-bb browse --pr 1 --repo workspace-slug/repo-slug --no-browser --json url,type,pr
-bb pr comment resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --json '*'
-bb pr task create 1 --repo workspace-slug/repo-slug --comment https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15 --body "Handle this thread" --json '*'
-bb --no-prompt pr create \
-  --repo workspace-slug/repo-slug \
-  --source feature \
-  --destination main \
-  --title "Add feature" \
-  --json id,title,state,links
-
-bb pr diff 1 --repo workspace-slug/repo-slug --json patch,stats
-bb --no-prompt pipeline stop 1 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped
+bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
-bb status --json authored_prs,review_requested_prs,your_issues
 bb search prs fixture --repo workspace-slug/repo-slug --jq '.[] | .id'
 ```
 
-Automation conventions:
+Key behavior:
 
+- human-readable output is header-first, compact, and usually includes `Next:` guidance
 - prefer `--repo <workspace>/<repo>` over local inference
-- use `--workspace` only to disambiguate a bare repository name
-- when a task starts from a Bitbucket web URL, prefer `bb resolve <url>` before choosing a repo, PR, comment, task, issue, or browse command
 - use `--json` or `--json '*'` for machine parsing
 - use `--jq` to keep agent output token-efficient
 - use `--no-prompt` for mutations and any non-interactive flow
@@ -177,16 +155,6 @@ Automation conventions:
 - [Failure and recovery](./docs/recovery.md)
 - [CLI reference](./docs/cli-reference.md)
 
-## API Notes
-
-- `bb repo *` uses the repository APIs and, where needed, project-linked repository fields exposed by Bitbucket Cloud.
-- `bb pr *` uses the pull request APIs, including diff, comment, task, merge, and decline operations where Bitbucket documents them.
-- `bb pipeline *` uses the documented pipeline run, step, log, and stop APIs.
-- `bb issue *` uses the Bitbucket Cloud issue tracker APIs and therefore respects Bitbucket issue-tracker availability limits.
-- `bb browse` prefers deterministic URL building, but its repository and source behavior is still grounded in the documented repository and source API model.
-- `bb auth status --check` validates credentials against the Bitbucket current-user API.
-- `bb api` is the escape hatch for any official REST endpoint that `bb` does not yet wrap directly.
-
 ## Command Surface
 
 Use the generated [CLI reference](./docs/cli-reference.md) for the full command tree and flag details. The high-level command families are:
@@ -194,21 +162,6 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 - auth, api, browse, and resolve
 - repo, pipeline, pr, and issue
 - search, status, config, alias, and extension
-
-## Output Modes
-
-- human-readable output is the default and includes context-first headers and follow-up guidance
-- `--json` returns structured output for the command payload
-- `--jq` filters JSON output before it reaches your terminal or agent
-- `--no-prompt` disables interactive fallback prompts
-
-## Target Resolution
-
-- inside a local checkout, many commands can infer the repository from git remotes
-- `--repo <workspace>/<repo>` is the preferred explicit target
-- repository URLs are accepted where repository targets are supported
-- pull request URLs are accepted where pull request targets are supported
-- `--workspace` is only for disambiguating a bare repository name
 
 ## Compared With `gh`
 

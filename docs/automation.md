@@ -74,6 +74,8 @@ bb repo list workspace-slug --json repos
 bb repo view --repo workspace-slug/repo-slug --json name,project_key,main_branch,html_url
 bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing --json repository
+bb repo hook list --repo workspace-slug/repo-slug --json hooks
+bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb pipeline list --repo workspace-slug/pipelines-repo-slug --json build_number,state,target,created_on
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
@@ -120,3 +122,5 @@ BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketC
 ```
 
 Bitbucket Cloud currently rejects API-token auth for the documented issue import/export job endpoints. Keep automation on attachments, comments, milestones, and components unless Atlassian changes the auth behavior.
+
+Bitbucket also rejected deploy-key updates in the live API behavior we verified. Rotate deploy keys by deleting and creating them instead of expecting an in-place update command.

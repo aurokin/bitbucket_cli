@@ -81,6 +81,8 @@ bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo list workspace-slug
 bb repo view --repo workspace-slug/repo-slug
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork
+bb repo hook list --repo workspace-slug/repo-slug
+bb repo deploy-key list --repo workspace-slug/repo-slug
 bb pipeline list --repo workspace-slug/pipelines-repo-slug
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
@@ -143,6 +145,8 @@ For agents and scripts:
 bb repo list workspace-slug --json repos
 bb repo edit --repo workspace-slug/repo-slug --description "Updated by automation" --json repository
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing --json repository
+bb repo hook list --repo workspace-slug/repo-slug --json hooks
+bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
 bb resolve https://bitbucket.org/workspace-slug/repo-slug/pull-requests/7#comment-15 --json '*'
 bb pr list --repo workspace-slug/repo-slug --json id,title,state,task_count,comment_count
 bb pipeline view 1 --repo workspace-slug/pipelines-repo-slug --json pipeline,steps
@@ -190,7 +194,7 @@ Use the generated [CLI reference](./docs/cli-reference.md) for the full command 
 
 - Authenticated API access through `gh api` / `bb api`
 - Browser navigation through `gh browse` / `bb browse`
-- Repository listing, inspection, creation, editing, forking, cloning, and deletion
+- Repository listing, inspection, creation, editing, forking, webhook/deploy-key administration, cloning, and deletion
 - Pipeline run triggering, listing, inspection, test reports, and repository variable management
 - Pull request listing, review, status, activity, commit inspection, viewing, diffing, commenting, creation, checkout, merge, and close flows
 - Issue listing, viewing, creation, editing, and state transitions
@@ -242,6 +246,7 @@ References:
 - `bb browse` defaults to opening the browser. Use `--no-browser` for deterministic printing, automation, and manual smoke tests.
 - `bb` intentionally supports API-token login only. Browser login is out of scope unless Bitbucket Cloud exposes a cleaner CLI-safe auth path.
 - `bb` does not wrap Bitbucket issue import or export jobs today. Atlassian documents those endpoints, but the current Bitbucket Cloud issue import/export endpoints reject API-token auth, so `bb` leaves them out instead of shipping a broken wrapper.
+- `bb repo deploy-key` supports list, view, create, and delete. Bitbucket rejected deploy-key updates in the live API behavior we verified, so key rotation should use delete plus create instead of an `edit` command.
 - `bb config` exposes the keys that affect runtime today: `prompt`, `browser`, and `output.format`. Editor and pager configuration are still not wired up.
 - Alias expansion preserves shell-style quoting so aliases like `bb alias set ship 'pr create --title "Add feature"'` expand reliably for both humans and automation.
 - Live Bitbucket integration tests and human-output smoke tests are manual-only. They are never part of `go test ./...` or CI.

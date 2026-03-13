@@ -66,8 +66,12 @@ bb browse --repo workspace-slug/repo-slug --no-browser
 bb repo view --repo workspace-slug/repo-slug
 bb repo edit --repo workspace-slug/repo-slug --description "Updated description"
 bb repo fork workspace-slug/repo-slug --to-workspace workspace-slug --name repo-slug-fork --reuse-existing
+bb repo hook list --repo workspace-slug/repo-slug
+bb repo deploy-key list --repo workspace-slug/repo-slug
 bb repo clone workspace-slug/repo-slug
 ```
+
+Bitbucket rejected deploy-key updates in the live API behavior we verified, so rotate deploy keys by deleting and re-creating them instead of expecting an in-place edit flow.
 
 ## Inspect Pipelines
 

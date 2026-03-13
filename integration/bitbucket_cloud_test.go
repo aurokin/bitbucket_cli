@@ -1341,6 +1341,162 @@ func TestBitbucketCloudRepoFork(t *testing.T) {
 	}
 }
 
+func TestBitbucketCloudRepoHookFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	_ = session.Fixture(t)
+	_ = ensureRepository(t, session.Client, session.Workspace, fixtureCreateRepoSlug)
+	repoTarget := session.Workspace + "/" + fixtureCreateRepoSlug
+	hookURL := "https://example.com/bitbucket-cli-hook"
+	description := fmt.Sprintf("bb cli webhook %d", time.Now().UTC().UnixNano())
+
+	createOutput, err := session.RunAllowFailure(t, "", "repo", "hook", "create", "--repo", repoTarget, "--url", hookURL, "--event", "repo:push", "--description", description, "--json", "*")
+	if err != nil {
+		if bytes.Contains(createOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository hook create requires broader webhook scopes:\n%s", createOutput)
+		}
+		t.Fatalf("bb repo hook create failed: %v\n%s", err, createOutput)
+	}
+
+	var created struct {
+		Hook bitbucket.RepositoryWebhook `json:"hook"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse repo hook create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Hook.UUID == "" || created.Hook.URL != hookURL || created.Hook.Description != description {
+		t.Fatalf("unexpected repo hook create payload %+v", created)
+	}
+
+	listOutput := session.Run(t, "", "repo", "hook", "list", "--repo", repoTarget, "--json", "*")
+	var listed struct {
+		Hooks []bitbucket.RepositoryWebhook `json:"hooks"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse repo hook list JSON: %v\n%s", err, listOutput)
+	}
+	var found bool
+	for _, hook := range listed.Hooks {
+		if hook.UUID == created.Hook.UUID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected created webhook in list %+v", listed.Hooks)
+	}
+
+	viewOutput := session.Run(t, "", "repo", "hook", "view", created.Hook.UUID, "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Hook bitbucket.RepositoryWebhook `json:"hook"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse repo hook view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Hook.UUID != created.Hook.UUID {
+		t.Fatalf("unexpected repo hook view payload %+v", viewed)
+	}
+
+	editHuman := session.Run(t, "", "repo", "hook", "edit", created.Hook.UUID, "--repo", repoTarget, "--description", description+" updated", "--active=false")
+	assertContainsOrdered(t, string(editHuman),
+		"Repository: "+repoTarget,
+		"Hook: "+created.Hook.UUID,
+		"Action: edited",
+		"State: inactive",
+		"Next: bb repo hook view "+created.Hook.UUID+" --repo "+repoTarget,
+	)
+
+	deleteHuman, err := session.RunAllowFailure(t, "", "repo", "hook", "delete", created.Hook.UUID, "--repo", repoTarget, "--yes")
+	if err != nil {
+		if bytes.Contains(deleteHuman, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository hook delete requires broader webhook scopes:\n%s", deleteHuman)
+		}
+		t.Fatalf("bb repo hook delete failed: %v\n%s", err, deleteHuman)
+	}
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+repoTarget,
+		"Hook: "+created.Hook.UUID,
+		"Action: deleted",
+		"State: deleted",
+		"Next: bb repo hook list --repo "+repoTarget,
+	)
+}
+
+func TestBitbucketCloudRepoDeployKeyFlow(t *testing.T) {
+	session := newIntegrationSession(t)
+	_ = session.Fixture(t)
+	_ = ensureRepository(t, session.Client, session.Workspace, fixtureCreateRepoSlug)
+	repoTarget := session.Workspace + "/" + fixtureCreateRepoSlug
+
+	tempDir := t.TempDir()
+	privateKeyPath := filepath.Join(tempDir, "id_ed25519")
+	comment := fmt.Sprintf("bb-cli-%d@example.invalid", time.Now().UTC().UnixNano())
+	runExternal(t, "", false, "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", comment, "-f", privateKeyPath)
+
+	label := fmt.Sprintf("bb-cli-key-%d", time.Now().UTC().UnixNano())
+	publicKeyPath := privateKeyPath + ".pub"
+	createOutput, err := session.RunAllowFailure(t, "", "repo", "deploy-key", "create", "--repo", repoTarget, "--label", label, "--key-file", publicKeyPath, "--comment", comment, "--json", "*")
+	if err != nil {
+		if bytes.Contains(createOutput, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository deploy key create requires broader ssh-key scopes:\n%s", createOutput)
+		}
+		t.Fatalf("bb repo deploy-key create failed: %v\n%s", err, createOutput)
+	}
+
+	var created struct {
+		Key bitbucket.RepositoryDeployKey `json:"key"`
+	}
+	if err := json.Unmarshal(createOutput, &created); err != nil {
+		t.Fatalf("parse repo deploy-key create JSON: %v\n%s", err, createOutput)
+	}
+	if created.Key.ID == 0 || created.Key.Label != label {
+		t.Fatalf("unexpected repo deploy-key create payload %+v", created)
+	}
+
+	listOutput := session.Run(t, "", "repo", "deploy-key", "list", "--repo", repoTarget, "--json", "*")
+	var listed struct {
+		Keys []bitbucket.RepositoryDeployKey `json:"keys"`
+	}
+	if err := json.Unmarshal(listOutput, &listed); err != nil {
+		t.Fatalf("parse repo deploy-key list JSON: %v\n%s", err, listOutput)
+	}
+	var found bool
+	for _, key := range listed.Keys {
+		if key.ID == created.Key.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected created deploy key in list %+v", listed.Keys)
+	}
+
+	viewOutput := session.Run(t, "", "repo", "deploy-key", "view", strconv.Itoa(created.Key.ID), "--repo", repoTarget, "--json", "*")
+	var viewed struct {
+		Key bitbucket.RepositoryDeployKey `json:"key"`
+	}
+	if err := json.Unmarshal(viewOutput, &viewed); err != nil {
+		t.Fatalf("parse repo deploy-key view JSON: %v\n%s", err, viewOutput)
+	}
+	if viewed.Key.ID != created.Key.ID {
+		t.Fatalf("unexpected repo deploy-key view payload %+v", viewed)
+	}
+
+	deleteHuman, err := session.RunAllowFailure(t, "", "repo", "deploy-key", "delete", strconv.Itoa(created.Key.ID), "--repo", repoTarget, "--yes")
+	if err != nil {
+		if bytes.Contains(deleteHuman, []byte("Missing Token Scopes Or Insufficient Access")) {
+			t.Skipf("repository deploy key delete requires broader ssh-key scopes:\n%s", deleteHuman)
+		}
+		t.Fatalf("bb repo deploy-key delete failed: %v\n%s", err, deleteHuman)
+	}
+	assertContainsOrdered(t, string(deleteHuman),
+		"Repository: "+repoTarget,
+		"Deploy Key: "+strconv.Itoa(created.Key.ID),
+		"Action: deleted",
+		"State: deleted",
+		"Next: bb repo deploy-key list --repo "+repoTarget,
+	)
+}
+
 func TestBitbucketCloudBrowse(t *testing.T) {
 	session := newIntegrationSession(t)
 	fixture := session.Fixture(t)

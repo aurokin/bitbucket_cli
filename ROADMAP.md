@@ -46,5 +46,6 @@
 
 6. Platform-limit follow-up
    - Keep Bitbucket Cloud issue import/export out of scope while the documented endpoints reject API-token auth.
+   - Keep repository deploy-key updates out of scope while Bitbucket rejects live deploy-key update requests; use delete plus create for rotation.
    - Continue documenting official Bitbucket Cloud limits instead of faking unsupported behavior.
    - Keep unsupported items like PR reopen, PR comment likes, and undocumented pipeline rerun out of scope unless Atlassian adds official API support.

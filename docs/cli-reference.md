@@ -111,8 +111,19 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb repo clone`
   - `bb repo create`
   - `bb repo delete`
+  - `bb repo deploy-key`
+    - `bb repo deploy-key create`
+    - `bb repo deploy-key delete`
+    - `bb repo deploy-key list`
+    - `bb repo deploy-key view`
   - `bb repo edit`
   - `bb repo fork`
+  - `bb repo hook`
+    - `bb repo hook create`
+    - `bb repo hook delete`
+    - `bb repo hook edit`
+    - `bb repo hook list`
+    - `bb repo hook view`
   - `bb repo list`
   - `bb repo view`
 - `bb resolve`
@@ -2925,8 +2936,10 @@ Subcommands:
 - `bb repo clone`: Clone a Bitbucket repository locally
 - `bb repo create`: Create a repository in Bitbucket Cloud
 - `bb repo delete`: Delete a Bitbucket repository
+- `bb repo deploy-key`: Work with repository deploy keys
 - `bb repo edit`: Edit repository metadata
 - `bb repo fork`: Fork a repository
+- `bb repo hook`: Work with repository webhooks
 - `bb repo list`: List repositories in a workspace
 - `bb repo view`: Show repository information
 
@@ -3026,6 +3039,149 @@ Flags:
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 - `--yes`: Skip the confirmation prompt
 
+## `bb repo deploy-key`
+
+Work with repository deploy keys
+
+List, view, create, and delete Bitbucket repository deploy keys. Bitbucket currently rejects deploy-key updates in the live API behavior we verified, so rotation should use delete plus create.
+
+Usage:
+
+```text
+bb repo deploy-key
+```
+
+Examples:
+
+```bash
+bb repo deploy-key list --repo workspace-slug/repo-slug
+bb repo deploy-key create --repo workspace-slug/repo-slug --label ci --key-file ./id_ed25519.pub
+bb repo deploy-key delete 7 --repo workspace-slug/repo-slug --yes
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb repo deploy-key create`: Create a repository deploy key
+- `bb repo deploy-key delete`: Delete a repository deploy key
+- `bb repo deploy-key list`: List repository deploy keys
+- `bb repo deploy-key view`: View one repository deploy key
+
+## `bb repo deploy-key create`
+
+Create a repository deploy key
+
+Usage:
+
+```text
+bb repo deploy-key create [flags]
+```
+
+Examples:
+
+```bash
+bb repo deploy-key create --repo workspace-slug/repo-slug --label ci --key-file ./id_ed25519.pub
+bb repo deploy-key create --repo workspace-slug/repo-slug --label ci --key 'ssh-ed25519 AAAA...' --json key
+```
+
+Flags:
+
+- `--comment`: Deploy key comment override
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--key-file`: Read deploy key public key material from a file
+- `--key`: Deploy key public key material
+- `--label`: Deploy key label
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo deploy-key delete`
+
+Delete a repository deploy key
+
+Delete a Bitbucket repository deploy key. Humans must confirm the exact repository and deploy key unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb repo deploy-key delete <key-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo deploy-key delete 7 --repo workspace-slug/repo-slug --yes
+bb --no-prompt repo deploy-key delete 7 --repo workspace-slug/repo-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Confirm repository deploy key deletion without prompting
+
+## `bb repo deploy-key list`
+
+List repository deploy keys
+
+Usage:
+
+```text
+bb repo deploy-key list [flags]
+```
+
+Examples:
+
+```bash
+bb repo deploy-key list --repo workspace-slug/repo-slug
+bb repo deploy-key list --repo workspace-slug/repo-slug --json keys
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of repository deploy keys to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo deploy-key view`
+
+View one repository deploy key
+
+Usage:
+
+```text
+bb repo deploy-key view <key-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo deploy-key view 7 --repo workspace-slug/repo-slug
+bb repo deploy-key view 7 --repo workspace-slug/repo-slug --json key
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
 ## `bb repo edit`
 
 Edit repository metadata
@@ -3090,6 +3246,183 @@ Flags:
 - `--reuse-existing`: Return an existing matching fork instead of failing
 - `--to-workspace`: Workspace to create the fork in; defaults to the source workspace
 - `--visibility`: Fork visibility override: private or public
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo hook`
+
+Work with repository webhooks
+
+List, view, create, edit, and delete Bitbucket repository webhooks.
+
+Usage:
+
+```text
+bb repo hook
+```
+
+Examples:
+
+```bash
+bb repo hook list --repo workspace-slug/repo-slug
+bb repo hook create --repo workspace-slug/repo-slug --url https://example.com/hook --event repo:push
+bb repo hook delete {hook-uuid} --repo workspace-slug/repo-slug --yes
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb repo hook create`: Create a repository webhook
+- `bb repo hook delete`: Delete a repository webhook
+- `bb repo hook edit`: Edit a repository webhook
+- `bb repo hook list`: List repository webhooks
+- `bb repo hook view`: View one repository webhook
+
+## `bb repo hook create`
+
+Create a repository webhook
+
+Usage:
+
+```text
+bb repo hook create [flags]
+```
+
+Examples:
+
+```bash
+bb repo hook create --repo workspace-slug/repo-slug --url https://example.com/hook --event repo:push
+bb repo hook create --repo workspace-slug/repo-slug --url https://example.com/hook --event pullrequest:created --event pullrequest:updated --json hook
+```
+
+Flags:
+
+- `--active`: Create the webhook as active
+- `--description`: Webhook description
+- `--event`: Webhook event to subscribe to; repeat for multiple events
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secret`: Optional webhook secret
+- `--url`: Webhook delivery URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo hook delete`
+
+Delete a repository webhook
+
+Delete a Bitbucket repository webhook. Humans must confirm the exact repository and webhook unless --yes is provided. Scripts and agents should use --yes together with --no-prompt.
+
+Usage:
+
+```text
+bb repo hook delete <webhook-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo hook delete {hook-uuid} --repo workspace-slug/repo-slug --yes
+bb --no-prompt repo hook delete {hook-uuid} --repo workspace-slug/repo-slug --yes --json '*'
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+- `--yes`: Confirm repository webhook deletion without prompting
+
+## `bb repo hook edit`
+
+Edit a repository webhook
+
+Usage:
+
+```text
+bb repo hook edit <webhook-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo hook edit {hook-uuid} --repo workspace-slug/repo-slug --description 'Updated hook'
+bb repo hook edit {hook-uuid} --repo workspace-slug/repo-slug --event repo:push --event pullrequest:created --json hook
+```
+
+Flags:
+
+- `--active`: Set whether the webhook is active
+- `--clear-secret`: Remove the webhook secret
+- `--description`: Updated webhook description
+- `--event`: Replace the webhook events with the provided values
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--secret`: Set a new webhook secret
+- `--url`: Updated webhook delivery URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo hook list`
+
+List repository webhooks
+
+Usage:
+
+```text
+bb repo hook list [flags]
+```
+
+Examples:
+
+```bash
+bb repo hook list --repo workspace-slug/repo-slug
+bb repo hook list --repo workspace-slug/repo-slug --json hooks
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--limit`: Maximum number of repository webhooks to return
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
+- `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb repo hook view`
+
+View one repository webhook
+
+Usage:
+
+```text
+bb repo hook view <webhook-id> [flags]
+```
+
+Examples:
+
+```bash
+bb repo hook view {hook-uuid} --repo workspace-slug/repo-slug
+bb repo hook view {hook-uuid} --repo workspace-slug/repo-slug --json hook
+```
+
+Flags:
+
+- `--host`: Bitbucket host to use
+- `--jq`: Filter JSON output using a jq expression
+- `--json`: Output JSON with the specified comma-separated fields, or '*' for all fields
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+- `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
 
 ## `bb repo list`

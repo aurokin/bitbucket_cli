@@ -36,6 +36,7 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 ## Documentation
 - Keep `README.md` task-oriented for humans.
 - Keep `AGENTS.md` concise and deterministic for automation.
+- Treat generated or repo-local skills as consumer-facing artifacts. Do not put repo-maintainer workflow instructions into a skill when they belong in `AGENTS.md`, tests, or repo docs.
 - Keep the repo-local skill installable via `npx skills add https://github.com/aurokin/bitbucket_cli --skill bb-cli`.
 - Keep documentation grounded in the official Bitbucket Cloud REST API. Prefer official Atlassian API links over secondary summaries.
 - When documenting implementation behavior, explain which Bitbucket Cloud REST API groups back the command family and link the official docs.

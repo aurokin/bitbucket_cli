@@ -126,6 +126,38 @@ func TestRepoForkHelpRegression(t *testing.T) {
 	}
 }
 
+func TestRepoHookHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "hook", "--help")
+	for _, fragment := range []string{
+		"bb repo hook list --repo workspace-slug/repo-slug",
+		"bb repo hook create --repo workspace-slug/repo-slug --url https://example.com/hook --event repo:push",
+		"Available Commands:",
+		"create      Create a repository webhook",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo hook help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
+func TestRepoDeployKeyHelpRegression(t *testing.T) {
+	t.Parallel()
+
+	output := renderHelp(t, "repo", "deploy-key", "--help")
+	for _, fragment := range []string{
+		"bb repo deploy-key list --repo workspace-slug/repo-slug",
+		"bb repo deploy-key create --repo workspace-slug/repo-slug --label ci --key-file ./id_ed25519.pub",
+		"Available Commands:",
+		"create      Create a repository deploy key",
+	} {
+		if !strings.Contains(output, fragment) {
+			t.Fatalf("repo deploy-key help missing %q\n%s", fragment, output)
+		}
+	}
+}
+
 func TestPRCreateHelpRegression(t *testing.T) {
 	t.Parallel()
 

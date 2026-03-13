@@ -92,8 +92,17 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb repo clone` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo create` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--private`, `--project-key`, `--reuse-existing` |
 | `bb repo delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb repo deploy-key create` | yes | yes | yes | yes | yes | yes | `--comment`, `--key-file`, `--key`, `--label` |
+| `bb repo deploy-key delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb repo deploy-key list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb repo deploy-key view` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo edit` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--visibility` |
 | `bb repo fork` | yes | yes | yes | yes | yes | yes | `--description`, `--name`, `--reuse-existing`, `--to-workspace`, `--visibility` |
+| `bb repo hook create` | yes | yes | yes | yes | yes | yes | `--active`, `--description`, `--event`, `--secret`, `--url` |
+| `bb repo hook delete` | yes | yes | yes | yes | yes | yes | `--yes` |
+| `bb repo hook edit` | yes | yes | yes | yes | yes | yes | `--active`, `--clear-secret`, `--description`, `--event`, `--secret`, `--url` |
+| `bb repo hook list` | yes | yes | yes | yes | yes | yes | `--limit` |
+| `bb repo hook view` | yes | yes | yes | yes | yes | yes |  |
 | `bb repo list` | yes | yes | yes | yes |  | yes | `--limit`, `--query`, `--sort` |
 | `bb repo view` | yes | yes | yes | yes | yes | yes |  |
 | `bb resolve` | yes | yes | yes |  |  |  |  |

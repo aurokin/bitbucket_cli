@@ -96,3 +96,28 @@ func TestExpandAliasArgsReturnsErrorForInvalidQuoting(t *testing.T) {
 		t.Fatalf("expected invalid alias guidance, got %q", got)
 	}
 }
+
+func TestShouldRunExtension(t *testing.T) {
+	t.Parallel()
+
+	if !shouldRunExtension(userFacingError(errUnknownCommand("hello")), []string{"hello"}) {
+		t.Fatal("expected unknown command to fall through to extension lookup")
+	}
+	if shouldRunExtension(nil, []string{"hello"}) {
+		t.Fatal("did not expect nil error to trigger extension lookup")
+	}
+	if shouldRunExtension(userFacingError(errUnknownCommand("hello")), nil) {
+		t.Fatal("did not expect empty args to trigger extension lookup")
+	}
+	if shouldRunExtension(assertErrString("other error"), []string{"hello"}) {
+		t.Fatal("did not expect unrelated error to trigger extension lookup")
+	}
+}
+
+func errUnknownCommand(name string) error {
+	return assertErrString(`unknown command "` + name + `" for "bb"`)
+}
+
+type assertErrString string
+
+func (e assertErrString) Error() string { return string(e) }

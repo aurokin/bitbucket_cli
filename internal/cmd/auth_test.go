@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
+	"github.com/aurokin/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -152,4 +154,59 @@ func TestWriteAuthStatusSummaryIncludesAuthErrors(t *testing.T) {
 		"example.com",
 		"example.com auth error: 401 Unauthorized",
 	)
+}
+
+func TestStatusHostNames(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{
+		Hosts: map[string]config.HostConfig{
+			"bitbucket.org": {},
+			"example.org":   {},
+		},
+	}
+
+	names, err := statusHostNames(cfg, "")
+	if err != nil {
+		t.Fatalf("statusHostNames returned error: %v", err)
+	}
+	if strings.Join(names, ",") != "bitbucket.org,example.org" {
+		t.Fatalf("unexpected host names %v", names)
+	}
+
+	names, err = statusHostNames(cfg, "example.org")
+	if err != nil || len(names) != 1 || names[0] != "example.org" {
+		t.Fatalf("unexpected selected host result %v %v", names, err)
+	}
+
+	if _, err := statusHostNames(cfg, "missing.org"); err == nil || !strings.Contains(err.Error(), "no stored credentials found") {
+		t.Fatalf("expected missing host error, got %v", err)
+	}
+}
+
+func TestBuildAuthStatusPayloadWithoutLiveCheck(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{
+		DefaultHost: "bitbucket.org",
+		Hosts: map[string]config.HostConfig{
+			"bitbucket.org": {
+				Username: "user@example.com",
+				Token:    "token",
+				AuthType: config.AuthTypeAPIToken,
+			},
+		},
+	}
+
+	payload, err := buildAuthStatusPayload(context.Background(), cfg, "", false)
+	if err != nil {
+		t.Fatalf("buildAuthStatusPayload returned error: %v", err)
+	}
+	if payload.DefaultHost != "bitbucket.org" || len(payload.Hosts) != 1 {
+		t.Fatalf("unexpected payload %+v", payload)
+	}
+	row := payload.Hosts[0]
+	if row.Host != "bitbucket.org" || !row.TokenConfigured || row.Username != "user@example.com" || row.AuthType != config.AuthTypeAPIToken || !row.Default {
+		t.Fatalf("unexpected auth row %+v", row)
+	}
 }

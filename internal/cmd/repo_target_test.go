@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 )
 
 func TestResolveRepoCloneInput(t *testing.T) {
@@ -148,6 +150,33 @@ func TestWriteRepoDeleteSummaryIncludesNextStep(t *testing.T) {
 		if !strings.Contains(got, expected) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
+	}
+}
+
+func TestRepoUtilityHelpers(t *testing.T) {
+	t.Parallel()
+
+	targets := []bitbucket.NamedCloneTarget{
+		{Name: "ssh", Href: "git@bitbucket.org:acme/widgets.git"},
+		{Name: "https", Href: "https://bitbucket.org/acme/widgets.git"},
+	}
+	if got := cloneURLForName(targets, "https"); got != "https://bitbucket.org/acme/widgets.git" {
+		t.Fatalf("unexpected https clone URL %q", got)
+	}
+	if got := cloneURLForName(targets, "missing"); got != "" {
+		t.Fatalf("expected missing clone URL to be empty, got %q", got)
+	}
+	if got := firstArg([]string{"one", "two"}); got != "one" {
+		t.Fatalf("unexpected first arg %q", got)
+	}
+	if got := firstArg(nil); got != "" {
+		t.Fatalf("expected empty first arg, got %q", got)
+	}
+	if got := previousRepoSlug("widgets", "widgets"); got != "" {
+		t.Fatalf("expected empty previous repo slug, got %q", got)
+	}
+	if got := previousRepoSlug("widgets-old", "widgets"); got != "widgets-old" {
+		t.Fatalf("unexpected previous repo slug %q", got)
 	}
 }
 

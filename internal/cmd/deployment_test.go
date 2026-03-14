@@ -163,6 +163,68 @@ func TestWriteDeploymentSummary(t *testing.T) {
 	)
 }
 
+func TestWriteDeploymentListAndEnvironmentSummaries(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	listPayload := deploymentListPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Deployments: []bitbucket.Deployment{
+			{
+				UUID:        "{dep-1}",
+				State:       bitbucket.DeploymentState{Name: "SUCCESSFUL"},
+				Environment: bitbucket.DeploymentEnvironment{Name: "Test"},
+				Release:     bitbucket.DeploymentRelease{Name: "main"},
+			},
+		},
+	}
+	if err := writeDeploymentListSummary(&buf, listPayload); err != nil {
+		t.Fatalf("writeDeploymentListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"{dep-1}",
+		"SUCCESSFUL",
+		"Next: bb deployment view {dep-1} --repo acme/widgets",
+	)
+
+	buf.Reset()
+	envListPayload := deploymentEnvironmentListPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Environments: []bitbucket.DeploymentEnvironment{
+			{Name: "Production", Slug: "production", Category: bitbucket.DeploymentEnvironmentCategory{Name: "Production"}, Lock: bitbucket.DeploymentEnvironmentLock{Name: "unlocked"}},
+		},
+	}
+	if err := writeDeploymentEnvironmentListSummary(&buf, envListPayload); err != nil {
+		t.Fatalf("writeDeploymentEnvironmentListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Production",
+		"production",
+		"Next: bb deployment environment view production --repo acme/widgets",
+	)
+
+	buf.Reset()
+	envPayload := deploymentEnvironmentPayload{
+		Workspace:   "acme",
+		Repo:        "widgets",
+		Environment: bitbucket.DeploymentEnvironment{Name: "Production", Slug: "production", UUID: "{env-1}", Category: bitbucket.DeploymentEnvironmentCategory{Name: "Production"}, Lock: bitbucket.DeploymentEnvironmentLock{Name: "unlocked"}},
+	}
+	if err := writeDeploymentEnvironmentSummary(&buf, envPayload); err != nil {
+		t.Fatalf("writeDeploymentEnvironmentSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Environment: Production",
+		"Slug: production",
+		"UUID: {env-1}",
+		"Next: bb deployment environment variable list --repo acme/widgets --environment production",
+	)
+}
+
 func TestWriteDeploymentVariableListSummary(t *testing.T) {
 	t.Parallel()
 

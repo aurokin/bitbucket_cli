@@ -147,12 +147,7 @@ func newPipelineTestReportsCmd() *cobra.Command {
 				return err
 			}
 
-			steps, err := resolved.Client.ListPipelineSteps(context.Background(), target.Workspace, target.Repo, pipeline.UUID)
-			if err != nil {
-				return err
-			}
-
-			step, err := resolvePipelineStep(steps, stepRef)
+			step, err := resolvePipelineStepReference(context.Background(), resolved.Client, target.Workspace, target.Repo, pipeline.UUID, stepRef)
 			if err != nil {
 				return err
 			}

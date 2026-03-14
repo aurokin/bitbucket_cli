@@ -10,6 +10,26 @@ import (
 	"github.com/aurokin/bitbucket_cli/internal/output"
 )
 
+func writePipelineListSummary(w io.Writer, target resolvedRepoTarget, pipelines []bitbucket.Pipeline) error {
+	if len(pipelines) == 0 {
+		if err := writeWarnings(w, target.Warnings); err != nil {
+			return err
+		}
+		_, err := fmt.Fprintf(w, "No pipelines found for %s/%s.\n", target.Workspace, target.Repo)
+		return err
+	}
+	if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, target.Warnings); err != nil {
+		return err
+	}
+	if err := writePipelineListTable(w, pipelines); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb pipeline view %d --repo %s/%s", pipelines[0].BuildNumber, target.Workspace, target.Repo))
+}
+
 func writePipelineListTable(w io.Writer, pipelines []bitbucket.Pipeline) error {
 	tw := output.NewTableWriter(w)
 	if _, err := fmt.Fprintln(tw, "#\tstate\tref\tcreator\tcreated"); err != nil {

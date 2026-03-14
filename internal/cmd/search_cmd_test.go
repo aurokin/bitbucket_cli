@@ -124,3 +124,67 @@ func TestWriteSearchPRSummaryEmptyIncludesWarnings(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteSearchRepoSummaryIncludesNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	repos := []bitbucket.Repository{{
+		Name:      "Widget Service",
+		Slug:      "widgets",
+		IsPrivate: true,
+		Project:   bitbucket.RepositoryProject{Key: "WID"},
+		UpdatedOn: "2026-03-13T00:00:00Z",
+	}}
+
+	if err := writeSearchRepoSummary(&buf, "acme", "widget", repos); err != nil {
+		t.Fatalf("writeSearchRepoSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Workspace: acme",
+		"Query: widget",
+		"widgets",
+		"Next: bb repo view --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
+func TestWriteSearchIssueSummaryIncludesWarningsAndNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	issues := []bitbucket.Issue{{
+		ID:        9,
+		Title:     "Fix flaky integration test",
+		State:     "open",
+		Reporter:  bitbucket.IssueActor{DisplayName: "Example User"},
+		UpdatedOn: "2026-03-13T00:00:00Z",
+	}}
+
+	if err := writeSearchIssueSummary(&buf, target, "flaky", issues); err != nil {
+		t.Fatalf("writeSearchIssueSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Query: flaky",
+		"Fix flaky integration test",
+		"Next: bb issue view 9 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}

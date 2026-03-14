@@ -72,6 +72,42 @@ func TestWritePipelineListTable(t *testing.T) {
 	}
 }
 
+func TestWritePipelineListSummaryIncludesWarningsAndNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedRepoTarget{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+	}
+	pipelines := []bitbucket.Pipeline{
+		{
+			BuildNumber: 12,
+			State:       bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "FAILED"}},
+			Target:      bitbucket.PipelineTarget{RefType: "branch", RefName: "main"},
+			Creator:     bitbucket.PipelineActor{DisplayName: "Example User"},
+			CreatedOn:   "2026-03-11T12:34:56Z",
+		},
+	}
+
+	if err := writePipelineListSummary(&buf, target, pipelines); err != nil {
+		t.Fatalf("writePipelineListSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"FAILED",
+		"Next: bb pipeline view 12 --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func TestResolvePipelineStep(t *testing.T) {
 	t.Parallel()
 

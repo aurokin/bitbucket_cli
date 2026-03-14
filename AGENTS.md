@@ -6,6 +6,7 @@
 - Use the repo-local gate for regular local verification: `make check`
 - Use `make race` for broader validation when touching shared state, hooks, or command execution paths.
 - Use `make fuzz-short` when changing parser, selector, URL, or alias splitting behavior.
+- Use `make stability` when refactors touch shared helpers or tests that may hide order dependence or accidental coupling.
 - Bootstrap pinned local dev tools with `make tools`
 
 ## Commit Attribution

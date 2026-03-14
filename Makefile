@@ -1,9 +1,17 @@
-.PHONY: check complexity fuzz-short lint race test tools
+.PHONY: check complexity fuzz-short lint race stability test test-repeat test-shuffle tools
 
 check: test lint complexity
 
 test:
 	go test ./...
+
+test-shuffle:
+	go test -shuffle=on ./...
+
+test-repeat:
+	go test -count=2 ./...
+
+stability: test-shuffle test-repeat
 
 race:
 	go test -race ./...

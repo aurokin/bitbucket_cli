@@ -65,6 +65,7 @@ Additional validation targets:
 
 - `make race`
 - `make fuzz-short`
+- `make stability`
 
 The first run installs pinned dev tools into `.tools/bin` with:
 

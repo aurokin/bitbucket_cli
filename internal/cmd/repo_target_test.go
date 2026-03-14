@@ -95,6 +95,34 @@ func TestRepoDeletionStatus(t *testing.T) {
 	}
 }
 
+func TestWriteRepoCloneSummaryIncludesNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := repoClonePayload{
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+		Directory: "/tmp/widgets",
+		CloneURL:  "https://bitbucket.org/acme/widgets.git",
+	}
+
+	if err := writeRepoCloneSummary(&buf, payload); err != nil {
+		t.Fatalf("writeRepoCloneSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Directory: /tmp/widgets",
+		"Clone URL: https://bitbucket.org/acme/widgets.git",
+		"Next: bb repo view --repo acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func TestRepoVisibilityLabel(t *testing.T) {
 	t.Parallel()
 

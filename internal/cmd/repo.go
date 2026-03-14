@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
-	gitrepo "github.com/aurokin/bitbucket_cli/internal/git"
 	"github.com/aurokin/bitbucket_cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -224,70 +222,13 @@ func newRepoCloneCmd() *cobra.Command {
 				return err
 			}
 
-			repoArg, targetDir, err := resolveRepoCloneInput(args, repo)
+			payload, err := buildRepoClonePayload(context.Background(), host, workspace, repo, args)
 			if err != nil {
 				return err
-			}
-
-			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, repoArg, false)
-			if err != nil {
-				return err
-			}
-			target := resolved.Target
-
-			resolvedHost, hostConfig, err := resolveAuthenticatedHostConfig(target.Host)
-			if err != nil {
-				return err
-			}
-
-			client, err := bitbucket.NewClient(resolvedHost, hostConfig)
-			if err != nil {
-				return err
-			}
-
-			repository, err := client.GetRepository(context.Background(), target.Workspace, target.Repo)
-			if err != nil {
-				return err
-			}
-
-			httpsCloneURL := cloneURLForName(repository.Links.Clone, "https")
-			if httpsCloneURL == "" {
-				return fmt.Errorf("repository %s/%s does not expose an HTTPS clone URL", target.Workspace, repository.Slug)
-			}
-
-			if targetDir == "" {
-				targetDir = repository.Slug
-			}
-
-			if err := gitrepo.CloneRepository(context.Background(), httpsCloneURL, hostConfig.Token, targetDir); err != nil {
-				return err
-			}
-
-			absoluteDir, err := filepath.Abs(targetDir)
-			if err != nil {
-				return fmt.Errorf("resolve clone directory: %w", err)
-			}
-
-			payload := repoClonePayload{
-				Host:      resolvedHost,
-				Workspace: target.Workspace,
-				RepoSlug:  repository.Slug,
-				Name:      repository.Name,
-				Directory: absoluteDir,
-				CloneURL:  httpsCloneURL,
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Directory", payload.Directory); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Clone URL", payload.CloneURL); err != nil {
-					return err
-				}
-				return writeNextStep(w, fmt.Sprintf("bb repo view --repo %s/%s", payload.Workspace, payload.RepoSlug))
+				return writeRepoCloneSummary(w, payload)
 			})
 		},
 	}

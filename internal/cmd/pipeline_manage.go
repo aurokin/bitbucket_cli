@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
@@ -592,49 +591,23 @@ func resolvePipelineRunRef(flagRef string, args []string, target resolvedRepoTar
 }
 
 func resolvePipelineVariableValue(stdin io.Reader, value, valueFile string) (string, error) {
-	if strings.TrimSpace(valueFile) != "" {
-		data, err := readRequestBody(stdin, valueFile)
-		if err != nil {
-			return "", err
-		}
-		value = string(data)
-	}
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", fmt.Errorf("provide a pipeline variable value with --value or --value-file")
-	}
-	return value, nil
+	return resolveCommandVariableValue(stdin, value, valueFile, "pipeline variable")
 }
 
 func resolvePipelineVariableReference(ctx context.Context, client *bitbucket.Client, workspace, repo, raw string) (bitbucket.PipelineVariable, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return bitbucket.PipelineVariable{}, fmt.Errorf("pipeline variable reference is required")
-	}
-
-	if strings.HasPrefix(raw, "{") && strings.HasSuffix(raw, "}") {
-		return client.GetPipelineVariable(ctx, workspace, repo, raw)
-	}
-
-	variables, err := client.ListPipelineVariables(ctx, workspace, repo, bitbucket.ListPipelineVariablesOptions{Limit: 200})
-	if err != nil {
-		return bitbucket.PipelineVariable{}, err
-	}
-
-	var matches []bitbucket.PipelineVariable
-	for _, variable := range variables {
-		if variable.Key == raw || strings.Trim(variable.UUID, "{}") == strings.Trim(raw, "{}") || variable.UUID == raw {
-			matches = append(matches, variable)
-		}
-	}
-	if len(matches) == 1 {
-		return matches[0], nil
-	}
-	if len(matches) > 1 {
-		return bitbucket.PipelineVariable{}, fmt.Errorf("pipeline variable %q is ambiguous; use a UUID instead", raw)
-	}
-
-	return bitbucket.PipelineVariable{}, fmt.Errorf("pipeline variable %q was not found", raw)
+	return resolveVariableReference(
+		raw,
+		"pipeline variable",
+		func(reference string) (bitbucket.PipelineVariable, error) {
+			return client.GetPipelineVariable(ctx, workspace, repo, reference)
+		},
+		func() ([]bitbucket.PipelineVariable, error) {
+			return client.ListPipelineVariables(ctx, workspace, repo, bitbucket.ListPipelineVariablesOptions{Limit: 200})
+		},
+		func(reference string, variable bitbucket.PipelineVariable) bool {
+			return variable.Key == reference || strings.Trim(variable.UUID, "{}") == strings.Trim(reference, "{}") || variable.UUID == reference
+		},
+	)
 }
 
 func writePipelineTestReportsSummary(w io.Writer, payload pipelineTestReportsPayload) error {
@@ -794,8 +767,4 @@ func writePipelineVariableSummary(w io.Writer, payload pipelineVariablePayload) 
 		return writeNextStep(w, fmt.Sprintf("bb pipeline variable list --repo %s/%s", payload.Workspace, payload.Repo))
 	}
 	return writeNextStep(w, fmt.Sprintf("bb pipeline variable list --repo %s/%s", payload.Workspace, payload.Repo))
-}
-
-func parseBoolString(raw string) (bool, error) {
-	return strconv.ParseBool(strings.TrimSpace(raw))
 }

@@ -628,28 +628,17 @@ func resolveDeploymentEnvironment(ctx context.Context, client *bitbucket.Client,
 }
 
 func resolveDeploymentVariableReference(ctx context.Context, client *bitbucket.Client, workspace, repo, environmentUUID, raw string) (bitbucket.DeploymentVariable, error) {
-	reference := strings.TrimSpace(raw)
-	if reference == "" {
-		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable reference is required")
-	}
-	variables, err := client.ListDeploymentVariables(ctx, workspace, repo, environmentUUID, bitbucket.ListDeploymentVariablesOptions{Limit: 200})
-	if err != nil {
-		return bitbucket.DeploymentVariable{}, err
-	}
-	var matches []bitbucket.DeploymentVariable
-	for _, variable := range variables {
-		if strings.EqualFold(variable.Key, reference) || strings.EqualFold(strings.Trim(variable.UUID, "{}"), strings.Trim(reference, "{}")) {
-			matches = append(matches, variable)
-		}
-	}
-	switch len(matches) {
-	case 1:
-		return matches[0], nil
-	case 0:
-		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable %q was not found", reference)
-	default:
-		return bitbucket.DeploymentVariable{}, fmt.Errorf("deployment variable %q is ambiguous; use a UUID instead", reference)
-	}
+	return resolveVariableReference(
+		raw,
+		"deployment variable",
+		nil,
+		func() ([]bitbucket.DeploymentVariable, error) {
+			return client.ListDeploymentVariables(ctx, workspace, repo, environmentUUID, bitbucket.ListDeploymentVariablesOptions{Limit: 200})
+		},
+		func(reference string, variable bitbucket.DeploymentVariable) bool {
+			return strings.EqualFold(variable.Key, reference) || strings.EqualFold(strings.Trim(variable.UUID, "{}"), strings.Trim(reference, "{}"))
+		},
+	)
 }
 
 func writeDeploymentListSummary(w io.Writer, payload deploymentListPayload) error {

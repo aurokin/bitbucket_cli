@@ -39,6 +39,38 @@ func TestResolveDeploymentEnvironmentBySlug(t *testing.T) {
 	}
 }
 
+func TestResolveDeploymentVariableReferenceByKey(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/deployments_config/environments/{env-1}/variables" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if r.URL.Query().Get("pagelen") != "200" {
+			t.Fatalf("unexpected query %q", r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"uuid":"{var-1}","key":"APP_ENV","value":"production","secured":false}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		AuthType: "api-token",
+		Username: "agent@example.com",
+		Token:    "token",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	variable, err := resolveDeploymentVariableReference(context.Background(), client, "acme", "widgets", "{env-1}", "APP_ENV")
+	if err != nil {
+		t.Fatalf("resolveDeploymentVariableReference returned error: %v", err)
+	}
+	if variable.UUID != "{var-1}" || variable.Key != "APP_ENV" {
+		t.Fatalf("unexpected deployment variable %+v", variable)
+	}
+}
+
 func TestWriteDeploymentSummary(t *testing.T) {
 	t.Parallel()
 

@@ -5,15 +5,17 @@ import (
 	"strings"
 )
 
+type shellSplitState int
+
+const (
+	stateUnquoted shellSplitState = iota
+	stateSingleQuoted
+	stateDoubleQuoted
+)
+
 func splitCommandLine(input string) ([]string, error) {
 	var args []string
 	var current strings.Builder
-
-	const (
-		stateUnquoted = iota
-		stateSingleQuoted
-		stateDoubleQuoted
-	)
 
 	state := stateUnquoted
 	tokenStarted := false
@@ -31,25 +33,8 @@ func splitCommandLine(input string) ([]string, error) {
 		ch := input[i]
 		switch state {
 		case stateUnquoted:
-			switch ch {
-			case ' ', '\t', '\n':
-				flush()
-			case '\'':
-				state = stateSingleQuoted
-				tokenStarted = true
-			case '"':
-				state = stateDoubleQuoted
-				tokenStarted = true
-			case '\\':
-				if i+1 >= len(input) {
-					return nil, fmt.Errorf("dangling escape")
-				}
-				tokenStarted = true
-				i++
-				current.WriteByte(input[i])
-			default:
-				tokenStarted = true
-				current.WriteByte(ch)
+			if err := processUnquotedShellChar(input, &i, ch, &current, &state, &tokenStarted, flush); err != nil {
+				return nil, err
 			}
 		case stateSingleQuoted:
 			if ch == '\'' {
@@ -58,24 +43,8 @@ func splitCommandLine(input string) ([]string, error) {
 			}
 			current.WriteByte(ch)
 		case stateDoubleQuoted:
-			switch ch {
-			case '"':
-				state = stateUnquoted
-			case '\\':
-				if i+1 >= len(input) {
-					return nil, fmt.Errorf("dangling escape")
-				}
-				i++
-				escaped := input[i]
-				switch escaped {
-				case '"', '\\', ' ':
-					current.WriteByte(escaped)
-				default:
-					current.WriteByte('\\')
-					current.WriteByte(escaped)
-				}
-			default:
-				current.WriteByte(ch)
+			if err := processDoubleQuotedShellChar(input, &i, ch, &current, &state); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -89,4 +58,62 @@ func splitCommandLine(input string) ([]string, error) {
 
 	flush()
 	return args, nil
+}
+
+func processUnquotedShellChar(input string, index *int, ch byte, current *strings.Builder, state *shellSplitState, tokenStarted *bool, flush func()) error {
+	switch ch {
+	case ' ', '\t', '\n':
+		flush()
+	case '\'':
+		*state = stateSingleQuoted
+		*tokenStarted = true
+	case '"':
+		*state = stateDoubleQuoted
+		*tokenStarted = true
+	case '\\':
+		next, err := nextEscapedShellChar(input, index)
+		if err != nil {
+			return err
+		}
+		*tokenStarted = true
+		current.WriteByte(next)
+	default:
+		*tokenStarted = true
+		current.WriteByte(ch)
+	}
+	return nil
+}
+
+func processDoubleQuotedShellChar(input string, index *int, ch byte, current *strings.Builder, state *shellSplitState) error {
+	switch ch {
+	case '"':
+		*state = stateUnquoted
+	case '\\':
+		escaped, err := nextEscapedShellChar(input, index)
+		if err != nil {
+			return err
+		}
+		writeEscapedDoubleQuotedChar(current, escaped)
+	default:
+		current.WriteByte(ch)
+	}
+	return nil
+}
+
+func nextEscapedShellChar(input string, index *int) (byte, error) {
+	if *index+1 >= len(input) {
+		return 0, fmt.Errorf("dangling escape")
+	}
+	*index++
+	return input[*index], nil
+}
+
+func writeEscapedDoubleQuotedChar(current *strings.Builder, escaped byte) {
+	switch escaped {
+	case '"', '\\', ' ':
+		current.WriteByte(escaped)
+	default:
+		current.WriteByte('\\')
+		current.WriteByte(escaped)
+	}
 }

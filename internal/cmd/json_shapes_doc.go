@@ -21,7 +21,88 @@ type jsonShapeSection struct {
 // GenerateJSONShapesDoc renders representative JSON shapes from the current
 // payload structs and Bitbucket response models.
 func GenerateJSONShapesDoc() (string, error) {
-	sections := []jsonShapeSection{
+	var buf bytes.Buffer
+	writeJSONShapesHeader(&buf)
+	for _, section := range jsonShapeSections() {
+		if err := writeJSONShapeSection(&buf, section); err != nil {
+			return "", err
+		}
+	}
+
+	return buf.String(), nil
+}
+
+func writeJSONShapesHeader(buf *bytes.Buffer) {
+	buf.WriteString("# JSON Shapes\n\n")
+	buf.WriteString("Representative JSON payload shapes for common commands.\n\n")
+	buf.WriteString("Generated from the current payload structs and Bitbucket response models. Field order follows the Go structs. Omitted fields in live output still depend on the selected command, flags, and Bitbucket data.\n\n")
+	buf.WriteString("Use [automation.md](./automation.md) for deterministic command patterns and [cli-reference.md](./cli-reference.md) for the full command surface.\n")
+}
+
+func writeJSONShapeSection(buf *bytes.Buffer, section jsonShapeSection) error {
+	buf.WriteString("\n## ")
+	buf.WriteString(section.Title)
+	buf.WriteString("\n\n")
+	if section.Description != "" {
+		buf.WriteString(section.Description)
+		buf.WriteString("\n\n")
+	}
+	writeJSONShapeCommands(buf, section.Commands)
+	return writeJSONShapeExamples(buf, section.Type)
+}
+
+func writeJSONShapeCommands(buf *bytes.Buffer, commands []string) {
+	if len(commands) == 1 {
+		buf.WriteString("Command:\n\n```bash\n")
+		buf.WriteString(commands[0])
+		buf.WriteString("\n```\n")
+		return
+	}
+	buf.WriteString("Commands:\n\n```bash\n")
+	for i, command := range commands {
+		if i > 0 {
+			buf.WriteByte('\n')
+		}
+		buf.WriteString(command)
+	}
+	buf.WriteString("\n```\n")
+}
+
+func writeJSONShapeExamples(buf *bytes.Buffer, value any) error {
+	switch typed := value.(type) {
+	case []any:
+		buf.WriteString("\nRepresentative shapes:\n")
+		for _, item := range typed {
+			if err := writeSingleJSONShapeExample(buf, item, false); err != nil {
+				return err
+			}
+		}
+	default:
+		if err := writeSingleJSONShapeExample(buf, value, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeSingleJSONShapeExample(buf *bytes.Buffer, value any, singular bool) error {
+	rendered, err := representativeJSON(value)
+	if err != nil {
+		return err
+	}
+	if singular {
+		buf.WriteString("\nRepresentative shape:\n\n")
+	} else {
+		buf.WriteString("\n")
+	}
+	buf.WriteString("```json\n")
+	buf.WriteString(rendered)
+	buf.WriteString("\n```\n")
+	return nil
+}
+
+func jsonShapeSections() []jsonShapeSection {
+	return []jsonShapeSection{
 		{
 			Title:       "Workspace Inspection",
 			Description: "Representative shapes for workspace list, view, membership, and workspace-scoped repository permission payloads.",
@@ -204,61 +285,6 @@ func GenerateJSONShapesDoc() (string, error) {
 			Type: crossRepoStatusPayload{},
 		},
 	}
-
-	var buf bytes.Buffer
-	buf.WriteString("# JSON Shapes\n\n")
-	buf.WriteString("Representative JSON payload shapes for common commands.\n\n")
-	buf.WriteString("Generated from the current payload structs and Bitbucket response models. Field order follows the Go structs. Omitted fields in live output still depend on the selected command, flags, and Bitbucket data.\n\n")
-	buf.WriteString("Use [automation.md](./automation.md) for deterministic command patterns and [cli-reference.md](./cli-reference.md) for the full command surface.\n")
-
-	for _, section := range sections {
-		buf.WriteString("\n## ")
-		buf.WriteString(section.Title)
-		buf.WriteString("\n\n")
-		if section.Description != "" {
-			buf.WriteString(section.Description)
-			buf.WriteString("\n\n")
-		}
-
-		if len(section.Commands) == 1 {
-			buf.WriteString("Command:\n\n```bash\n")
-			buf.WriteString(section.Commands[0])
-			buf.WriteString("\n```\n")
-		} else {
-			buf.WriteString("Commands:\n\n```bash\n")
-			for i, command := range section.Commands {
-				if i > 0 {
-					buf.WriteByte('\n')
-				}
-				buf.WriteString(command)
-			}
-			buf.WriteString("\n```\n")
-		}
-
-		switch typed := section.Type.(type) {
-		case []any:
-			buf.WriteString("\nRepresentative shapes:\n")
-			for _, item := range typed {
-				rendered, err := representativeJSON(item)
-				if err != nil {
-					return "", err
-				}
-				buf.WriteString("\n```json\n")
-				buf.WriteString(rendered)
-				buf.WriteString("\n```\n")
-			}
-		default:
-			rendered, err := representativeJSON(section.Type)
-			if err != nil {
-				return "", err
-			}
-			buf.WriteString("\nRepresentative shape:\n\n```json\n")
-			buf.WriteString(rendered)
-			buf.WriteString("\n```\n")
-		}
-	}
-
-	return buf.String(), nil
 }
 
 func representativeJSON(example any) (string, error) {

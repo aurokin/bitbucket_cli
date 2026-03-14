@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/spf13/cobra"
 )
 
 func TestResolveMergeStrategyUsesExplicitValue(t *testing.T) {
@@ -26,6 +27,19 @@ func TestResolveMergeStrategyUsesExplicitValue(t *testing.T) {
 	}
 	if strategy != "squash" {
 		t.Fatalf("expected squash, got %q", strategy)
+	}
+}
+
+func TestResolvePullRequestTitleUsesDefaultWhenNonInteractive(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	got, err := resolvePullRequestTitle(cmd, "", "feature/refactor", false)
+	if err != nil {
+		t.Fatalf("resolvePullRequestTitle returned error: %v", err)
+	}
+	if got != "feature/refactor" {
+		t.Fatalf("unexpected title %q", got)
 	}
 }
 

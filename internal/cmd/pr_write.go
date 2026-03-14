@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	gitrepo "github.com/aurokin/bitbucket_cli/internal/git"
@@ -222,44 +223,7 @@ func newPRCreateCmd() *cobra.Command {
 				return err
 			}
 
-			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
-			if err != nil {
-				return err
-			}
-			repoTarget := resolved.Target
-			client := resolved.Client
-
-			interactive := promptsEnabled(cmd)
-
-			sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, repoTarget.Explicit, repoTarget.Workspace, repoTarget.Repo)
-			if err != nil {
-				return err
-			}
-
-			destinationBranch, err := resolveDestinationBranchInput(cmd, client, repoTarget.Workspace, repoTarget.Repo, destination, interactive)
-			if err != nil {
-				return err
-			}
-
-			if title == "" {
-				title = defaultPRTitle(sourceBranch)
-			}
-			if interactive {
-				title, err = promptRequiredString(cmd, "Title", title)
-				if err != nil {
-					return err
-				}
-			}
-
-			pr, err := client.CreatePullRequest(context.Background(), repoTarget.Workspace, repoTarget.Repo, bitbucket.CreatePullRequestOptions{
-				Title:             title,
-				Description:       description,
-				SourceBranch:      sourceBranch,
-				DestinationBranch: destinationBranch,
-				CloseSourceBranch: closeSourceBranch,
-				Draft:             draft,
-				ReuseExisting:     reuseExisting,
-			})
+			repoTarget, pr, err := createPullRequestCommand(context.Background(), cmd, host, workspace, repo, title, description, source, destination, closeSourceBranch, draft, reuseExisting)
 			if err != nil {
 				return err
 			}
@@ -289,4 +253,53 @@ func newPRCreateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&reuseExisting, "reuse-existing", false, "Return an existing matching open pull request instead of creating a new one")
 
 	return cmd
+}
+
+func createPullRequestCommand(ctx context.Context, cmd *cobra.Command, host, workspace, repo, title, description, source, destination string, closeSourceBranch, draft, reuseExisting bool) (resolvedRepoTarget, bitbucket.PullRequest, error) {
+	resolved, err := resolveRepoCommandTarget(ctx, host, workspace, repo, true)
+	if err != nil {
+		return resolvedRepoTarget{}, bitbucket.PullRequest{}, err
+	}
+
+	interactive := promptsEnabled(cmd)
+
+	sourceBranch, err := resolveSourceBranchInput(cmd, source, interactive, resolved.Target.Explicit, resolved.Target.Workspace, resolved.Target.Repo)
+	if err != nil {
+		return resolvedRepoTarget{}, bitbucket.PullRequest{}, err
+	}
+
+	destinationBranch, err := resolveDestinationBranchInput(cmd, resolved.Client, resolved.Target.Workspace, resolved.Target.Repo, destination, interactive)
+	if err != nil {
+		return resolvedRepoTarget{}, bitbucket.PullRequest{}, err
+	}
+
+	title, err = resolvePullRequestTitle(cmd, title, sourceBranch, interactive)
+	if err != nil {
+		return resolvedRepoTarget{}, bitbucket.PullRequest{}, err
+	}
+
+	pr, err := resolved.Client.CreatePullRequest(ctx, resolved.Target.Workspace, resolved.Target.Repo, bitbucket.CreatePullRequestOptions{
+		Title:             title,
+		Description:       description,
+		SourceBranch:      sourceBranch,
+		DestinationBranch: destinationBranch,
+		CloseSourceBranch: closeSourceBranch,
+		Draft:             draft,
+		ReuseExisting:     reuseExisting,
+	})
+	if err != nil {
+		return resolvedRepoTarget{}, bitbucket.PullRequest{}, err
+	}
+
+	return resolved.Target, pr, nil
+}
+
+func resolvePullRequestTitle(cmd *cobra.Command, title, sourceBranch string, interactive bool) (string, error) {
+	if strings.TrimSpace(title) == "" {
+		title = defaultPRTitle(sourceBranch)
+	}
+	if !interactive {
+		return title, nil
+	}
+	return promptRequiredString(cmd, "Title", title)
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -99,50 +98,7 @@ func newStatusCmd() *cobra.Command {
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if _, err := fmt.Fprintf(w, "User: %s\n", payload.User); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(w, "Workspaces: %s\n", strings.Join(payload.Workspaces, ", ")); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(w, "Repositories Scanned: %d\n\n", payload.Repositories); err != nil {
-					return err
-				}
-
-				if _, err := fmt.Fprintln(w, "Authored Pull Requests"); err != nil {
-					return err
-				}
-				if err := writeCrossRepoPRTable(w, payload.AuthoredPRs); err != nil {
-					return err
-				}
-
-				if _, err := fmt.Fprintln(w, "\nReview Requested"); err != nil {
-					return err
-				}
-				if err := writeCrossRepoPRTable(w, payload.ReviewRequestedPRs); err != nil {
-					return err
-				}
-
-				if _, err := fmt.Fprintln(w, "\nYour Issues"); err != nil {
-					return err
-				}
-				if err := writeCrossRepoIssueTable(w, payload.YourIssues); err != nil {
-					return err
-				}
-
-				if len(payload.Warnings) == 0 {
-					return nil
-				}
-
-				if _, err := fmt.Fprintln(w, "\nNotes"); err != nil {
-					return err
-				}
-				for _, warning := range payload.Warnings {
-					if _, err := fmt.Fprintf(w, "- %s\n", warning); err != nil {
-						return err
-					}
-				}
-				return nil
+				return writeCrossRepoStatusSummary(w, payload)
 			})
 		},
 	}

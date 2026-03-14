@@ -221,40 +221,8 @@ func TestStatusOutputIncludesNotes(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if _, err := fmt.Fprintf(&buf, "User: %s\n", payload.User); err != nil {
-		t.Fatalf("write header: %v", err)
-	}
-	if _, err := fmt.Fprintf(&buf, "Workspaces: %s\n", strings.Join(payload.Workspaces, ", ")); err != nil {
-		t.Fatalf("write workspaces: %v", err)
-	}
-	if _, err := fmt.Fprintf(&buf, "Repositories Scanned: %d\n\n", payload.Repositories); err != nil {
-		t.Fatalf("write repo count: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "Authored Pull Requests"); err != nil {
-		t.Fatalf("write section: %v", err)
-	}
-	if err := writeCrossRepoPRTable(&buf, nil); err != nil {
-		t.Fatalf("write PR table: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "\nReview Requested"); err != nil {
-		t.Fatalf("write section: %v", err)
-	}
-	if err := writeCrossRepoPRTable(&buf, nil); err != nil {
-		t.Fatalf("write PR table: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "\nYour Issues"); err != nil {
-		t.Fatalf("write section: %v", err)
-	}
-	if err := writeCrossRepoIssueTable(&buf, nil); err != nil {
-		t.Fatalf("write issue table: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "\nNotes"); err != nil {
-		t.Fatalf("write notes header: %v", err)
-	}
-	for _, warning := range payload.Warnings {
-		if _, err := fmt.Fprintf(&buf, "- %s\n", warning); err != nil {
-			t.Fatalf("write warning: %v", err)
-		}
+	if err := writeCrossRepoStatusSummary(&buf, payload); err != nil {
+		t.Fatalf("writeCrossRepoStatusSummary returned error: %v", err)
 	}
 
 	got := buf.String()
@@ -310,32 +278,8 @@ func TestStatusOutputSectionOrder(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if _, err := fmt.Fprintf(&buf, "User: %s\n", payload.User); err != nil {
-		t.Fatalf("write header: %v", err)
-	}
-	if _, err := fmt.Fprintf(&buf, "Workspaces: %s\n", strings.Join(payload.Workspaces, ", ")); err != nil {
-		t.Fatalf("write workspaces: %v", err)
-	}
-	if _, err := fmt.Fprintf(&buf, "Repositories Scanned: %d\n\n", payload.Repositories); err != nil {
-		t.Fatalf("write repo count: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "Authored Pull Requests"); err != nil {
-		t.Fatalf("write authored section: %v", err)
-	}
-	if err := writeCrossRepoPRTable(&buf, payload.AuthoredPRs); err != nil {
-		t.Fatalf("write authored table: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "\nReview Requested"); err != nil {
-		t.Fatalf("write review section: %v", err)
-	}
-	if err := writeCrossRepoPRTable(&buf, payload.ReviewRequestedPRs); err != nil {
-		t.Fatalf("write review table: %v", err)
-	}
-	if _, err := fmt.Fprintln(&buf, "\nYour Issues"); err != nil {
-		t.Fatalf("write issues section: %v", err)
-	}
-	if err := writeCrossRepoIssueTable(&buf, payload.YourIssues); err != nil {
-		t.Fatalf("write issues table: %v", err)
+	if err := writeCrossRepoStatusSummary(&buf, payload); err != nil {
+		t.Fatalf("writeCrossRepoStatusSummary returned error: %v", err)
 	}
 
 	assertOrderedSubstrings(t, buf.String(),

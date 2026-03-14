@@ -374,6 +374,39 @@ func runPRTestGit(t *testing.T, dir string, args ...string) {
 	}
 }
 
+func TestCreatePullRequestCommand(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests" {
+			t.Fatalf("unexpected %s %q", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":7,"title":"Add feature","state":"OPEN","source":{"branch":{"name":"feature/current"}},"destination":{"branch":{"name":"main"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	target, pr, err := createPullRequestCommand(context.Background(), &cobra.Command{}, "", "acme", "widgets", "Add feature", "Body", "feature/current", "main", false, false, false)
+	if err != nil {
+		t.Fatalf("createPullRequestCommand returned error: %v", err)
+	}
+	if target.Workspace != "acme" || target.Repo != "widgets" || pr.ID != 7 || pr.Title != "Add feature" {
+		t.Fatalf("unexpected create PR result target=%+v pr=%+v", target, pr)
+	}
+}
+
 func TestSameActorFallsBackAcrossIdentityFields(t *testing.T) {
 	t.Parallel()
 

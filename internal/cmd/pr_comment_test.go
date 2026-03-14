@@ -2,10 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestPullRequestCommentState(t *testing.T) {
@@ -143,5 +147,38 @@ func TestPullRequestCommentConfirmationTarget(t *testing.T) {
 
 	if got := pullRequestCommentConfirmationTarget(target); got != "acme/widgets#pr-7/comment-15" {
 		t.Fatalf("unexpected confirmation target %q", got)
+	}
+}
+
+func TestCreatePullRequestCommentCommand(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/2.0/repositories/acme/widgets/pullrequests/7/comments" {
+			t.Fatalf("unexpected %s %q", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":15,"content":{"raw":"Looks good"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	resolved, comment, err := createPullRequestCommentCommand(context.Background(), bytes.NewBufferString(""), "", "acme", "widgets", "7", "Looks good", "")
+	if err != nil {
+		t.Fatalf("createPullRequestCommentCommand returned error: %v", err)
+	}
+	if resolved.Target.ID != 7 || comment.ID != 15 || comment.Content.Raw != "Looks good" {
+		t.Fatalf("unexpected PR comment result target=%+v comment=%+v", resolved.Target, comment)
 	}
 }

@@ -298,3 +298,40 @@ func TestConfirmRepoDeletion(t *testing.T) {
 		t.Fatalf("expected non-interactive confirmation error, got %v", err)
 	}
 }
+
+func TestBuildRepoDeletePayload(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/2.0/repositories/acme/widgets":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"slug":"widgets","name":"Widgets"}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/2.0/repositories/acme/widgets":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected %s %q", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	payload, err := buildRepoDeletePayload(context.Background(), &cobra.Command{}, "", "", "", []string{"acme/widgets"}, true)
+	if err != nil {
+		t.Fatalf("buildRepoDeletePayload returned error: %v", err)
+	}
+	if payload.Workspace != "acme" || payload.RepoSlug != "widgets" || !payload.Deleted {
+		t.Fatalf("unexpected repo delete payload %+v", payload)
+	}
+}

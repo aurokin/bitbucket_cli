@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"io"
-	"strings"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	"github.com/aurokin/bitbucket_cli/internal/output"
@@ -122,9 +121,7 @@ func newCommitDiffCmd() *cobra.Command {
 	var pathFilters []string
 	var ignoreWhitespace bool
 	var binaryValue bool
-	var binarySet bool
 	var renamesValue bool
-	var renamesSet bool
 
 	cmd := &cobra.Command{
 		Use:   "diff <hash-or-url>",
@@ -144,64 +141,26 @@ func newCommitDiffCmd() *cobra.Command {
 				return err
 			}
 
-			payload := commitDiffPayload{
-				Host:      resolved.Target.RepoTarget.Host,
-				Workspace: resolved.Target.RepoTarget.Workspace,
-				Repo:      resolved.Target.RepoTarget.Repo,
-				Warnings:  append([]string(nil), resolved.Target.RepoTarget.Warnings...),
-				Commit:    resolved.Target.Commit,
-			}
-
-			if stat {
-				stats, err := resolved.Client.ListCommitDiffStats(context.Background(), resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.Commit)
-				if err != nil {
-					return err
-				}
-				payload.Stats = stats
-			} else {
-				diffOptions := bitbucket.CommitDiffOptions{
-					Context:          contextLines,
-					Path:             pathFilters,
-					IgnoreWhitespace: ignoreWhitespace,
-				}
-				if cmd.Flags().Changed("binary") {
-					diffOptions.Binary = &binaryValue
-					binarySet = true
-				}
-				if cmd.Flags().Changed("renames") {
-					diffOptions.Renames = &renamesValue
-					renamesSet = true
-				}
-				_ = binarySet
-				_ = renamesSet
-				patch, err := resolved.Client.GetCommitDiff(context.Background(), resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.Commit, diffOptions)
-				if err != nil {
-					return err
-				}
-				payload.Patch = patch
+			payload, err := buildCommitDiffPayload(
+				context.Background(),
+				cmd,
+				resolved,
+				stat,
+				contextLines,
+				pathFilters,
+				ignoreWhitespace,
+				binaryValue,
+				renamesValue,
+			)
+			if err != nil {
+				return err
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				if stat {
 					return writeCommitDiffStatSummary(w, payload)
 				}
-				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
-					return err
-				}
-				if err := writeWarnings(w, payload.Warnings); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Commit", payload.Commit); err != nil {
-					return err
-				}
-				if _, err := io.WriteString(w, "\n"+payload.Patch); err != nil {
-					return err
-				}
-				if !strings.HasSuffix(payload.Patch, "\n") {
-					_, err := io.WriteString(w, "\n")
-					return err
-				}
-				return nil
+				return writeCommitDiffPatchSummary(w, payload)
 			})
 		},
 	}
@@ -217,6 +176,44 @@ func newCommitDiffCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&binaryValue, "binary", true, "Include binary file changes in the raw diff")
 	cmd.Flags().BoolVar(&renamesValue, "renames", true, "Perform rename detection in the raw diff")
 	return cmd
+}
+
+func buildCommitDiffPayload(ctx context.Context, cmd *cobra.Command, resolved resolvedCommitCommandTarget, stat bool, contextLines int, pathFilters []string, ignoreWhitespace, binaryValue, renamesValue bool) (commitDiffPayload, error) {
+	payload := commitDiffPayload{
+		Host:      resolved.Target.RepoTarget.Host,
+		Workspace: resolved.Target.RepoTarget.Workspace,
+		Repo:      resolved.Target.RepoTarget.Repo,
+		Warnings:  append([]string(nil), resolved.Target.RepoTarget.Warnings...),
+		Commit:    resolved.Target.Commit,
+	}
+
+	if stat {
+		stats, err := resolved.Client.ListCommitDiffStats(ctx, resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.Commit)
+		if err != nil {
+			return commitDiffPayload{}, err
+		}
+		payload.Stats = stats
+		return payload, nil
+	}
+
+	diffOptions := bitbucket.CommitDiffOptions{
+		Context:          contextLines,
+		Path:             pathFilters,
+		IgnoreWhitespace: ignoreWhitespace,
+	}
+	if cmd.Flags().Changed("binary") {
+		diffOptions.Binary = &binaryValue
+	}
+	if cmd.Flags().Changed("renames") {
+		diffOptions.Renames = &renamesValue
+	}
+
+	patch, err := resolved.Client.GetCommitDiff(ctx, resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.Commit, diffOptions)
+	if err != nil {
+		return commitDiffPayload{}, err
+	}
+	payload.Patch = patch
+	return payload, nil
 }
 
 func newCommitStatusesCmd() *cobra.Command {

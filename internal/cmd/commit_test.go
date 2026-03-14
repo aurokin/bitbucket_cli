@@ -65,6 +65,30 @@ func TestWriteCommitStatusesSummary(t *testing.T) {
 	}
 }
 
+func TestWriteCommitDiffPatchSummary(t *testing.T) {
+	t.Parallel()
+
+	payload := commitDiffPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		Commit:    "abc1234",
+		Patch:     "diff --git a/main.go b/main.go\n",
+	}
+
+	var buf bytes.Buffer
+	if err := writeCommitDiffPatchSummary(&buf, payload); err != nil {
+		t.Fatalf("writeCommitDiffPatchSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Commit: abc1234",
+		"diff --git a/main.go b/main.go",
+	)
+}
+
 func TestWriteCommitCommentListSummary(t *testing.T) {
 	t.Parallel()
 

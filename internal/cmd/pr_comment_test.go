@@ -91,3 +91,38 @@ func TestWritePullRequestCommentSummary(t *testing.T) {
 		"Next: bb pr comment view 15 --pr 7 --repo acme/widgets",
 	)
 }
+
+func TestWritePullRequestCommentCreateSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	target := resolvedPullRequestTarget{
+		RepoTarget: resolvedRepoTarget{
+			Workspace: "acme",
+			Repo:      "widgets",
+		},
+		ID: 7,
+	}
+	comment := bitbucket.PullRequestComment{
+		ID: 15,
+		Content: bitbucket.PullRequestCommentContent{
+			Raw: "Looks good to me",
+		},
+		User:  bitbucket.PullRequestActor{DisplayName: "Reviewer"},
+		Links: bitbucket.PullRequestCommentLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"}},
+	}
+
+	if err := writePullRequestCommentCreateSummary(&buf, target, comment); err != nil {
+		t.Fatalf("writePullRequestCommentCreateSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Pull Request: #7",
+		"Comment:",
+		"Author:",
+		"Body:",
+		"URL:",
+		"Next: bb pr view 7 --repo acme/widgets",
+	)
+}

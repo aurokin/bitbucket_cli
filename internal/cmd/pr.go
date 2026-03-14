@@ -122,51 +122,13 @@ func newPRCommentCmd() *cobra.Command {
 				return err
 			}
 
-			commentBody, err := resolveCommentBody(cmd.InOrStdin(), body, bodyFile)
-			if err != nil {
-				return err
-			}
-
-			resolved, err := resolvePullRequestCommandTarget(context.Background(), host, workspace, repo, args[0], true)
-			if err != nil {
-				return err
-			}
-			prTarget := resolved.Target
-			client := resolved.Client
-
-			comment, err := client.CreatePullRequestComment(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID, commentBody)
+			resolved, comment, err := createPullRequestCommentCommand(context.Background(), cmd.InOrStdin(), host, workspace, repo, args[0], body, bodyFile)
 			if err != nil {
 				return err
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, comment, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(w, "Pull Request: #%d\n", prTarget.ID); err != nil {
-					return err
-				}
-				tw := output.NewTableWriter(w)
-				if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", comment.ID); err != nil {
-					return err
-				}
-				if comment.User.DisplayName != "" {
-					if _, err := fmt.Fprintf(tw, "Author:\t%s\n", comment.User.DisplayName); err != nil {
-						return err
-					}
-				}
-				if _, err := fmt.Fprintf(tw, "Body:\t%s\n", comment.Content.Raw); err != nil {
-					return err
-				}
-				if comment.Links.HTML.Href != "" {
-					if _, err := fmt.Fprintf(tw, "URL:\t%s\n", comment.Links.HTML.Href); err != nil {
-						return err
-					}
-				}
-				if err := tw.Flush(); err != nil {
-					return err
-				}
-				return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", prTarget.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
+				return writePullRequestCommentCreateSummary(w, resolved.Target, comment)
 			})
 		},
 	}

@@ -55,6 +55,26 @@ func writeCommitDiffStatSummary(w io.Writer, payload commitDiffPayload) error {
 	return writePRDiffStatTable(w, payload.Stats)
 }
 
+func writeCommitDiffPatchSummary(w io.Writer, payload commitDiffPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Commit", payload.Commit); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "\n"+payload.Patch); err != nil {
+		return err
+	}
+	if !strings.HasSuffix(payload.Patch, "\n") {
+		_, err := io.WriteString(w, "\n")
+		return err
+	}
+	return nil
+}
+
 func writeCommitStatusesSummary(w io.Writer, payload commitStatusesPayload) error {
 	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
 		return err

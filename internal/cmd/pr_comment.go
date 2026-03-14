@@ -26,6 +26,55 @@ type pullRequestCommentSummaryOptions struct {
 	Deleted bool
 }
 
+func createPullRequestCommentCommand(ctx context.Context, stdin io.Reader, host, workspace, repo, prRef, body, bodyFile string) (resolvedPullRequestCommandTarget, bitbucket.PullRequestComment, error) {
+	commentBody, err := resolveCommentBody(stdin, body, bodyFile)
+	if err != nil {
+		return resolvedPullRequestCommandTarget{}, bitbucket.PullRequestComment{}, err
+	}
+
+	resolved, err := resolvePullRequestCommandTarget(ctx, host, workspace, repo, prRef, true)
+	if err != nil {
+		return resolvedPullRequestCommandTarget{}, bitbucket.PullRequestComment{}, err
+	}
+
+	comment, err := resolved.Client.CreatePullRequestComment(ctx, resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.ID, commentBody)
+	if err != nil {
+		return resolvedPullRequestCommandTarget{}, bitbucket.PullRequestComment{}, err
+	}
+
+	return resolved, comment, nil
+}
+
+func writePullRequestCommentCreateSummary(w io.Writer, target resolvedPullRequestTarget, comment bitbucket.PullRequestComment) error {
+	if err := writeTargetHeader(w, "Repository", target.RepoTarget.Workspace, target.RepoTarget.Repo); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "Pull Request: #%d\n", target.ID); err != nil {
+		return err
+	}
+	tw := output.NewTableWriter(w)
+	if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", comment.ID); err != nil {
+		return err
+	}
+	if comment.User.DisplayName != "" {
+		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", comment.User.DisplayName); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(tw, "Body:\t%s\n", comment.Content.Raw); err != nil {
+		return err
+	}
+	if comment.Links.HTML.Href != "" {
+		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", comment.Links.HTML.Href); err != nil {
+			return err
+		}
+	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", target.ID, target.RepoTarget.Workspace, target.RepoTarget.Repo))
+}
+
 func newPRCommentViewCmd() *cobra.Command {
 	var flags formatFlags
 	var host string

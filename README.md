@@ -61,6 +61,11 @@ That runs:
 - `golangci-lint run ./...`
 - explicit complexity checks with `gocognit` and `gocyclo`
 
+Additional validation targets:
+
+- `make race`
+- `make fuzz-short`
+
 The first run installs pinned dev tools into `.tools/bin` with:
 
 ```bash

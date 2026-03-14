@@ -9,6 +9,7 @@ import (
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	gitrepo "github.com/aurokin/bitbucket_cli/internal/git"
+	"github.com/spf13/cobra"
 )
 
 func writeRepoViewSummary(w io.Writer, payload repoViewPayload) error {
@@ -199,6 +200,57 @@ func writeRepoCloneSummary(w io.Writer, payload repoClonePayload) error {
 		return err
 	}
 	return writeNextStep(w, fmt.Sprintf("bb repo view --repo %s/%s", payload.Workspace, payload.RepoSlug))
+}
+
+func buildRepoDeletePayload(ctx context.Context, cmd *cobra.Command, host, workspace, repo string, args []string, yes bool) (repoDeletePayload, error) {
+	resolved, err := resolveRepoCommandTargetInput(ctx, host, workspace, repo, firstArg(args), false)
+	if err != nil {
+		return repoDeletePayload{}, err
+	}
+
+	repository, err := resolved.Client.GetRepository(ctx, resolved.Target.Workspace, resolved.Target.Repo)
+	if err != nil {
+		return repoDeletePayload{}, err
+	}
+
+	if err := confirmRepoDeletion(cmd, resolved.Target.Workspace, repository.Slug, yes); err != nil {
+		return repoDeletePayload{}, err
+	}
+
+	if err := resolved.Client.DeleteRepository(ctx, resolved.Target.Workspace, repository.Slug); err != nil {
+		return repoDeletePayload{}, err
+	}
+
+	return repoDeletePayload{
+		Host:      resolved.Target.Host,
+		Workspace: resolved.Target.Workspace,
+		RepoSlug:  repository.Slug,
+		Name:      repository.Name,
+		Deleted:   true,
+	}, nil
+}
+
+func confirmRepoDeletion(cmd *cobra.Command, workspace, repo string, yes bool) error {
+	if yes {
+		return nil
+	}
+	if !promptsEnabled(cmd) {
+		return fmt.Errorf("repository deletion requires confirmation; pass --yes or run in an interactive terminal")
+	}
+	return confirmExactMatch(cmd, workspace+"/"+repo)
+}
+
+func writeRepoDeleteSummary(w io.Writer, payload repoDeletePayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Name", payload.Name); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Status", repoDeletionStatus(payload.Deleted)); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb repo create %s/%s", payload.Workspace, payload.RepoSlug))
 }
 
 func repoDeletionStatus(deleted bool) string {

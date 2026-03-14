@@ -263,51 +263,13 @@ func newRepoDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, firstArg(args), false)
+			payload, err := buildRepoDeletePayload(context.Background(), cmd, host, workspace, repo, args, yes)
 			if err != nil {
 				return err
-			}
-			client := resolved.Client
-			target := resolved.Target
-
-			repository, err := client.GetRepository(context.Background(), target.Workspace, target.Repo)
-			if err != nil {
-				return err
-			}
-
-			confirmationTarget := target.Workspace + "/" + repository.Slug
-			if !yes {
-				if !promptsEnabled(cmd) {
-					return fmt.Errorf("repository deletion requires confirmation; pass --yes or run in an interactive terminal")
-				}
-				if err := confirmExactMatch(cmd, confirmationTarget); err != nil {
-					return err
-				}
-			}
-
-			if err := client.DeleteRepository(context.Background(), target.Workspace, repository.Slug); err != nil {
-				return err
-			}
-
-			payload := repoDeletePayload{
-				Host:      target.Host,
-				Workspace: target.Workspace,
-				RepoSlug:  repository.Slug,
-				Name:      repository.Name,
-				Deleted:   true,
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.RepoSlug); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Name", payload.Name); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Status", repoDeletionStatus(payload.Deleted)); err != nil {
-					return err
-				}
-				return writeNextStep(w, fmt.Sprintf("bb repo create %s/%s", payload.Workspace, payload.RepoSlug))
+				return writeRepoDeleteSummary(w, payload)
 			})
 		},
 	}

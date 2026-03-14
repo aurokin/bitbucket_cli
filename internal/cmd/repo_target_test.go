@@ -123,6 +123,34 @@ func TestWriteRepoCloneSummaryIncludesNextStep(t *testing.T) {
 	}
 }
 
+func TestWriteRepoDeleteSummaryIncludesNextStep(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := repoDeletePayload{
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+		Name:      "Widget Service",
+		Deleted:   true,
+	}
+
+	if err := writeRepoDeleteSummary(&buf, payload); err != nil {
+		t.Fatalf("writeRepoDeleteSummary returned error: %v", err)
+	}
+
+	got := buf.String()
+	for _, expected := range []string{
+		"Repository: acme/widgets",
+		"Name: Widget Service",
+		"Status: deleted",
+		"Next: bb repo create acme/widgets",
+	} {
+		if !strings.Contains(got, expected) {
+			t.Fatalf("expected %q in output, got %q", expected, got)
+		}
+	}
+}
+
 func TestRepoVisibilityLabel(t *testing.T) {
 	t.Parallel()
 

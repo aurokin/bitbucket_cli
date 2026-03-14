@@ -2,10 +2,17 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -269,6 +276,101 @@ func TestReviewRequestedFromUser(t *testing.T) {
 
 	if !reviewRequestedFromUser(user, pr) {
 		t.Fatal("expected reviewRequestedFromUser to match reviewer")
+	}
+}
+
+func TestResolveSourceAndDestinationBranchInputs(t *testing.T) {
+	lockCommandTestHooks(t)
+
+	dir := t.TempDir()
+	runPRTestGit(t, dir, "init")
+	runPRTestGit(t, dir, "config", "user.name", "Test User")
+	runPRTestGit(t, dir, "config", "user.email", "test@example.com")
+	runPRTestGit(t, dir, "remote", "add", "origin", "git@bitbucket.org:acme/widgets.git")
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("test\n"), 0o644); err != nil {
+		t.Fatalf("write test file: %v", err)
+	}
+	runPRTestGit(t, dir, "add", "README.md")
+	runPRTestGit(t, dir, "commit", "-m", "initial")
+	runPRTestGit(t, dir, "switch", "-c", "feature/current")
+
+	previousDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("os.Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("os.Chdir returned error: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(previousDir)
+	})
+
+	source, err := resolveSourceBranch("")
+	if err != nil {
+		t.Fatalf("resolveSourceBranch returned error: %v", err)
+	}
+	if source != "feature/current" {
+		t.Fatalf("unexpected source branch %q", source)
+	}
+
+	cmd := &cobra.Command{}
+	got, err := resolveSourceBranchInput(cmd, "", false, true, "acme", "widgets")
+	if err != nil {
+		t.Fatalf("resolveSourceBranchInput returned error: %v", err)
+	}
+	if got != "feature/current" {
+		t.Fatalf("unexpected source branch input %q", got)
+	}
+
+	_, err = resolveSourceBranchInput(cmd, "", false, true, "acme", "other-repo")
+	if err == nil || !strings.Contains(err.Error(), "could not determine the source branch for acme/other-repo") {
+		t.Fatalf("expected mismatched repo error, got %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"slug":"widgets","mainbranch":{"name":"main"}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	destination, err := resolveDestinationBranch(context.Background(), client, "acme", "widgets", "")
+	if err != nil {
+		t.Fatalf("resolveDestinationBranch returned error: %v", err)
+	}
+	if destination != "main" {
+		t.Fatalf("unexpected destination branch %q", destination)
+	}
+
+	got, err = resolveDestinationBranchInput(cmd, client, "acme", "widgets", "", false)
+	if err != nil {
+		t.Fatalf("resolveDestinationBranchInput returned error: %v", err)
+	}
+	if got != "main" {
+		t.Fatalf("unexpected destination branch input %q", got)
+	}
+}
+
+func runPRTestGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, output)
 	}
 }
 

@@ -59,58 +59,78 @@ func parseBitbucketEntityURL(raw string) (resolvedEntity, error) {
 
 	switch {
 	case len(parts) == 2:
-		entity.Type = "repository"
-		entity.CanonicalURL = base
-		return entity, nil
+		return resolveRepositoryEntity(entity, base), nil
 	case len(parts) >= 4 && parts[2] == "pull-requests":
-		id, err := parsePositiveID(parts[3], "pull request")
-		if err != nil {
-			return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid pull request ID", raw)
-		}
-		entity.PR = id
-		entity.CanonicalURL = fmt.Sprintf("%s/pull-requests/%d", base, id)
-		if commentID := parseCommentFragment(parsedURL.Fragment); commentID > 0 {
-			entity.Type = "pull-request-comment"
-			entity.Comment = commentID
-			entity.CanonicalURL += fmt.Sprintf("#comment-%d", commentID)
-			return entity, nil
-		}
-		entity.Type = "pull-request"
-		return entity, nil
+		return resolvePullRequestEntity(raw, entity, base, parts[3], parsedURL.Fragment)
 	case len(parts) >= 4 && parts[2] == "issues":
-		id, err := parsePositiveID(parts[3], "issue")
-		if err != nil {
-			return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid issue ID", raw)
-		}
-		entity.Type = "issue"
-		entity.Issue = id
-		entity.CanonicalURL = fmt.Sprintf("%s/issues/%d", base, id)
-		return entity, nil
+		return resolveIssueEntity(raw, entity, base, parts[3])
 	case len(parts) >= 4 && parts[2] == "commits":
-		commit := strings.TrimSpace(parts[3])
-		if commit == "" {
-			return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid commit SHA", raw)
-		}
-		entity.Type = "commit"
-		entity.Commit = commit
-		entity.CanonicalURL = fmt.Sprintf("%s/commits/%s", base, escapeURLPath(commit))
-		return entity, nil
+		return resolveCommitEntity(raw, entity, base, parts[3])
 	case len(parts) >= 4 && parts[2] == "src":
-		ref := strings.TrimSpace(parts[3])
-		if ref == "" {
-			return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid source ref", raw)
-		}
-		entity.Type = "path"
-		entity.Ref = ref
-		if len(parts) > 4 {
-			entity.Path = filepath.ToSlash(strings.Join(parts[4:], "/"))
-		}
-		entity.Line = parseSourceLineFragment(parsedURL.Fragment)
-		entity.CanonicalURL = buildBrowsePathURL(base, entity.Ref, entity.Path, entity.Line)
-		return entity, nil
+		return resolvePathEntity(raw, entity, base, parts[3:], parsedURL.Fragment)
 	default:
 		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q is not a supported repository, pull request, comment, issue, commit, or source URL", raw)
 	}
+}
+
+func resolveRepositoryEntity(entity resolvedEntity, base string) resolvedEntity {
+	entity.Type = "repository"
+	entity.CanonicalURL = base
+	return entity
+}
+
+func resolvePullRequestEntity(raw string, entity resolvedEntity, base, idRaw, fragment string) (resolvedEntity, error) {
+	id, err := parsePositiveID(idRaw, "pull request")
+	if err != nil {
+		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid pull request ID", raw)
+	}
+	entity.PR = id
+	entity.CanonicalURL = fmt.Sprintf("%s/pull-requests/%d", base, id)
+	if commentID := parseCommentFragment(fragment); commentID > 0 {
+		entity.Type = "pull-request-comment"
+		entity.Comment = commentID
+		entity.CanonicalURL += fmt.Sprintf("#comment-%d", commentID)
+		return entity, nil
+	}
+	entity.Type = "pull-request"
+	return entity, nil
+}
+
+func resolveIssueEntity(raw string, entity resolvedEntity, base, idRaw string) (resolvedEntity, error) {
+	id, err := parsePositiveID(idRaw, "issue")
+	if err != nil {
+		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid issue ID", raw)
+	}
+	entity.Type = "issue"
+	entity.Issue = id
+	entity.CanonicalURL = fmt.Sprintf("%s/issues/%d", base, id)
+	return entity, nil
+}
+
+func resolveCommitEntity(raw string, entity resolvedEntity, base, commitRaw string) (resolvedEntity, error) {
+	commit := strings.TrimSpace(commitRaw)
+	if commit == "" {
+		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid commit SHA", raw)
+	}
+	entity.Type = "commit"
+	entity.Commit = commit
+	entity.CanonicalURL = fmt.Sprintf("%s/commits/%s", base, escapeURLPath(commit))
+	return entity, nil
+}
+
+func resolvePathEntity(raw string, entity resolvedEntity, base string, parts []string, fragment string) (resolvedEntity, error) {
+	ref := strings.TrimSpace(parts[0])
+	if ref == "" {
+		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q does not contain a valid source ref", raw)
+	}
+	entity.Type = "path"
+	entity.Ref = ref
+	if len(parts) > 1 {
+		entity.Path = filepath.ToSlash(strings.Join(parts[1:], "/"))
+	}
+	entity.Line = parseSourceLineFragment(fragment)
+	entity.CanonicalURL = buildBrowsePathURL(base, entity.Ref, entity.Path, entity.Line)
+	return entity, nil
 }
 
 func parsePositiveID(raw, kind string) (int, error) {

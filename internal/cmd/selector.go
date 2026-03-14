@@ -61,15 +61,7 @@ func resolveRepoTarget(ctx context.Context, selector repoSelector, client worksp
 	selector.Workspace = strings.TrimSpace(selector.Workspace)
 	selector.Repo = strings.TrimSpace(selector.Repo)
 
-	var local *gitrepo.RepoContext
-	warnings := make([]string, 0, 1)
-	if allowLocal {
-		if localRepo, err := resolveLocalRepoContext(ctx); err == nil {
-			local = &localRepo
-		} else if selector.Repo != "" {
-			warnings = append(warnings, localRepoContextWarning(err))
-		}
-	}
+	local, warnings := resolveRepoTargetLocalContext(ctx, selector, allowLocal)
 
 	target := resolvedRepoTarget{
 		Warnings:  warnings,
@@ -80,47 +72,15 @@ func resolveRepoTarget(ctx context.Context, selector repoSelector, client worksp
 	}
 
 	if selector.Repo != "" && selector.Workspace != "" {
-		if local != nil && repoSelectorMatchesLocal(selector, *local) {
-			target.LocalRepo = local
-			if target.Host == "" {
-				target.Host = local.Host
-			}
-		}
-		return target, nil
+		return resolveExplicitRepoTarget(target, selector, local), nil
 	}
 
 	if selector.Repo != "" && selector.Workspace == "" {
-		if local != nil && local.RepoSlug == selector.Repo {
-			target.LocalRepo = local
-			target.Workspace = local.Workspace
-			if target.Host == "" {
-				target.Host = local.Host
-			}
-			return target, nil
-		}
-
-		if client == nil {
-			return resolvedRepoTarget{}, fmt.Errorf("repository target %q requires --workspace", selector.Repo)
-		}
-
-		workspace, err := resolveWorkspaceForCreate(ctx, client, "")
-		if err != nil {
-			return resolvedRepoTarget{}, err
-		}
-
-		target.Workspace = workspace
-		return target, nil
+		return resolveBareRepoTarget(ctx, target, selector, client, local)
 	}
 
 	if local != nil {
-		return resolvedRepoTarget{
-			LocalRepo: local,
-			Warnings:  warnings,
-			Host:      coalesce(selector.Host, local.Host),
-			Workspace: local.Workspace,
-			Repo:      local.RepoSlug,
-			Explicit:  false,
-		}, nil
+		return resolveLocalOnlyRepoTarget(selector, warnings, local), nil
 	}
 
 	return resolvedRepoTarget{}, fmt.Errorf("could not determine the repository from the current directory; run inside a Bitbucket git checkout or pass --repo")
@@ -215,6 +175,64 @@ func repoSelectorMatchesLocal(selector repoSelector, local gitrepo.RepoContext) 
 	}
 
 	return selector.Host == "" || selector.Host == local.Host
+}
+
+func resolveRepoTargetLocalContext(ctx context.Context, selector repoSelector, allowLocal bool) (*gitrepo.RepoContext, []string) {
+	var local *gitrepo.RepoContext
+	warnings := make([]string, 0, 1)
+	if !allowLocal {
+		return nil, warnings
+	}
+	if localRepo, err := resolveLocalRepoContext(ctx); err == nil {
+		local = &localRepo
+	} else if selector.Repo != "" {
+		warnings = append(warnings, localRepoContextWarning(err))
+	}
+	return local, warnings
+}
+
+func resolveExplicitRepoTarget(target resolvedRepoTarget, selector repoSelector, local *gitrepo.RepoContext) resolvedRepoTarget {
+	if local != nil && repoSelectorMatchesLocal(selector, *local) {
+		target.LocalRepo = local
+		if target.Host == "" {
+			target.Host = local.Host
+		}
+	}
+	return target
+}
+
+func resolveBareRepoTarget(ctx context.Context, target resolvedRepoTarget, selector repoSelector, client workspaceResolver, local *gitrepo.RepoContext) (resolvedRepoTarget, error) {
+	if local != nil && local.RepoSlug == selector.Repo {
+		target.LocalRepo = local
+		target.Workspace = local.Workspace
+		if target.Host == "" {
+			target.Host = local.Host
+		}
+		return target, nil
+	}
+
+	if client == nil {
+		return resolvedRepoTarget{}, fmt.Errorf("repository target %q requires --workspace", selector.Repo)
+	}
+
+	workspace, err := resolveWorkspaceForCreate(ctx, client, "")
+	if err != nil {
+		return resolvedRepoTarget{}, err
+	}
+
+	target.Workspace = workspace
+	return target, nil
+}
+
+func resolveLocalOnlyRepoTarget(selector repoSelector, warnings []string, local *gitrepo.RepoContext) resolvedRepoTarget {
+	return resolvedRepoTarget{
+		LocalRepo: local,
+		Warnings:  warnings,
+		Host:      coalesce(selector.Host, local.Host),
+		Workspace: local.Workspace,
+		Repo:      local.RepoSlug,
+		Explicit:  false,
+	}
 }
 
 func coalesce(values ...string) string {

@@ -222,3 +222,21 @@ func TestNextResolveCommand(t *testing.T) {
 		})
 	}
 }
+
+func TestParseBitbucketEntityURLRejectsInvalidPullRequestID(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseBitbucketEntityURL("https://bitbucket.org/acme/widgets/pull-requests/not-a-number")
+	if err == nil || err.Error() != `Bitbucket URL "https://bitbucket.org/acme/widgets/pull-requests/not-a-number" does not contain a valid pull request ID` {
+		t.Fatalf("expected invalid pull request id error, got %v", err)
+	}
+}
+
+func TestParseBitbucketEntityURLRejectsMissingSourceRef(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseBitbucketEntityURL("https://bitbucket.org/acme/widgets/src/%20/docs/guide.md")
+	if err == nil || err.Error() != `Bitbucket URL "https://bitbucket.org/acme/widgets/src/%20/docs/guide.md" does not contain a valid source ref` {
+		t.Fatalf("expected missing source ref error, got %v", err)
+	}
+}

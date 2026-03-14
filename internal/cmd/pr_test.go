@@ -29,6 +29,26 @@ func TestResolveMergeStrategyUsesExplicitValue(t *testing.T) {
 	}
 }
 
+func TestDefaultPRTitle(t *testing.T) {
+	t.Parallel()
+
+	if got := defaultPRTitle("feature/refactor"); got != "feature/refactor" {
+		t.Fatalf("unexpected default PR title %q", got)
+	}
+}
+
+func TestResolveSourceBranchUsesExplicitValue(t *testing.T) {
+	t.Parallel()
+
+	got, err := resolveSourceBranch("feature/refactor")
+	if err != nil {
+		t.Fatalf("resolveSourceBranch returned error: %v", err)
+	}
+	if got != "feature/refactor" {
+		t.Fatalf("unexpected source branch %q", got)
+	}
+}
+
 func TestResolveMergeStrategyRejectsUnsupportedValue(t *testing.T) {
 	t.Parallel()
 

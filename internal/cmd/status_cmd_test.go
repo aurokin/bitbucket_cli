@@ -387,6 +387,41 @@ func TestWriteCrossRepoPRTableIncludesTaskAndCommentCounts(t *testing.T) {
 	}
 }
 
+func TestBuildCrossRepoStatusWarnings(t *testing.T) {
+	t.Parallel()
+
+	warnings := buildCrossRepoStatusWarnings(crossRepoStatusPayload{
+		RepoLimitPerWorkspace:           25,
+		ItemLimitPerSection:             10,
+		WorkspacesAtRepoLimit:           []string{"acme", "other"},
+		RepositoriesWithoutIssueTracker: 3,
+		AuthoredPRsTotal:                11,
+		AuthoredPRs:                     make([]crossRepoPullRequest, 10),
+	})
+	if len(warnings) != 3 {
+		t.Fatalf("expected 3 warnings, got %+v", warnings)
+	}
+	assertOrderedSubstrings(t, strings.Join(warnings, "\n"),
+		"Reached --repo-limit=25 in acme, other.",
+		"Skipped issue status for 3 repositories",
+		"Showing up to 10 items per section.",
+	)
+}
+
+func TestBuildCrossRepoStatusWarningsEmpty(t *testing.T) {
+	t.Parallel()
+
+	warnings := buildCrossRepoStatusWarnings(crossRepoStatusPayload{
+		RepoLimitPerWorkspace: 25,
+		ItemLimitPerSection:   10,
+		AuthoredPRsTotal:      1,
+		AuthoredPRs:           make([]crossRepoPullRequest, 1),
+	})
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %+v", warnings)
+	}
+}
+
 func BenchmarkBuildCrossRepoStatus(b *testing.B) {
 	client := &fakeStatusClient{
 		repositories: map[string][]bitbucket.Repository{

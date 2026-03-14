@@ -87,6 +87,14 @@ func TestResolveWorkspaceRepoPermissionInput(t *testing.T) {
 	if _, _, err := resolveWorkspaceRepoPermissionInput("acme", "other/widgets", ""); err == nil {
 		t.Fatal("expected workspace mismatch error")
 	}
+
+	workspace, repo, err = resolveWorkspaceRepoPermissionInput("", "https://bitbucket.org/acme/widgets", "")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceRepoPermissionInput returned error for repo URL: %v", err)
+	}
+	if workspace != "acme" || repo != "widgets" {
+		t.Fatalf("unexpected repo URL workspace/repo %q %q", workspace, repo)
+	}
 }
 
 func TestWriteRepoListSummary(t *testing.T) {

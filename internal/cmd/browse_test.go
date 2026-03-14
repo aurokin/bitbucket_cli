@@ -267,6 +267,16 @@ func TestValidateBrowseOptionsRejectsConflicts(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "--branch and --commit cannot be used together") {
 		t.Fatalf("expected branch/commit conflict error, got %v", err)
 	}
+
+	err = validateBrowseOptions("", browseOptions{PR: -1})
+	if err == nil || !strings.Contains(err.Error(), "greater than zero") {
+		t.Fatalf("expected negative PR error, got %v", err)
+	}
+
+	err = validateBrowseOptions("", browseOptions{Issue: -2})
+	if err == nil || !strings.Contains(err.Error(), "greater than zero") {
+		t.Fatalf("expected negative issue error, got %v", err)
+	}
 }
 
 func TestConfiguredBrowserCommandPrefersEnvThenConfig(t *testing.T) {
@@ -337,5 +347,14 @@ func TestResolveBrowsePathRejectsAbsolutePathOutsideRepo(t *testing.T) {
 	}, filepath.Join(outsideDir, "README.md"))
 	if err == nil || !strings.Contains(err.Error(), "outside the repository root") {
 		t.Fatalf("expected outside-repo error, got %v", err)
+	}
+}
+
+func TestParsePathLineReferenceRejectsNonPositiveLine(t *testing.T) {
+	t.Parallel()
+
+	path, line, ok := parsePathLineReference("README.md:0")
+	if ok || path != "README.md:0" || line != 0 {
+		t.Fatalf("expected non-line fallback, got path=%q line=%d ok=%v", path, line, ok)
 	}
 }

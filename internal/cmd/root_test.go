@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -121,3 +122,19 @@ func errUnknownCommand(name string) error {
 type assertErrString string
 
 func (e assertErrString) Error() string { return string(e) }
+
+func TestExecuteVersionCommand(t *testing.T) {
+	lockCommandTestHooks(t)
+
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	previousArgs := os.Args
+	t.Cleanup(func() {
+		os.Args = previousArgs
+	})
+	os.Args = []string{"bb", "version"}
+
+	if err := Execute(); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+}

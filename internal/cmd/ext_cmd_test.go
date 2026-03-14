@@ -154,3 +154,11 @@ func TestAliasListEmptyOutput(t *testing.T) {
 		t.Fatalf("expected empty alias output, got %q", output)
 	}
 }
+
+func TestExecuteExternalCommand(t *testing.T) {
+	t.Parallel()
+
+	if err := executeExternalCommand("sh", []string{"-c", "exit 0"}); err != nil {
+		t.Fatalf("executeExternalCommand returned error: %v", err)
+	}
+}

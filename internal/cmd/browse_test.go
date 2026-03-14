@@ -336,6 +336,16 @@ func TestDefaultBrowserCommandByPlatform(t *testing.T) {
 	}
 }
 
+func TestOpenURLInBrowserUsesConfiguredCommand(t *testing.T) {
+	lockCommandTestHooks(t)
+
+	t.Setenv("BROWSER", `sh -c :`)
+
+	if err := openURLInBrowser("https://bitbucket.org/acme/widgets"); err != nil {
+		t.Fatalf("openURLInBrowser returned error: %v", err)
+	}
+}
+
 func TestResolveBrowsePathRejectsAbsolutePathOutsideRepo(t *testing.T) {
 	t.Parallel()
 

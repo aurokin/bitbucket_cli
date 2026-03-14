@@ -93,6 +93,9 @@ func waitForStoppedPipeline(ctx context.Context, client *bitbucket.Client, works
 		if strings.EqualFold(label, "STOPPED") || strings.EqualFold(pipeline.State.Name, "STOPPED") {
 			return pipeline, nil
 		}
+		if !pipelineStateActive(pipeline.State) {
+			return pipeline, nil
+		}
 		time.Sleep(2 * time.Second)
 	}
 	return last, nil

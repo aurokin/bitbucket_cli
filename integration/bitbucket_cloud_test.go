@@ -1131,7 +1131,7 @@ func TestBitbucketCloudPipelineStop(t *testing.T) {
 	pipelines := session.PipelineFixture(t)
 	running := ensureRunningPipeline(t, session.Client, pipelines.RepoDir, session.Workspace, pipelines.Repo.Slug)
 
-	output, err := session.RunAllowFailure(t, "", "pipeline", "stop", fmt.Sprintf("%d", running.BuildNumber), "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
+	output, err := session.RunAllowFailure(t, "", "pipeline", "stop", running.UUID, "--repo", session.Workspace+"/"+pipelines.Repo.Slug, "--yes", "--json", "*")
 	if err != nil {
 		if bytes.Contains(output, []byte("Missing Token Scopes Or Insufficient Access")) {
 			t.Skipf("pipeline stop requires broader pipeline write scopes:\n%s", output)
@@ -1152,13 +1152,16 @@ func TestBitbucketCloudPipelineStop(t *testing.T) {
 		t.Fatalf("parse pipeline stop JSON: %v\n%s", err, output)
 	}
 
-	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug || !payload.Stopped {
+	if payload.Workspace != session.Workspace || payload.Repo != pipelines.Repo.Slug {
 		t.Fatalf("unexpected pipeline stop payload %+v", payload)
 	}
 
 	stopped := waitForPipelineState(t, session.Client, session.Workspace, pipelines.Repo.Slug, running.UUID, 36, 5*time.Second)
-	if !strings.EqualFold(pipelineStateName(stopped), "STOPPED") {
-		t.Fatalf("expected stopped pipeline state, got %+v", stopped)
+	if isActivePipeline(stopped) {
+		t.Fatalf("expected terminal pipeline state after stop request, got %+v", stopped)
+	}
+	if payload.Stopped != strings.EqualFold(pipelineStateName(stopped), "STOPPED") {
+		t.Fatalf("pipeline stop payload did not match observed terminal state: payload=%+v observed=%+v", payload, stopped)
 	}
 }
 

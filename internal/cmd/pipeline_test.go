@@ -263,7 +263,29 @@ func TestWritePipelineLogAndStopSummaries(t *testing.T) {
 		"Repository: acme/widgets",
 		"Pipeline: #42",
 		"State: STOPPED",
-		"Status: stop requested",
+		"Status: stopped",
+		"Next: bb pipeline view 42 --repo acme/widgets",
+	)
+}
+
+func TestWritePipelineStopSummaryFinishedBeforeStopCompleted(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	stopPayload := pipelineStopPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Pipeline:  bitbucket.Pipeline{BuildNumber: 42, State: bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "ERROR"}}},
+		Stopped:   false,
+	}
+	if err := writePipelineStopSummary(&buf, stopPayload); err != nil {
+		t.Fatalf("writePipelineStopSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Pipeline: #42",
+		"State: ERROR",
+		"Status: finished before stop completed",
 		"Next: bb pipeline view 42 --repo acme/widgets",
 	)
 }

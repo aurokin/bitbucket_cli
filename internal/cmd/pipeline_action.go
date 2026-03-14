@@ -158,6 +158,7 @@ func stopPipelineCommand(ctx context.Context, cmd *cobra.Command, host, workspac
 	if err != nil {
 		return pipelineStopPayload{}, err
 	}
+	stopped := strings.EqualFold(pipelineStateLabel(stoppedPipeline.State), "STOPPED")
 
 	return pipelineStopPayload{
 		Host:      resolved.Target.Host,
@@ -165,7 +166,7 @@ func stopPipelineCommand(ctx context.Context, cmd *cobra.Command, host, workspac
 		Repo:      resolved.Target.Repo,
 		Warnings:  append([]string(nil), resolved.Target.Warnings...),
 		Pipeline:  stoppedPipeline,
-		Stopped:   true,
+		Stopped:   stopped,
 	}, nil
 }
 
@@ -219,7 +220,11 @@ func writePipelineStopSummary(w io.Writer, payload pipelineStopPayload) error {
 	if err := writeLabelValue(w, "State", pipelineStateLabel(payload.Pipeline.State)); err != nil {
 		return err
 	}
-	if err := writeLabelValue(w, "Status", "stop requested"); err != nil {
+	status := "finished before stop completed"
+	if payload.Stopped {
+		status = "stopped"
+	}
+	if err := writeLabelValue(w, "Status", status); err != nil {
 		return err
 	}
 	return writeNextStep(w, fmt.Sprintf("bb pipeline view %d --repo %s/%s", payload.Pipeline.BuildNumber, payload.Workspace, payload.Repo))

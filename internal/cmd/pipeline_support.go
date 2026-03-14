@@ -145,6 +145,14 @@ func pipelineStateLabel(state bitbucket.PipelineState) string {
 	}
 }
 
+func pipelineStateActive(state bitbucket.PipelineState) bool {
+	label := pipelineStateLabel(state)
+	return !strings.EqualFold(label, "STOPPED") &&
+		!strings.EqualFold(label, "SUCCESSFUL") &&
+		!strings.EqualFold(label, "FAILED") &&
+		!strings.EqualFold(label, "ERROR")
+}
+
 func pipelineRefLabel(target bitbucket.PipelineTarget) string {
 	if target.RefName == "" && target.Commit.Hash == "" {
 		return ""

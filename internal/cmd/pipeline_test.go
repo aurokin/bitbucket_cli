@@ -226,3 +226,44 @@ func TestPipelinePayloadsPreserveWarnings(t *testing.T) {
 		t.Fatalf("expected pipeline stop warnings to be preserved")
 	}
 }
+
+func TestWritePipelineLogAndStopSummaries(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logPayload := pipelineLogPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Pipeline:  bitbucket.Pipeline{BuildNumber: 42},
+		Step:      bitbucket.PipelineStep{Name: "Build", UUID: "{step-1}"},
+		Log:       "line one",
+	}
+	if err := writePipelineLogSummary(&buf, logPayload); err != nil {
+		t.Fatalf("writePipelineLogSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Pipeline: #42",
+		"Step: Build ({step-1})",
+		"line one",
+		"Next: bb pipeline view 42 --repo acme/widgets",
+	)
+
+	buf.Reset()
+	stopPayload := pipelineStopPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Pipeline:  bitbucket.Pipeline{BuildNumber: 42, State: bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "STOPPED"}}},
+		Stopped:   true,
+	}
+	if err := writePipelineStopSummary(&buf, stopPayload); err != nil {
+		t.Fatalf("writePipelineStopSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Pipeline: #42",
+		"State: STOPPED",
+		"Status: stop requested",
+		"Next: bb pipeline view 42 --repo acme/widgets",
+	)
+}

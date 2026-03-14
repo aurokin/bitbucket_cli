@@ -77,3 +77,12 @@ func TestWriteIssueAttachmentUploadSummary(t *testing.T) {
 		"Next: bb issue attachment list 7 --repo acme/widgets",
 	)
 }
+
+func TestBaseNames(t *testing.T) {
+	t.Parallel()
+
+	got := baseNames([]string{"./trace.txt", "/tmp/screenshot.png"})
+	if len(got) != 2 || got[0] != "trace.txt" || got[1] != "screenshot.png" {
+		t.Fatalf("unexpected base names %+v", got)
+	}
+}

@@ -65,6 +65,115 @@ func TestWriteCommitStatusesSummary(t *testing.T) {
 	}
 }
 
+func TestWriteCommitDiffStatSummaryAndFallback(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := commitDiffPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Commit:    "abc1234",
+		Stats: []bitbucket.PullRequestDiffStat{
+			{Status: "modified", Old: &bitbucket.PullRequestDiffRef{Path: "main.go"}, LinesAdded: 10, LinesRemoved: 2},
+		},
+	}
+	if err := writeCommitDiffStatSummary(&buf, payload); err != nil {
+		t.Fatalf("writeCommitDiffStatSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Commit: abc1234",
+		"main.go",
+	)
+
+	buf.Reset()
+	payload.Stats = nil
+	if err := writeCommitDiffStatSummary(&buf, payload); err != nil {
+		t.Fatalf("writeCommitDiffStatSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Commit: abc1234",
+		"No commit diff stats found.",
+		"Next: bb commit view abc1234 --repo acme/widgets",
+	)
+}
+
+func TestWriteCommitReviewCommentAndReportSummaries(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	reviewPayload := commitReviewPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Commit:    "abc1234",
+		Action:    "approved",
+		Reviewer:  bitbucket.PullRequestParticipant{User: bitbucket.PullRequestActor{DisplayName: "Reviewer"}},
+	}
+	if err := writeCommitReviewSummary(&buf, reviewPayload); err != nil {
+		t.Fatalf("writeCommitReviewSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Commit: abc1234",
+		"Action: approved",
+		"Reviewer: Reviewer",
+		"Next: bb commit statuses abc1234 --repo acme/widgets",
+	)
+
+	buf.Reset()
+	commentPayload := commitCommentPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Commit:    "abc1234",
+		Comment: bitbucket.CommitComment{
+			ID:        15,
+			Content:   bitbucket.CommitCommentBody{Raw: "Looks good"},
+			User:      bitbucket.PullRequestActor{DisplayName: "Reviewer"},
+			UpdatedOn: "2026-03-13T00:00:00Z",
+			Inline:    &bitbucket.CommitCommentInline{Path: "main.go", To: 12},
+		},
+	}
+	if err := writeCommitCommentSummary(&buf, commentPayload); err != nil {
+		t.Fatalf("writeCommitCommentSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Comment: #15",
+		"Author: Reviewer",
+		"Inline: main.go:12",
+		"Looks good",
+		"Next: bb commit comment list abc1234 --repo acme/widgets",
+	)
+
+	buf.Reset()
+	reportPayload := commitReportPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Commit:    "abc1234",
+		Report: bitbucket.CommitReport{
+			ExternalID: "scanner-1",
+			Title:      "Security scan",
+			Result:     "PASSED",
+			ReportType: "SECURITY",
+			Reporter:   "scanner",
+			UpdatedOn:  "2026-03-13T00:00:00Z",
+			Details:    "all clear",
+		},
+	}
+	if err := writeCommitReportSummary(&buf, reportPayload); err != nil {
+		t.Fatalf("writeCommitReportSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Report: scanner-1",
+		"Title: Security scan",
+		"Reporter: scanner",
+		"all clear",
+		"Next: bb commit statuses abc1234 --repo acme/widgets",
+	)
+}
+
 func TestWriteCommitDiffPatchSummary(t *testing.T) {
 	t.Parallel()
 

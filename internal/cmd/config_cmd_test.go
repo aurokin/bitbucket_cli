@@ -118,6 +118,19 @@ func TestConfigSetCommandOutput(t *testing.T) {
 	)
 }
 
+func TestEffectiveConfigValues(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Config{}
+	values := effectiveConfigValues(cfg)
+	if len(values) != 3 {
+		t.Fatalf("expected 3 config values, got %+v", values)
+	}
+	if values[0].Key != "prompt" || values[1].Key != "browser" || values[2].Key != "output.format" {
+		t.Fatalf("unexpected config value ordering %+v", values)
+	}
+}
+
 func TestConfigUnsetCommandOutput(t *testing.T) {
 	t.Setenv("BB_CONFIG_DIR", t.TempDir())
 	if output := renderCommand(t, "config", "set", "browser", "firefox"); !strings.Contains(output, "Set browser=firefox") {

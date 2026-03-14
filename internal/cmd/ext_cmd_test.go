@@ -47,6 +47,35 @@ func TestDiscoverExtensions(t *testing.T) {
 	}
 }
 
+func TestExtensionEntriesSorted(t *testing.T) {
+	t.Parallel()
+
+	got := extensionEntries(map[string]string{
+		"zeta":  "/tmp/bb-zeta",
+		"alpha": "/tmp/bb-alpha",
+	})
+	want := []extensionEntry{
+		{Name: "alpha", Executable: "/tmp/bb-alpha"},
+		{Name: "zeta", Executable: "/tmp/bb-zeta"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("expected %+v, got %+v", want, got)
+	}
+}
+
+func TestIsExtensionCandidate(t *testing.T) {
+	t.Parallel()
+
+	if !isExtensionCandidate("bb-hello") {
+		t.Fatal("expected bb-hello to be a candidate")
+	}
+	for _, name := range []string{"bb", "hello", ""} {
+		if isExtensionCandidate(name) {
+			t.Fatalf("did not expect %q to be a candidate", name)
+		}
+	}
+}
+
 func TestRunExtensionCommand(t *testing.T) {
 	lockCommandTestHooks(t)
 

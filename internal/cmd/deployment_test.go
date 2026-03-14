@@ -261,3 +261,11 @@ func TestBuildDeploymentVariableUpdate(t *testing.T) {
 		t.Fatalf("expected secured parse error, got %v", err)
 	}
 }
+
+func TestDeploymentVariableDeletionConfirmationTarget(t *testing.T) {
+	t.Parallel()
+
+	if got := deploymentVariableDeletionConfirmationTarget("acme", "widgets", "test", "APP_ENV"); got != "acme/widgets:test:APP_ENV" {
+		t.Fatalf("unexpected confirmation target %q", got)
+	}
+}

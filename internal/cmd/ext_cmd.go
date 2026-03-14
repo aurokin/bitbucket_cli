@@ -274,24 +274,36 @@ func discoverExtensions() ([]extensionEntry, error) {
 		}
 
 		for _, entry := range entries {
-			name := entry.Name()
-			if !strings.HasPrefix(name, "bb-") || name == "bb" {
-				continue
-			}
-
-			fullPath := filepath.Join(dir, name)
-			info, err := entry.Info()
-			if err != nil || info.Mode()&0o111 == 0 {
-				continue
-			}
-
-			commandName := strings.TrimPrefix(name, "bb-")
-			if _, ok := seen[commandName]; !ok {
-				seen[commandName] = fullPath
-			}
+			maybeRecordExtension(seen, dir, entry)
 		}
 	}
 
+	return extensionEntries(seen), nil
+}
+
+func maybeRecordExtension(seen map[string]string, dir string, entry os.DirEntry) {
+	name := entry.Name()
+	if !isExtensionCandidate(name) {
+		return
+	}
+
+	fullPath := filepath.Join(dir, name)
+	info, err := entry.Info()
+	if err != nil || info.Mode()&0o111 == 0 {
+		return
+	}
+
+	commandName := strings.TrimPrefix(name, "bb-")
+	if _, ok := seen[commandName]; !ok {
+		seen[commandName] = fullPath
+	}
+}
+
+func isExtensionCandidate(name string) bool {
+	return strings.HasPrefix(name, "bb-") && name != "bb"
+}
+
+func extensionEntries(seen map[string]string) []extensionEntry {
 	names := make([]string, 0, len(seen))
 	for name := range seen {
 		names = append(names, name)
@@ -302,7 +314,7 @@ func discoverExtensions() ([]extensionEntry, error) {
 	for _, name := range names {
 		extensions = append(extensions, extensionEntry{Name: name, Executable: seen[name]})
 	}
-	return extensions, nil
+	return extensions
 }
 
 func executeExternalCommand(executable string, args []string) error {

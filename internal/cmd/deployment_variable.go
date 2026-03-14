@@ -349,13 +349,8 @@ func newDeploymentEnvironmentVariableDeleteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if !yes {
-				if !promptsEnabled(cmd) {
-					return fmt.Errorf("deployment environment variable deletion requires confirmation; pass --yes or run in an interactive terminal")
-				}
-				if err := confirmExactMatch(cmd, fmt.Sprintf("%s/%s:%s:%s", resolved.Target.Workspace, resolved.Target.Repo, env.Slug, variable.Key)); err != nil {
-					return err
-				}
+			if err := confirmDeploymentVariableDeletion(cmd, resolved.Target.Workspace, resolved.Target.Repo, env.Slug, variable.Key, yes); err != nil {
+				return err
 			}
 			if err := resolved.Client.DeleteDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, variable.UUID); err != nil {
 				return err
@@ -383,6 +378,20 @@ func newDeploymentEnvironmentVariableDeleteCmd() *cobra.Command {
 	cmd.Flags().StringVar(&environment, "environment", "", "Deployment environment reference as a name, slug, or UUID")
 	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 	return cmd
+}
+
+func confirmDeploymentVariableDeletion(cmd *cobra.Command, workspace, repo, environmentSlug, key string, yes bool) error {
+	if yes {
+		return nil
+	}
+	if !promptsEnabled(cmd) {
+		return fmt.Errorf("deployment environment variable deletion requires confirmation; pass --yes or run in an interactive terminal")
+	}
+	return confirmExactMatch(cmd, deploymentVariableDeletionConfirmationTarget(workspace, repo, environmentSlug, key))
+}
+
+func deploymentVariableDeletionConfirmationTarget(workspace, repo, environmentSlug, key string) string {
+	return fmt.Sprintf("%s/%s:%s:%s", workspace, repo, environmentSlug, key)
 }
 
 func resolveDeploymentVariableReference(ctx context.Context, client *bitbucket.Client, workspace, repo, environmentUUID, raw string) (bitbucket.DeploymentVariable, error) {

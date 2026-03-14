@@ -73,43 +73,36 @@ func writeResolveSummary(w io.Writer, entity resolvedEntity) error {
 	if err := writeTargetHeader(w, "Repository", entity.Workspace, entity.Repo); err != nil {
 		return err
 	}
-	if err := writeLabelValue(w, "Type", entity.Type); err != nil {
-		return err
-	}
-	if entity.PR > 0 {
-		if err := writeLabelValue(w, "Pull Request", strconv.Itoa(entity.PR)); err != nil {
+	for _, row := range resolveSummaryRows(entity) {
+		if err := writeLabelValue(w, row.Label, row.Value); err != nil {
 			return err
 		}
-	}
-	if entity.Comment > 0 {
-		if err := writeLabelValue(w, "Comment", strconv.Itoa(entity.Comment)); err != nil {
-			return err
-		}
-	}
-	if entity.Issue > 0 {
-		if err := writeLabelValue(w, "Issue", strconv.Itoa(entity.Issue)); err != nil {
-			return err
-		}
-	}
-	if err := writeLabelValue(w, "Commit", entity.Commit); err != nil {
-		return err
-	}
-	if err := writeLabelValue(w, "Ref", entity.Ref); err != nil {
-		return err
-	}
-	if err := writeLabelValue(w, "Path", entity.Path); err != nil {
-		return err
-	}
-	if entity.Line > 0 {
-		if err := writeLabelValue(w, "Line", strconv.Itoa(entity.Line)); err != nil {
-			return err
-		}
-	}
-	if err := writeLabelValue(w, "URL", entity.URL); err != nil {
-		return err
 	}
 	if err := writeLabelValue(w, "Canonical URL", entity.CanonicalURL); err != nil {
 		return err
 	}
 	return writeNextStep(w, nextResolveCommand(entity))
+}
+
+func resolveSummaryRows(entity resolvedEntity) []summaryRow {
+	rows := []summaryRow{
+		{Label: "Type", Value: entity.Type},
+	}
+	if entity.PR > 0 {
+		rows = append(rows, summaryRow{Label: "Pull Request", Value: strconv.Itoa(entity.PR)})
+	}
+	if entity.Comment > 0 {
+		rows = append(rows, summaryRow{Label: "Comment", Value: strconv.Itoa(entity.Comment)})
+	}
+	if entity.Issue > 0 {
+		rows = append(rows, summaryRow{Label: "Issue", Value: strconv.Itoa(entity.Issue)})
+	}
+	rows = appendSummaryRow(rows, "Commit", entity.Commit)
+	rows = appendSummaryRow(rows, "Ref", entity.Ref)
+	rows = appendSummaryRow(rows, "Path", entity.Path)
+	if entity.Line > 0 {
+		rows = append(rows, summaryRow{Label: "Line", Value: strconv.Itoa(entity.Line)})
+	}
+	rows = appendSummaryRow(rows, "URL", entity.URL)
+	return rows
 }

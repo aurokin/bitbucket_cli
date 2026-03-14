@@ -34,94 +34,102 @@ func buildBrowsePayload(ctx context.Context, client browseRepositoryGetter, targ
 		Repo:      target.Repo,
 	}
 
-	switch {
-	case options.Settings:
-		payload.Type = "settings"
-		payload.URL = base + "/admin"
-		return payload, nil
-	case options.Pipelines:
-		payload.Type = "pipelines"
-		payload.URL = base + "/pipelines"
-		return payload, nil
-	case options.PR > 0:
-		payload.Type = "pull-request"
-		payload.PR = options.PR
-		payload.URL = fmt.Sprintf("%s/pull-requests/%d", base, options.PR)
-		return payload, nil
-	case options.Issue > 0:
-		payload.Type = "issue"
-		payload.Issue = options.Issue
-		payload.URL = fmt.Sprintf("%s/issues/%d", base, options.Issue)
-		return payload, nil
+	if special, ok := buildBrowseSpecialPayload(base, payload, options); ok {
+		return special, nil
 	}
 
 	raw = strings.TrimSpace(raw)
 	if raw == "" && strings.TrimSpace(options.Branch) == "" && strings.TrimSpace(options.Commit) == "" {
-		payload.Type = "repository"
-		payload.URL = base
-		return payload, nil
+		return buildBrowseRepositoryPayload(base, payload), nil
 	}
 
 	if raw == "" {
-		ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
-		if err != nil {
-			return browsePayload{}, err
-		}
-		payload.Type = "path"
-		payload.Warnings = append(payload.Warnings, warnings...)
-		payload.Ref = ref
-		payload.URL = fmt.Sprintf("%s/src/%s/", base, escapeURLPath(ref))
-		return payload, nil
+		return buildBrowseRootPathPayload(ctx, client, target, base, payload, options)
 	}
 
 	path, line, ok := parsePathLineReference(raw)
 	if ok || shouldTreatAsPath(raw, target) {
-		ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
-		if err != nil {
-			return browsePayload{}, err
-		}
-		resolvedPath, err := resolveBrowsePath(target, coalesce(path, raw))
-		if err != nil {
-			return browsePayload{}, err
-		}
-		if target.LocalRepo == nil && resolvedPath != "" {
-			warnings = append(warnings, fmt.Sprintf("resolved %q without local repository context; treating it as repository-relative", resolvedPath))
-		}
-
-		payload.Type = "path"
-		payload.Warnings = append(payload.Warnings, warnings...)
-		payload.Ref = ref
-		payload.Path = resolvedPath
-		payload.Line = line
-		payload.URL = buildBrowsePathURL(base, ref, resolvedPath, line)
-		return payload, nil
+		return buildBrowsePathPayload(ctx, client, target, base, payload, coalesce(path, raw), line, options)
 	}
 
 	if isLikelyCommit(raw) {
-		payload.Type = "commit"
-		payload.Commit = raw
-		payload.URL = fmt.Sprintf("%s/commits/%s", base, escapeURLPath(raw))
-		return payload, nil
+		return buildBrowseCommitPayload(base, payload, raw), nil
 	}
 
+	return buildBrowsePathPayload(ctx, client, target, base, payload, raw, 0, options)
+}
+
+func buildBrowseSpecialPayload(base string, payload browsePayload, options browseOptions) (browsePayload, bool) {
+	switch {
+	case options.Settings:
+		payload.Type = "settings"
+		payload.URL = base + "/admin"
+	case options.Pipelines:
+		payload.Type = "pipelines"
+		payload.URL = base + "/pipelines"
+	case options.PR > 0:
+		payload.Type = "pull-request"
+		payload.PR = options.PR
+		payload.URL = fmt.Sprintf("%s/pull-requests/%d", base, options.PR)
+	case options.Issue > 0:
+		payload.Type = "issue"
+		payload.Issue = options.Issue
+		payload.URL = fmt.Sprintf("%s/issues/%d", base, options.Issue)
+	default:
+		return browsePayload{}, false
+	}
+	return payload, true
+}
+
+func buildBrowseRepositoryPayload(base string, payload browsePayload) browsePayload {
+	payload.Type = "repository"
+	payload.URL = base
+	return payload
+}
+
+func buildBrowseRootPathPayload(ctx context.Context, client browseRepositoryGetter, target resolvedRepoTarget, base string, payload browsePayload, options browseOptions) (browsePayload, error) {
 	ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
 	if err != nil {
 		return browsePayload{}, err
 	}
-	resolvedPath, err := resolveBrowsePath(target, raw)
+	payload.Type = "path"
+	payload.Warnings = append(payload.Warnings, warnings...)
+	payload.Ref = ref
+	payload.URL = fmt.Sprintf("%s/src/%s/", base, escapeURLPath(ref))
+	return payload, nil
+}
+
+func buildBrowsePathPayload(ctx context.Context, client browseRepositoryGetter, target resolvedRepoTarget, base string, payload browsePayload, rawPath string, line int, options browseOptions) (browsePayload, error) {
+	ref, warnings, err := resolveBrowseRef(ctx, client, target, options.Branch, options.Commit)
 	if err != nil {
 		return browsePayload{}, err
 	}
-	if target.LocalRepo == nil && resolvedPath != "" {
-		warnings = append(warnings, fmt.Sprintf("resolved %q without local repository context; treating it as repository-relative", resolvedPath))
+	resolvedPath, err := resolveBrowsePath(target, rawPath)
+	if err != nil {
+		return browsePayload{}, err
 	}
-
+	warnings = append(warnings, browsePathWarnings(target, resolvedPath)...)
 	payload.Type = "path"
 	payload.Warnings = append(payload.Warnings, warnings...)
 	payload.Ref = ref
 	payload.Path = resolvedPath
-	payload.URL = buildBrowsePathURL(base, ref, resolvedPath, 0)
+	payload.Line = line
+	payload.URL = buildBrowsePathURL(base, ref, resolvedPath, line)
 	return payload, nil
+}
+
+func browsePathWarnings(target resolvedRepoTarget, resolvedPath string) []string {
+	if target.LocalRepo == nil && resolvedPath != "" {
+		return []string{fmt.Sprintf("resolved %q without local repository context; treating it as repository-relative", resolvedPath)}
+	}
+	return nil
+}
+
+func buildBrowseCommitPayload(base string, payload browsePayload, commit string) browsePayload {
+	payload.Type = "commit"
+	payload.Commit = commit
+	payload.URL = fmt.Sprintf("%s/commits/%s", base, escapeURLPath(commit))
+	return payload
 }
 
 func writeBrowseSummary(w io.Writer, payload browsePayload) error {

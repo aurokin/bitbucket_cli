@@ -35,6 +35,14 @@ type repoForkPayload struct {
 	Repository      bitbucket.Repository `json:"repository"`
 }
 
+type repoForkInput struct {
+	DestinationWorkspace string
+	Name                 string
+	Description          string
+	Visibility           string
+	ReuseExisting        bool
+}
+
 func newRepoListCmd() *cobra.Command {
 	var flags formatFlags
 	var host, workspace, query, sort string
@@ -178,47 +186,15 @@ func newRepoForkCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, firstArg(args), false)
-			if err != nil {
-				return err
-			}
-
-			private, err := parseRepoVisibility(visibility)
-			if err != nil {
-				return err
-			}
-			forked, err := resolved.Client.ForkRepository(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, bitbucket.ForkRepositoryOptions{
-				Workspace:     destinationWorkspace,
-				Name:          name,
-				Description:   description,
-				IsPrivate:     private,
-				ReuseExisting: reuseExisting,
+			payload, err := buildRepoForkPayload(context.Background(), host, workspace, repo, firstArg(args), repoForkInput{
+				DestinationWorkspace: destinationWorkspace,
+				Name:                 name,
+				Description:          description,
+				Visibility:           visibility,
+				ReuseExisting:        reuseExisting,
 			})
 			if err != nil {
 				return err
-			}
-
-			action := "forked"
-			if forked.Parent != nil && forked.Parent.FullName != "" && reuseExisting {
-				expectedWorkspace := destinationWorkspace
-				if expectedWorkspace == "" {
-					expectedWorkspace = resolved.Target.Workspace
-				}
-				expectedName := strings.TrimSpace(name)
-				if expectedName == "" {
-					expectedName = forked.Name
-				}
-				if strings.EqualFold(forked.Name, expectedName) && strings.HasPrefix(forked.FullName, expectedWorkspace+"/") {
-					// Best-effort label only; the client returns the existing fork on reuse.
-					action = "forked"
-				}
-			}
-			payload := repoForkPayload{
-				Host:            resolved.Target.Host,
-				SourceWorkspace: resolved.Target.Workspace,
-				SourceRepo:      resolved.Target.Repo,
-				Action:          action,
-				Repository:      forked,
 			}
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
 				return writeRepoForkSummary(w, payload)
@@ -321,6 +297,55 @@ func writeRepoForkSummary(w io.Writer, payload repoForkPayload) error {
 		return err
 	}
 	return writeNextStep(w, fmt.Sprintf("bb repo clone %s/%s", workspace, payload.Repository.Slug))
+}
+
+func buildRepoForkPayload(ctx context.Context, host, workspace, repo, repoArg string, input repoForkInput) (repoForkPayload, error) {
+	resolved, err := resolveRepoCommandTargetInput(ctx, host, workspace, repo, repoArg, false)
+	if err != nil {
+		return repoForkPayload{}, err
+	}
+
+	private, err := parseRepoVisibility(input.Visibility)
+	if err != nil {
+		return repoForkPayload{}, err
+	}
+	forked, err := resolved.Client.ForkRepository(ctx, resolved.Target.Workspace, resolved.Target.Repo, bitbucket.ForkRepositoryOptions{
+		Workspace:     input.DestinationWorkspace,
+		Name:          input.Name,
+		Description:   input.Description,
+		IsPrivate:     private,
+		ReuseExisting: input.ReuseExisting,
+	})
+	if err != nil {
+		return repoForkPayload{}, err
+	}
+
+	return repoForkPayload{
+		Host:            resolved.Target.Host,
+		SourceWorkspace: resolved.Target.Workspace,
+		SourceRepo:      resolved.Target.Repo,
+		Action:          repoForkAction(forked, resolved.Target.Workspace, input.DestinationWorkspace, input.Name, input.ReuseExisting),
+		Repository:      forked,
+	}, nil
+}
+
+func repoForkAction(forked bitbucket.Repository, sourceWorkspace, destinationWorkspace, name string, reuseExisting bool) string {
+	action := "forked"
+	if forked.Parent == nil || forked.Parent.FullName == "" || !reuseExisting {
+		return action
+	}
+	expectedWorkspace := destinationWorkspace
+	if expectedWorkspace == "" {
+		expectedWorkspace = sourceWorkspace
+	}
+	expectedName := strings.TrimSpace(name)
+	if expectedName == "" {
+		expectedName = forked.Name
+	}
+	if strings.EqualFold(forked.Name, expectedName) && strings.HasPrefix(forked.FullName, expectedWorkspace+"/") {
+		return "forked"
+	}
+	return action
 }
 
 func parseRepoVisibility(raw string) (*bool, error) {

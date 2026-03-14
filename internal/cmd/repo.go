@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
@@ -123,6 +122,12 @@ type repoViewPayload struct {
 	RootDir       string   `json:"root,omitempty"`
 }
 
+type repoCreatePayload struct {
+	Host       string               `json:"host"`
+	Workspace  string               `json:"workspace"`
+	Repository bitbucket.Repository `json:"repository"`
+}
+
 func newRepoCreateCmd() *cobra.Command {
 	var flags formatFlags
 	var host string
@@ -148,14 +153,7 @@ func newRepoCreateCmd() *cobra.Command {
 				return err
 			}
 
-			resolved, err := resolveRepoCommandTargetInput(context.Background(), host, workspace, repo, firstArg(args), false)
-			if err != nil {
-				return err
-			}
-			client := resolved.Client
-			target := resolved.Target
-
-			createdRepo, err := client.CreateRepository(context.Background(), target.Workspace, target.Repo, bitbucket.CreateRepositoryOptions{
+			payload, err := buildRepoCreatePayload(context.Background(), host, workspace, repo, firstArg(args), bitbucket.CreateRepositoryOptions{
 				Name:          name,
 				Description:   description,
 				ProjectKey:    projectKey,
@@ -166,23 +164,8 @@ func newRepoCreateCmd() *cobra.Command {
 				return err
 			}
 
-			return output.Render(cmd.OutOrStdout(), opts, createdRepo, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", target.Workspace, createdRepo.Slug); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Name", createdRepo.Name); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(createdRepo.IsPrivate)); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Project", createdRepo.Project.Key); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "URL", createdRepo.Links.HTML.Href); err != nil {
-					return err
-				}
-				return writeNextStep(w, fmt.Sprintf("bb repo clone %s/%s", target.Workspace, createdRepo.Slug))
+			return output.Render(cmd.OutOrStdout(), opts, payload.Repository, func(w io.Writer) error {
+				return writeRepoCreateSummary(w, payload)
 			})
 		},
 	}

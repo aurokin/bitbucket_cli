@@ -135,6 +135,43 @@ func resolveRepoCloneInput(args []string, repoFlag string) (string, string, erro
 	}
 }
 
+func buildRepoCreatePayload(ctx context.Context, host, workspace, repo, repoArg string, options bitbucket.CreateRepositoryOptions) (repoCreatePayload, error) {
+	resolved, err := resolveRepoCommandTargetInput(ctx, host, workspace, repo, repoArg, false)
+	if err != nil {
+		return repoCreatePayload{}, err
+	}
+
+	createdRepo, err := resolved.Client.CreateRepository(ctx, resolved.Target.Workspace, resolved.Target.Repo, options)
+	if err != nil {
+		return repoCreatePayload{}, err
+	}
+
+	return repoCreatePayload{
+		Host:       resolved.Target.Host,
+		Workspace:  resolved.Target.Workspace,
+		Repository: createdRepo,
+	}, nil
+}
+
+func writeRepoCreateSummary(w io.Writer, payload repoCreatePayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repository.Slug); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Name", payload.Repository.Name); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Visibility", repoVisibilityLabel(payload.Repository.IsPrivate)); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Project", payload.Repository.Project.Key); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "URL", payload.Repository.Links.HTML.Href); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb repo clone %s/%s", payload.Workspace, payload.Repository.Slug))
+}
+
 func buildRepoClonePayload(ctx context.Context, host, workspace, repo string, args []string) (repoClonePayload, error) {
 	repoArg, targetDir, err := resolveRepoCloneInput(args, repo)
 	if err != nil {

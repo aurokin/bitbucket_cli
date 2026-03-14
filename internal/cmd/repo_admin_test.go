@@ -152,6 +152,34 @@ func TestWriteRepoEditSummary(t *testing.T) {
 	)
 }
 
+func TestWriteRepoCreateSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := repoCreatePayload{
+		Workspace: "acme",
+		Repository: bitbucket.Repository{
+			Slug:      "widgets",
+			Name:      "Widgets",
+			IsPrivate: true,
+			Project:   bitbucket.RepositoryProject{Key: "BBCLI"},
+			Links:     bitbucket.RepositoryLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/widgets"}},
+		},
+	}
+
+	if err := writeRepoCreateSummary(&buf, payload); err != nil {
+		t.Fatalf("writeRepoCreateSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Name: Widgets",
+		"Visibility: private",
+		"Project: BBCLI",
+		"URL: https://bitbucket.org/acme/widgets",
+		"Next: bb repo clone acme/widgets",
+	)
+}
+
 func TestWriteRepoForkSummary(t *testing.T) {
 	t.Parallel()
 
@@ -179,4 +207,21 @@ func TestWriteRepoForkSummary(t *testing.T) {
 		"Visibility: private",
 		"Next: bb repo clone acme/widgets-fork",
 	)
+}
+
+func TestRepoForkAction(t *testing.T) {
+	t.Parallel()
+
+	fork := bitbucket.Repository{
+		Name:     "widgets-fork",
+		FullName: "acme/widgets-fork",
+		Parent:   &bitbucket.RepositoryParent{FullName: "acme/widgets"},
+	}
+
+	if got := repoForkAction(fork, "acme", "", "widgets-fork", true); got != "forked" {
+		t.Fatalf("unexpected repo fork action %q", got)
+	}
+	if got := repoForkAction(fork, "acme", "", "widgets-fork", false); got != "forked" {
+		t.Fatalf("unexpected repo fork action without reuse %q", got)
+	}
 }

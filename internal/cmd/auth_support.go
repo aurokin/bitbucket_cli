@@ -42,28 +42,7 @@ func writeAuthStatusSummary(w io.Writer, payload authStatusPayload) error {
 		return err
 	}
 	for _, host := range payload.Hosts {
-		defaultLabel := ""
-		if host.Default {
-			defaultLabel = "yes"
-		}
-
-		authLabel := ""
-		if host.Authenticated != nil {
-			if *host.Authenticated {
-				authLabel = "yes"
-			} else {
-				authLabel = "no"
-			}
-		}
-
-		accountLabel := host.DisplayName
-		if accountLabel == "" && host.AccountID != "" {
-			accountLabel = host.AccountID
-		}
-		if host.AuthenticationError != "" {
-			accountLabel = host.AuthenticationError
-		}
-
+		defaultLabel, authLabel, accountLabel := authStatusRowValues(host)
 		if _, err := fmt.Fprintf(
 			tw,
 			"%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
@@ -92,6 +71,30 @@ func writeAuthStatusSummary(w io.Writer, payload authStatusPayload) error {
 	}
 
 	return nil
+}
+
+func authStatusRowValues(host authStatusHostRow) (defaultLabel, authLabel, accountLabel string) {
+	if host.Default {
+		defaultLabel = "yes"
+	}
+
+	if host.Authenticated != nil {
+		if *host.Authenticated {
+			authLabel = "yes"
+		} else {
+			authLabel = "no"
+		}
+	}
+
+	accountLabel = host.DisplayName
+	if accountLabel == "" && host.AccountID != "" {
+		accountLabel = host.AccountID
+	}
+	if host.AuthenticationError != "" {
+		accountLabel = host.AuthenticationError
+	}
+
+	return defaultLabel, authLabel, accountLabel
 }
 
 func resolveUsernameValue(cmd *cobra.Command, username string) (string, error) {

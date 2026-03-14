@@ -106,49 +106,8 @@ func writeIssueViewSummary(w io.Writer, target resolvedRepoTarget, issue bitbuck
 		return err
 	}
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintf(tw, "ID:\t%d\n", issue.ID); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(tw, "Title:\t%s\n", issue.Title); err != nil {
-		return err
-	}
-	if issue.State != "" {
-		if _, err := fmt.Fprintf(tw, "State:\t%s\n", issue.State); err != nil {
-			return err
-		}
-	}
-	if issue.Kind != "" {
-		if _, err := fmt.Fprintf(tw, "Kind:\t%s\n", issue.Kind); err != nil {
-			return err
-		}
-	}
-	if issue.Priority != "" {
-		if _, err := fmt.Fprintf(tw, "Priority:\t%s\n", issue.Priority); err != nil {
-			return err
-		}
-	}
-	if issue.Reporter.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Reporter:\t%s\n", issue.Reporter.DisplayName); err != nil {
-			return err
-		}
-	}
-	if issue.Assignee.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Assignee:\t%s\n", issue.Assignee.DisplayName); err != nil {
-			return err
-		}
-	}
-	if issue.UpdatedOn != "" {
-		if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", issue.UpdatedOn); err != nil {
-			return err
-		}
-	}
-	if issue.Links.HTML.Href != "" {
-		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", issue.Links.HTML.Href); err != nil {
-			return err
-		}
-	}
-	if issue.Content.Raw != "" {
-		if _, err := fmt.Fprintf(tw, "Body:\t%s\n", issue.Content.Raw); err != nil {
+	for _, row := range issueSummaryRows(issue) {
+		if _, err := fmt.Fprintf(tw, "%s:\t%s\n", row.Label, row.Value); err != nil {
 			return err
 		}
 	}
@@ -185,4 +144,20 @@ func writeIssueTable(w io.Writer, issues []bitbucket.Issue) error {
 		}
 	}
 	return tw.Flush()
+}
+
+func issueSummaryRows(issue bitbucket.Issue) []summaryRow {
+	rows := []summaryRow{
+		{Label: "ID", Value: fmt.Sprintf("%d", issue.ID)},
+		{Label: "Title", Value: issue.Title},
+	}
+	rows = appendSummaryRow(rows, "State", issue.State)
+	rows = appendSummaryRow(rows, "Kind", issue.Kind)
+	rows = appendSummaryRow(rows, "Priority", issue.Priority)
+	rows = appendSummaryRow(rows, "Reporter", issue.Reporter.DisplayName)
+	rows = appendSummaryRow(rows, "Assignee", issue.Assignee.DisplayName)
+	rows = appendSummaryRow(rows, "Updated", issue.UpdatedOn)
+	rows = appendSummaryRow(rows, "URL", issue.Links.HTML.Href)
+	rows = appendSummaryRow(rows, "Body", issue.Content.Raw)
+	return rows
 }

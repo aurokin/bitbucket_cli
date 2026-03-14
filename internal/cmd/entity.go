@@ -31,7 +31,7 @@ func parseBitbucketEntityURL(raw string) (resolvedEntity, error) {
 	}
 
 	parsedURL, err := url.Parse(raw)
-	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || parsedURL.Hostname() == "" {
 		return resolvedEntity{}, fmt.Errorf("Bitbucket URL %q is invalid", raw)
 	}
 

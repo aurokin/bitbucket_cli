@@ -103,6 +103,22 @@ func TestResolvePipelineVariableReferenceByKey(t *testing.T) {
 	}
 }
 
+func TestResolvePipelineVariableReferenceAmbiguous(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"uuid":"{uuid-1}","key":"APP_ENV"},{"uuid":"{uuid-2}","key":"APP_ENV"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client := newPipelineManageTestClient(t)
+
+	_, err := resolvePipelineVariableReference(context.Background(), client, "acme", "widgets", "APP_ENV")
+	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("expected ambiguous pipeline variable error, got %v", err)
+	}
+}
+
 func TestWritePipelineTestReportsSummary(t *testing.T) {
 	t.Parallel()
 

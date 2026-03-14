@@ -71,6 +71,29 @@ func TestResolveDeploymentVariableReferenceByKey(t *testing.T) {
 	}
 }
 
+func TestResolveDeploymentVariableReferenceAmbiguous(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"uuid":"{var-1}","key":"APP_ENV"},{"uuid":"{var-2}","key":"app_env"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		AuthType: "api-token",
+		Username: "agent@example.com",
+		Token:    "token",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = resolveDeploymentVariableReference(context.Background(), client, "acme", "widgets", "{env-1}", "APP_ENV")
+	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("expected ambiguous deployment variable error, got %v", err)
+	}
+}
+
 func TestWriteDeploymentSummary(t *testing.T) {
 	t.Parallel()
 

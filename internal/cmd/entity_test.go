@@ -142,6 +142,11 @@ func TestParseBitbucketEntityURL(t *testing.T) {
 			raw:     "not-a-url",
 			wantErr: `Bitbucket URL "not-a-url" is invalid`,
 		},
+		{
+			name:    "invalid empty hostname",
+			raw:     "A://:/0/0",
+			wantErr: `Bitbucket URL "A://:/0/0" is invalid`,
+		},
 	}
 
 	for _, tc := range cases {

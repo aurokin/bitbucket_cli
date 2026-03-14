@@ -10,11 +10,15 @@ import (
 
 func main() {
 	writeGeneratedDoc(filepath.Join("docs", "cli-reference.md"), cmdpkg.GenerateCLIReference)
+	writeGeneratedDoc(filepath.Join("docs", "examples.md"), cmdpkg.GenerateExamplesDoc)
 	writeGeneratedDoc(filepath.Join("docs", "flag-matrix.md"), cmdpkg.GenerateFlagMatrixDoc)
 	writeGeneratedDoc(filepath.Join("docs", "error-index.md"), cmdpkg.GenerateErrorIndexDoc)
 	writeGeneratedDoc(filepath.Join("docs", "json-shapes.md"), cmdpkg.GenerateJSONShapesDoc)
 	writeGeneratedDoc(filepath.Join("docs", "json-fields.md"), cmdpkg.GenerateJSONFieldsDoc)
 	writeGeneratedDoc(filepath.Join("docs", "recovery.md"), cmdpkg.GenerateRecoveryDoc)
+	writeGeneratedDoc(filepath.Join("docs", "command-metadata.json"), cmdpkg.GenerateCommandMetadataJSON)
+	writeGeneratedFiles(cmdpkg.GenerateCompletionFiles)
+	writeGeneratedFiles(cmdpkg.GenerateManPages)
 }
 
 func writeGeneratedDoc(path string, generate func() (string, error)) {
@@ -27,5 +31,20 @@ func writeGeneratedDoc(path string, generate func() (string, error)) {
 	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func writeGeneratedFiles(generate func() ([]cmdpkg.GeneratedDocFile, error)) {
+	files, err := generate()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range files {
+		if err := os.MkdirAll(filepath.Dir(file.Path), 0o755); err != nil {
+			log.Fatal(err)
+		}
+		if err := os.WriteFile(file.Path, file.Content, 0o644); err != nil {
+			log.Fatal(err)
+		}
 	}
 }

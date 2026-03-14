@@ -28,6 +28,10 @@ This is a compact view of common automation and targeting flags across executabl
 | `bb commit statuses` | yes | yes | yes | yes | yes | yes | `--limit`, `--query`, `--refname`, `--sort` |
 | `bb commit unapprove` | yes | yes | yes | yes | yes | yes |  |
 | `bb commit view` | yes | yes | yes | yes | yes | yes |  |
+| `bb completion bash` |  |  | yes |  |  |  |  |
+| `bb completion fish` |  |  | yes |  |  |  |  |
+| `bb completion powershell` |  |  | yes |  |  |  |  |
+| `bb completion zsh` |  |  | yes |  |  |  |  |
 | `bb config get` | yes | yes | yes |  |  |  |  |
 | `bb config list` | yes | yes | yes |  |  |  |  |
 | `bb config path` |  |  | yes |  |  |  |  |

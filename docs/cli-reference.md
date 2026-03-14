@@ -34,6 +34,11 @@ Use this file for the full command surface. Keep [README.md](../README.md) focus
   - `bb commit statuses`
   - `bb commit unapprove`
   - `bb commit view`
+- `bb completion`
+  - `bb completion bash`
+  - `bb completion fish`
+  - `bb completion powershell`
+  - `bb completion zsh`
 - `bb config`
   - `bb config get`
   - `bb config list`
@@ -941,6 +946,109 @@ Flags:
 - `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 - `--repo`: Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL
 - `--workspace`: Optional workspace slug used only to disambiguate a bare repository target
+
+## `bb completion`
+
+Generate shell completion scripts
+
+Generate shell completion scripts for bash, zsh, fish, and PowerShell.
+
+Usage:
+
+```text
+bb completion
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+Subcommands:
+
+- `bb completion bash`: Generate a bash completion script
+- `bb completion fish`: Generate a fish completion script
+- `bb completion powershell`: Generate a PowerShell completion script
+- `bb completion zsh`: Generate a zsh completion script
+
+## `bb completion bash`
+
+Generate a bash completion script
+
+Usage:
+
+```text
+bb completion bash
+```
+
+Examples:
+
+```bash
+bb completion bash
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb completion fish`
+
+Generate a fish completion script
+
+Usage:
+
+```text
+bb completion fish
+```
+
+Examples:
+
+```bash
+bb completion fish
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb completion powershell`
+
+Generate a PowerShell completion script
+
+Usage:
+
+```text
+bb completion powershell
+```
+
+Examples:
+
+```bash
+bb completion powershell
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
+
+## `bb completion zsh`
+
+Generate a zsh completion script
+
+Usage:
+
+```text
+bb completion zsh
+```
+
+Examples:
+
+```bash
+bb completion zsh
+```
+
+Flags:
+
+- `--no-prompt`: Do not prompt for missing input, even in an interactive terminal
 
 ## `bb config`
 

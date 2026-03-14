@@ -28,7 +28,7 @@ bb version
 If you want a specific tagged release instead of the latest published version:
 
 ```bash
-go install github.com/aurokin/bitbucket_cli/cmd/bb@v0.1.0
+go install github.com/aurokin/bitbucket_cli/cmd/bb@v0.2.0
 bb version
 ```
 
@@ -46,6 +46,24 @@ git pull --ff-only
 go install ./cmd/bb
 bb version
 ```
+
+Shell completions are built into the CLI:
+
+- `bb completion zsh > "${fpath[1]}/_bb"`
+- `bb completion bash > ~/.local/share/bash-completion/completions/bb`
+
+Generated reference assets live in the repo:
+
+- [docs/cli-reference.md](./docs/cli-reference.md)
+- [docs/examples.md](./docs/examples.md)
+- [docs/flag-matrix.md](./docs/flag-matrix.md)
+- [docs/command-metadata.json](./docs/command-metadata.json)
+- [docs/json-fields.md](./docs/json-fields.md)
+- [docs/json-shapes.md](./docs/json-shapes.md)
+- [docs/recovery.md](./docs/recovery.md)
+- [docs/error-index.md](./docs/error-index.md)
+- [docs/man](./docs/man)
+- [docs/completions](./docs/completions)
 
 ## Local Gate
 

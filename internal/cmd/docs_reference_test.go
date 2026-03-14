@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,116 +10,52 @@ import (
 
 func TestCLIReferenceMatchesGenerator(t *testing.T) {
 	t.Parallel()
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "cli-reference.md"), GenerateCLIReference)
+}
 
-	generated, err := GenerateCLIReference()
-	if err != nil {
-		t.Fatalf("GenerateCLIReference returned error: %v", err)
-	}
-
-	path := filepath.Join("..", "..", "docs", "cli-reference.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read cli reference: %v", err)
-	}
-
-	if string(existing) != generated {
-		t.Fatalf("docs/cli-reference.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+func TestExamplesDocMatchesGenerator(t *testing.T) {
+	t.Parallel()
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "examples.md"), GenerateExamplesDoc)
 }
 
 func TestJSONShapesMatchesGenerator(t *testing.T) {
 	t.Parallel()
-
-	generated, err := GenerateJSONShapesDoc()
-	if err != nil {
-		t.Fatalf("GenerateJSONShapesDoc returned error: %v", err)
-	}
-
-	path := filepath.Join("..", "..", "docs", "json-shapes.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read json shapes: %v", err)
-	}
-
-	if string(existing) != generated {
-		t.Fatalf("docs/json-shapes.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "json-shapes.md"), GenerateJSONShapesDoc)
 }
 
 func TestRecoveryDocMatchesGenerator(t *testing.T) {
 	t.Parallel()
-
-	generated, err := GenerateRecoveryDoc()
-	if err != nil {
-		t.Fatalf("GenerateRecoveryDoc returned error: %v", err)
-	}
-
-	path := filepath.Join("..", "..", "docs", "recovery.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read recovery doc: %v", err)
-	}
-
-	if string(existing) != generated {
-		t.Fatalf("docs/recovery.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "recovery.md"), GenerateRecoveryDoc)
 }
 
 func TestFlagMatrixMatchesGenerator(t *testing.T) {
 	t.Parallel()
-
-	generated, err := GenerateFlagMatrixDoc()
-	if err != nil {
-		t.Fatalf("GenerateFlagMatrixDoc returned error: %v", err)
-	}
-
-	path := filepath.Join("..", "..", "docs", "flag-matrix.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read flag matrix: %v", err)
-	}
-
-	if string(existing) != generated {
-		t.Fatalf("docs/flag-matrix.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "flag-matrix.md"), GenerateFlagMatrixDoc)
 }
 
 func TestErrorIndexMatchesGenerator(t *testing.T) {
 	t.Parallel()
-
-	generated, err := GenerateErrorIndexDoc()
-	if err != nil {
-		t.Fatalf("GenerateErrorIndexDoc returned error: %v", err)
-	}
-
-	path := filepath.Join("..", "..", "docs", "error-index.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read error index: %v", err)
-	}
-
-	if string(existing) != generated {
-		t.Fatalf("docs/error-index.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "error-index.md"), GenerateErrorIndexDoc)
 }
 
 func TestJSONFieldsMatchesGenerator(t *testing.T) {
 	t.Parallel()
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "json-fields.md"), GenerateJSONFieldsDoc)
+}
 
-	generated, err := GenerateJSONFieldsDoc()
-	if err != nil {
-		t.Fatalf("GenerateJSONFieldsDoc returned error: %v", err)
-	}
+func TestCommandMetadataMatchesGenerator(t *testing.T) {
+	t.Parallel()
+	assertGeneratedDocMatches(t, filepath.Join("..", "..", "docs", "command-metadata.json"), GenerateCommandMetadataJSON)
+}
 
-	path := filepath.Join("..", "..", "docs", "json-fields.md")
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read json fields: %v", err)
-	}
+func TestCompletionFilesMatchGenerator(t *testing.T) {
+	t.Parallel()
+	assertGeneratedFileSetMatches(t, GenerateCompletionFiles)
+}
 
-	if string(existing) != generated {
-		t.Fatalf("docs/json-fields.md is out of date; run `go run ./cmd/gen-docs`")
-	}
+func TestManPagesMatchGenerator(t *testing.T) {
+	t.Parallel()
+	assertGeneratedFileSetMatches(t, GenerateManPages)
 }
 
 func TestRootHelpHighlightsHumanAndAgentPaths(t *testing.T) {
@@ -213,4 +150,45 @@ func TestStatusHelpShowsBoundedExamples(t *testing.T) {
 			t.Fatalf("status help missing %q\n%s", fragment, output)
 		}
 	}
+}
+
+func assertGeneratedDocMatches(t *testing.T, path string, generate func() (string, error)) {
+	t.Helper()
+
+	generated, err := generate()
+	if err != nil {
+		t.Fatalf("generator returned error: %v", err)
+	}
+
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated doc %s: %v", path, err)
+	}
+
+	if string(existing) != generated {
+		t.Fatalf("%s is out of date; run `go run ./cmd/gen-docs`", pathForError(path))
+	}
+}
+
+func assertGeneratedFileSetMatches(t *testing.T, generate func() ([]GeneratedDocFile, error)) {
+	t.Helper()
+
+	generated, err := generate()
+	if err != nil {
+		t.Fatalf("file generator returned error: %v", err)
+	}
+
+	for _, file := range generated {
+		existing, err := os.ReadFile(filepath.Join("..", "..", file.Path))
+		if err != nil {
+			t.Fatalf("read generated file %s: %v", file.Path, err)
+		}
+		if !bytes.Equal(existing, file.Content) {
+			t.Fatalf("%s is out of date; run `go run ./cmd/gen-docs`", file.Path)
+		}
+	}
+}
+
+func pathForError(path string) string {
+	return strings.TrimPrefix(filepath.ToSlash(path), "../../")
 }

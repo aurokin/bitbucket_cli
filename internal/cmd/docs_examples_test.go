@@ -16,6 +16,7 @@ func TestMarkdownExamplesReferenceValidCommands(t *testing.T) {
 
 	files := []string{
 		filepath.Join("..", "..", "README.md"),
+		filepath.Join("..", "..", "docs", "examples.md"),
 		filepath.Join("..", "..", "docs", "workflows.md"),
 		filepath.Join("..", "..", "docs", "automation.md"),
 		filepath.Join("..", "..", "docs", "json-shapes.md"),

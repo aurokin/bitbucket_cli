@@ -50,12 +50,16 @@ Co-Authored-By: Codex by OpenAI <codex@openai.com>
 - When a command has a safe next step, prefer documenting it explicitly in help text and human-readable output.
 - Keep [docs/workflows.md](./docs/workflows.md) task-oriented for humans.
 - Keep [docs/automation.md](./docs/automation.md) deterministic for agents.
+- Keep [docs/examples.md](./docs/examples.md) generated from command examples in the Cobra tree.
 - Keep [docs/flag-matrix.md](./docs/flag-matrix.md) generated from Cobra flags.
+- Keep [docs/command-metadata.json](./docs/command-metadata.json) generated from the current Cobra command tree and flags.
+- Keep shell completions under [docs/completions](./docs/completions) generated from the current Cobra command tree.
+- Keep man pages under [docs/man](./docs/man) generated from the current Cobra command tree.
 - Keep [docs/error-index.md](./docs/error-index.md) generated from the recovery guidance catalog.
 - Keep [docs/json-fields.md](./docs/json-fields.md) generated from the current payload structs and response models.
 - Keep [docs/json-shapes.md](./docs/json-shapes.md) generated from the current payload structs and JSON-centric usage.
 - Keep [docs/recovery.md](./docs/recovery.md) generated from the current recovery guidance catalog.
-- Regenerate generated docs with `go run ./cmd/gen-docs` when command help, flags, payload shapes, or recovery guidance change.
+- Regenerate generated docs with `go run ./cmd/gen-docs` when command help, flags, examples, payload shapes, or recovery guidance change.
 
 ## Bitbucket API References
 - Overview: https://developer.atlassian.com/cloud/bitbucket/about-bitbucket-cloud-rest-api/

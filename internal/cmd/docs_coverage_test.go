@@ -75,6 +75,18 @@ func TestSupportingDocsExistAndLinkKeyTopics(t *testing.T) {
 		"--repo",
 		"--json",
 	})
+	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "examples.md"), []string{
+		"bb auth login",
+		"bb browse README.md:12 --repo workspace-slug/repo-slug --no-browser",
+		"bb pipeline stop",
+		"bb pr create",
+	})
+	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "command-metadata.json"), []string{
+		"\"path\": \"bb\"",
+		"\"path\": \"bb completion bash\"",
+		"\"path\": \"bb pr create\"",
+		"\"name\": \"repo\"",
+	})
 	assertFileContainsAll(t, filepath.Join("..", "..", "docs", "error-index.md"), []string{
 		"authentication failed",
 		"Missing Token Scopes Or Insufficient Access",

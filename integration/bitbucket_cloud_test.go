@@ -1904,7 +1904,10 @@ func TestBitbucketCloudHumanOutputSmoke(t *testing.T) {
 	fixture := session.Fixture(t)
 	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
 	pipelineRepo := session.PipelineFixture(t)
-	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	canReadPipelineLog := false
+	if len(pipelineRepo.PipelineSteps) > 0 {
+		canReadPipelineLog = pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	}
 	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
 	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
 
@@ -2105,7 +2108,10 @@ func TestBitbucketCloudGeneratedDocsSmoke(t *testing.T) {
 	fixture := session.Fixture(t)
 	issueRepo := ensureIssueRepository(t, session.Client, session.Workspace)
 	pipelineRepo := session.PipelineFixture(t)
-	canReadPipelineLog := pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	canReadPipelineLog := false
+	if len(pipelineRepo.PipelineSteps) > 0 {
+		canReadPipelineLog = pipelineLogAvailable(t, session.Client, session.Workspace, pipelineRepo.Repo.Slug, pipelineRepo.Pipeline.UUID, pipelineRepo.PipelineSteps[0].UUID)
+	}
 	issueID := ensureOpenIssue(t, session.Client, session.Workspace, issueRepo.Slug)
 	commitHash := gitOutput(t, fixture.PrimaryRepoDir, "rev-parse", "HEAD")
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.2.1 - 2026-03-14
+
+### Added
+
+- Added built-in shell completions with `bb completion bash|zsh|fish|powershell`.
+- Added generated shell completion assets under `docs/completions/`.
+- Added generated man pages under `docs/man/`.
+- Added generated command examples in `docs/examples.md`.
+- Added machine-readable command metadata in `docs/command-metadata.json`.
+
+### Reliability And Testing
+
+- Added focused completion tests covering shell-specific output markers, generated completion file sets, unsupported-shell handling, and runtime `bb completion` execution.
+- Added focused man-page tests covering generated page sets, stable root sections, and representative subcommand pages.
+- Hardened manual integration smoke coverage for pipeline fixtures that may temporarily expose no step list.
+
+### Docs
+
+- Updated README and maintainer docs to treat completions, man pages, examples, and command metadata as generated first-class artifacts.
+
 ## v0.2.0 - 2026-03-14
 
 ### Added

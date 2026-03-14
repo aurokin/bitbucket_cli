@@ -1,6 +1,9 @@
 package config
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 func TestNormalizeSettings(t *testing.T) {
 	t.Parallel()
@@ -127,5 +130,54 @@ func TestConfigHostNamesSorted(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("expected %v, got %v", want, got)
 		}
+	}
+}
+
+func TestPathUsesOverride(t *testing.T) {
+	override := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", override)
+
+	got, err := Path()
+	if err != nil {
+		t.Fatalf("Path returned error: %v", err)
+	}
+	want := filepath.Join(override, "config.json")
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestSaveAndLoadRoundTripNormalizesHosts(t *testing.T) {
+	override := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", override)
+
+	cfg := Config{
+		DefaultHost: "bitbucket.org",
+		Hosts: map[string]HostConfig{
+			"bitbucket.org": {
+				Username:  " user@example.com ",
+				Token:     " token ",
+				TokenType: "app-password",
+			},
+		},
+		Aliases: map[string]string{
+			"pv": "pr view",
+		},
+	}
+
+	if err := Save(cfg); err != nil {
+		t.Fatalf("Save returned error: %v", err)
+	}
+
+	loaded, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	host := loaded.Hosts["bitbucket.org"]
+	if host.Username != "user@example.com" || host.Token != "token" || host.AuthType != AuthTypeAPIToken || host.TokenType != "" {
+		t.Fatalf("unexpected normalized host config %+v", host)
+	}
+	if loaded.Aliases["pv"] != "pr view" {
+		t.Fatalf("expected alias round-trip, got %+v", loaded.Aliases)
 	}
 }

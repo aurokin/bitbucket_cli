@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -132,6 +133,54 @@ func TestCheckoutRemoteBranchRequiresInputs(t *testing.T) {
 	}
 }
 
+func TestCheckoutRemoteBranchCreatesTrackedBranchWhenMissing(t *testing.T) {
+	t.Parallel()
+
+	remoteDir, workDir := setupRemoteRepository(t)
+	runGit(t, workDir, "switch", "-c", "feature/new-branch")
+	if err := os.WriteFile(filepath.Join(workDir, "feature.txt"), []byte("feature\n"), 0o644); err != nil {
+		t.Fatalf("write feature file: %v", err)
+	}
+	runGit(t, workDir, "add", "feature.txt")
+	runGit(t, workDir, "commit", "-m", "feature")
+	runGit(t, workDir, "push", "-u", "origin", "feature/new-branch")
+
+	cloneDir := t.TempDir()
+	runGit(t, cloneDir, "clone", remoteDir, ".")
+
+	if err := CheckoutRemoteBranch(context.Background(), cloneDir, "origin", "feature/new-branch"); err != nil {
+		t.Fatalf("CheckoutRemoteBranch returned error: %v", err)
+	}
+
+	assertGitOutput(t, cloneDir, []string{"branch", "--show-current"}, "feature/new-branch")
+	assertGitOutput(t, cloneDir, []string{"config", "--get", "branch.feature/new-branch.remote"}, "origin")
+}
+
+func TestCheckoutRemoteBranchSwitchesExistingBranchAndSetsUpstream(t *testing.T) {
+	t.Parallel()
+
+	remoteDir, workDir := setupRemoteRepository(t)
+	runGit(t, workDir, "switch", "-c", "feature/existing")
+	if err := os.WriteFile(filepath.Join(workDir, "existing.txt"), []byte("existing\n"), 0o644); err != nil {
+		t.Fatalf("write feature file: %v", err)
+	}
+	runGit(t, workDir, "add", "existing.txt")
+	runGit(t, workDir, "commit", "-m", "existing feature")
+	runGit(t, workDir, "push", "-u", "origin", "feature/existing")
+
+	cloneDir := t.TempDir()
+	runGit(t, cloneDir, "clone", remoteDir, ".")
+	runGit(t, cloneDir, "switch", "-c", "feature/existing")
+	runGit(t, cloneDir, "switch", "main")
+
+	if err := CheckoutRemoteBranch(context.Background(), cloneDir, "origin", "feature/existing"); err != nil {
+		t.Fatalf("CheckoutRemoteBranch returned error: %v", err)
+	}
+
+	assertGitOutput(t, cloneDir, []string{"branch", "--show-current"}, "feature/existing")
+	assertGitOutput(t, cloneDir, []string{"config", "--get", "branch.feature/existing.remote"}, "origin")
+}
+
 func TestAuthenticatedHTTPSURL(t *testing.T) {
 	t.Parallel()
 
@@ -157,6 +206,42 @@ func TestSanitizedHTTPSURL(t *testing.T) {
 	want := "https://x-bitbucket-api-token-auth@bitbucket.org/acme/widgets.git"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func setupRemoteRepository(t *testing.T) (string, string) {
+	t.Helper()
+
+	remoteDir := filepath.Join(t.TempDir(), "remote.git")
+	workDir := t.TempDir()
+
+	runGit(t, workDir, "init", "-b", "main")
+	runGit(t, workDir, "config", "user.name", "Test User")
+	runGit(t, workDir, "config", "user.email", "test@example.com")
+	if err := os.WriteFile(filepath.Join(workDir, "README.md"), []byte("base\n"), 0o644); err != nil {
+		t.Fatalf("write README: %v", err)
+	}
+	runGit(t, workDir, "add", "README.md")
+	runGit(t, workDir, "commit", "-m", "initial")
+
+	runGit(t, filepath.Dir(remoteDir), "init", "--bare", remoteDir)
+	runGit(t, workDir, "remote", "add", "origin", remoteDir)
+	runGit(t, workDir, "push", "-u", "origin", "main")
+
+	return remoteDir, workDir
+}
+
+func assertGitOutput(t *testing.T, dir string, args []string, want string) {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, output)
+	}
+	if got := string(bytes.TrimSpace(output)); got != want {
+		t.Fatalf("expected git %v output %q, got %q", args, want, got)
 	}
 }
 

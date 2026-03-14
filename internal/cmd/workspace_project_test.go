@@ -148,6 +148,56 @@ func TestWriteProjectMutationSummary(t *testing.T) {
 	)
 }
 
+func TestWriteProjectListAndSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	listPayload := projectListPayload{
+		Workspace: "acme",
+		Projects: []bitbucket.Project{
+			{Key: "BBCLI", Name: "bb cli", IsPrivate: true},
+		},
+	}
+	if err := writeProjectListSummary(&buf, listPayload); err != nil {
+		t.Fatalf("writeProjectListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"BBCLI",
+		"bb cli",
+		"private",
+		"Next: bb project view BBCLI --workspace acme",
+	)
+
+	buf.Reset()
+	summaryPayload := projectPayload{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		Project: bitbucket.Project{
+			Key:         "BBCLI",
+			Name:        "bb cli",
+			IsPrivate:   false,
+			UUID:        "{project-1}",
+			Description: "project description",
+			Links: bitbucket.ProjectLinks{
+				HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/workspace/projects/BBCLI"},
+			},
+		},
+	}
+	if err := writeProjectSummary(&buf, summaryPayload); err != nil {
+		t.Fatalf("writeProjectSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Project: BBCLI",
+		"Name: bb cli",
+		"Host: bitbucket.org",
+		"UUID: {project-1}",
+		"Description: project description",
+		"Next: bb project default-reviewer list BBCLI --workspace acme",
+	)
+}
+
 func TestWriteProjectDefaultReviewerListSummary(t *testing.T) {
 	t.Parallel()
 
@@ -193,5 +243,143 @@ func TestWriteProjectUserPermissionListSummary(t *testing.T) {
 		"Auro",
 		"admin",
 		"Next: bb project permissions user view BBCLI user-1 --workspace acme",
+	)
+}
+
+func TestWriteProjectPermissionSummaries(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	userPayload := projectUserPermissionPayload{
+		Workspace:  "acme",
+		ProjectKey: "BBCLI",
+		Permission: bitbucket.ProjectUserPermission{
+			Permission: "admin",
+			User:       bitbucket.RepositoryPermissionUser{AccountID: "user-1", DisplayName: "Auro"},
+		},
+	}
+	if err := writeProjectUserPermissionSummary(&buf, userPayload); err != nil {
+		t.Fatalf("writeProjectUserPermissionSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Project: BBCLI",
+		"Account ID: user-1",
+		"User: Auro",
+		"Permission: admin",
+		"Next: bb project permissions user list BBCLI --workspace acme",
+	)
+
+	buf.Reset()
+	groupListPayload := projectGroupPermissionListPayload{
+		Workspace:  "acme",
+		ProjectKey: "BBCLI",
+		Permissions: []bitbucket.ProjectGroupPermission{
+			{Permission: "write", Group: bitbucket.RepositoryPermissionGroup{Slug: "eng"}},
+		},
+	}
+	if err := writeProjectGroupPermissionListSummary(&buf, groupListPayload); err != nil {
+		t.Fatalf("writeProjectGroupPermissionListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Project: BBCLI",
+		"eng",
+		"write",
+		"Next: bb project permissions group view BBCLI eng --workspace acme",
+	)
+
+	buf.Reset()
+	groupPayload := projectGroupPermissionPayload{
+		Workspace:  "acme",
+		ProjectKey: "BBCLI",
+		Permission: bitbucket.ProjectGroupPermission{
+			Permission: "write",
+			Group:      bitbucket.RepositoryPermissionGroup{Slug: "eng"},
+		},
+	}
+	if err := writeProjectGroupPermissionSummary(&buf, groupPayload); err != nil {
+		t.Fatalf("writeProjectGroupPermissionSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Project: BBCLI",
+		"Group: eng",
+		"Permission: write",
+		"Next: bb project permissions group list BBCLI --workspace acme",
+	)
+}
+
+func TestWriteWorkspaceAndMembershipListSummaries(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	workspacePayload := workspacePayload{
+		Host: "bitbucket.org",
+		Workspace: bitbucket.Workspace{
+			Slug:      "acme",
+			Name:      "Acme",
+			IsPrivate: true,
+			UUID:      "{workspace-1}",
+			CreatedOn: "2026-03-13T00:00:00Z",
+			Links:     bitbucket.WorkspaceLinks{HTML: bitbucket.Link{Href: "https://bitbucket.org/acme/workspace/overview"}},
+		},
+	}
+	if err := writeWorkspaceSummary(&buf, workspacePayload); err != nil {
+		t.Fatalf("writeWorkspaceSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Name: Acme",
+		"Host: bitbucket.org",
+		"UUID: {workspace-1}",
+		"Created: 2026-03-13T00:00:00Z",
+		"Next: bb workspace member list acme",
+	)
+
+	buf.Reset()
+	memberListPayload := workspaceMembershipListPayload{
+		Workspace: "acme",
+		Query:     `display_name ~ "Auro"`,
+		Members: []bitbucket.WorkspaceMembership{
+			{Permission: "owner", User: bitbucket.RepositoryPermissionUser{AccountID: "user-1", DisplayName: "Auro", Nickname: "auro"}},
+		},
+	}
+	if err := writeWorkspaceMembershipListSummary(&buf, memberListPayload, "members"); err != nil {
+		t.Fatalf("writeWorkspaceMembershipListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Query: display_name ~ \"Auro\"",
+		"user-1",
+		"Auro",
+		"owner",
+		"Next: bb workspace member view user-1 --workspace acme",
+	)
+
+	buf.Reset()
+	repoPermPayload := workspaceRepoPermissionListPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Query:     "permission = \"write\"",
+		Sort:      "repository.slug",
+		Permissions: []bitbucket.WorkspaceRepositoryPermission{
+			{
+				Permission: "write",
+				Repository: bitbucket.WorkspacePermissionRepository{FullName: "acme/widgets"},
+				User:       bitbucket.RepositoryPermissionUser{AccountID: "user-1", DisplayName: "Auro"},
+			},
+		},
+	}
+	if err := writeWorkspaceRepoPermissionListSummary(&buf, repoPermPayload); err != nil {
+		t.Fatalf("writeWorkspaceRepoPermissionListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Repository: widgets",
+		"Query: permission = \"write\"",
+		"Sort: repository.slug",
+		"acme/widgets",
+		"Next: bb repo permissions user list --repo acme/widgets",
 	)
 }

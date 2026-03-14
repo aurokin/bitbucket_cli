@@ -230,3 +230,34 @@ func TestWriteDeploymentVariableSummary(t *testing.T) {
 		"Next: bb deployment environment variable list --repo acme/widgets --environment production",
 	)
 }
+
+func TestBuildDeploymentVariableUpdate(t *testing.T) {
+	t.Parallel()
+
+	existing := bitbucket.DeploymentVariable{
+		UUID:    "{var-1}",
+		Key:     "APP_ENV",
+		Value:   "production",
+		Secured: true,
+	}
+
+	updated, err := buildDeploymentVariableUpdate(existing, "", "staging", "")
+	if err != nil {
+		t.Fatalf("buildDeploymentVariableUpdate returned error: %v", err)
+	}
+	if updated.Key != "APP_ENV" || updated.Value != "staging" || !updated.Secured {
+		t.Fatalf("unexpected updated variable %+v", updated)
+	}
+
+	updated, err = buildDeploymentVariableUpdate(existing, "APP_MODE", "staging", "false")
+	if err != nil {
+		t.Fatalf("buildDeploymentVariableUpdate returned error: %v", err)
+	}
+	if updated.Key != "APP_MODE" || updated.Secured {
+		t.Fatalf("expected explicit key and unsecured variable, got %+v", updated)
+	}
+
+	if _, err := buildDeploymentVariableUpdate(existing, "", "staging", "maybe"); err == nil || !strings.Contains(err.Error(), "--secured must be true or false") {
+		t.Fatalf("expected secured parse error, got %v", err)
+	}
+}

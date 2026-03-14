@@ -257,20 +257,14 @@ func newDeploymentEnvironmentVariableEditCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if strings.TrimSpace(key) == "" {
-				key = existing.Key
-			}
-			nextSecured := existing.Secured
-			if strings.TrimSpace(secured) != "" {
-				nextSecured, err = parseBoolString(secured)
-				if err != nil {
-					return fmt.Errorf("--secured must be true or false")
-				}
+			nextVariable, err := buildDeploymentVariableUpdate(existing, key, resolvedValue, secured)
+			if err != nil {
+				return err
 			}
 			variable, err := resolved.Client.UpdateDeploymentVariable(context.Background(), resolved.Target.Workspace, resolved.Target.Repo, env.UUID, existing.UUID, bitbucket.DeploymentVariable{
-				Key:     strings.TrimSpace(key),
-				Value:   resolvedValue,
-				Secured: nextSecured,
+				Key:     nextVariable.Key,
+				Value:   nextVariable.Value,
+				Secured: nextVariable.Secured,
 			})
 			if err != nil {
 				return err
@@ -301,6 +295,26 @@ func newDeploymentEnvironmentVariableEditCmd() *cobra.Command {
 	cmd.Flags().StringVar(&secured, "secured", "", "Set secured to true or false; defaults to the existing value")
 	cmd.MarkFlagsMutuallyExclusive("value", "value-file")
 	return cmd
+}
+
+func buildDeploymentVariableUpdate(existing bitbucket.DeploymentVariable, key, value, secured string) (bitbucket.DeploymentVariable, error) {
+	nextKey := strings.TrimSpace(key)
+	if nextKey == "" {
+		nextKey = existing.Key
+	}
+	nextSecured := existing.Secured
+	if strings.TrimSpace(secured) != "" {
+		parsed, err := parseBoolString(secured)
+		if err != nil {
+			return bitbucket.DeploymentVariable{}, fmt.Errorf("--secured must be true or false")
+		}
+		nextSecured = parsed
+	}
+	return bitbucket.DeploymentVariable{
+		Key:     nextKey,
+		Value:   value,
+		Secured: nextSecured,
+	}, nil
 }
 
 func newDeploymentEnvironmentVariableDeleteCmd() *cobra.Command {

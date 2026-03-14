@@ -64,6 +64,7 @@ func TestPromptsDisabledWithInheritedFlag(t *testing.T) {
 	flag := child.Flag("no-prompt")
 	if flag == nil {
 		t.Fatal("expected inherited no-prompt flag")
+		return
 	}
 	if err := flag.Value.Set("true"); err != nil {
 		t.Fatalf("set no-prompt flag: %v", err)

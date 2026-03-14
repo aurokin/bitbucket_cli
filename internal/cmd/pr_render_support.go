@@ -303,62 +303,53 @@ type pullRequestSummaryOptions struct {
 	MergeCommit        string
 }
 
+type summaryRow struct {
+	Label string
+	Value string
+}
+
 func writePullRequestSummaryTable(w io.Writer, pr bitbucket.PullRequest, options pullRequestSummaryOptions) error {
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintf(tw, "ID:\t%d\n", pr.ID); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(tw, "Title:\t%s\n", pr.Title); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pr.State); err != nil {
-		return err
-	}
-	if options.IncludeAuthor && pr.Author.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", pr.Author.DisplayName); err != nil {
-			return err
-		}
-	}
-	if options.Strategy != "" {
-		if _, err := fmt.Fprintf(tw, "Strategy:\t%s\n", options.Strategy); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(tw, "Source:\t%s\n", pr.Source.Branch.Name); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(tw, "Destination:\t%s\n", pr.Destination.Branch.Name); err != nil {
-		return err
-	}
-	if pr.TaskCount > 0 {
-		if _, err := fmt.Fprintf(tw, "Tasks:\t%d\n", pr.TaskCount); err != nil {
-			return err
-		}
-	}
-	if pr.CommentCount > 0 {
-		if _, err := fmt.Fprintf(tw, "Comments:\t%d\n", pr.CommentCount); err != nil {
-			return err
-		}
-	}
-	if options.IncludeUpdated && pr.UpdatedOn != "" {
-		if _, err := fmt.Fprintf(tw, "Updated:\t%s\n", pr.UpdatedOn); err != nil {
-			return err
-		}
-	}
-	if options.MergeCommit != "" {
-		if _, err := fmt.Fprintf(tw, "Merge Commit:\t%s\n", options.MergeCommit); err != nil {
-			return err
-		}
-	}
-	if pr.Links.HTML.Href != "" {
-		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", pr.Links.HTML.Href); err != nil {
-			return err
-		}
-	}
-	if options.IncludeDescription && pr.Description != "" {
-		if _, err := fmt.Fprintf(tw, "Description:\t%s\n", pr.Description); err != nil {
+	for _, row := range pullRequestSummaryRows(pr, options) {
+		if _, err := fmt.Fprintf(tw, "%s:\t%s\n", row.Label, row.Value); err != nil {
 			return err
 		}
 	}
 	return tw.Flush()
+}
+
+func pullRequestSummaryRows(pr bitbucket.PullRequest, options pullRequestSummaryOptions) []summaryRow {
+	rows := []summaryRow{
+		{Label: "ID", Value: fmt.Sprintf("%d", pr.ID)},
+		{Label: "Title", Value: pr.Title},
+		{Label: "State", Value: pr.State},
+		{Label: "Source", Value: pr.Source.Branch.Name},
+		{Label: "Destination", Value: pr.Destination.Branch.Name},
+	}
+	if options.IncludeAuthor {
+		rows = appendSummaryRow(rows, "Author", pr.Author.DisplayName)
+	}
+	rows = appendSummaryRow(rows, "Strategy", options.Strategy)
+	if pr.TaskCount > 0 {
+		rows = append(rows, summaryRow{Label: "Tasks", Value: fmt.Sprintf("%d", pr.TaskCount)})
+	}
+	if pr.CommentCount > 0 {
+		rows = append(rows, summaryRow{Label: "Comments", Value: fmt.Sprintf("%d", pr.CommentCount)})
+	}
+	if options.IncludeUpdated {
+		rows = appendSummaryRow(rows, "Updated", pr.UpdatedOn)
+	}
+	rows = appendSummaryRow(rows, "Merge Commit", options.MergeCommit)
+	rows = appendSummaryRow(rows, "URL", pr.Links.HTML.Href)
+	if options.IncludeDescription {
+		rows = appendSummaryRow(rows, "Description", pr.Description)
+	}
+	return rows
+}
+
+func appendSummaryRow(rows []summaryRow, label, value string) []summaryRow {
+	if strings.TrimSpace(value) == "" {
+		return rows
+	}
+	return append(rows, summaryRow{Label: label, Value: value})
 }

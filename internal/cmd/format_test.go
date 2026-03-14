@@ -17,6 +17,7 @@ func TestAddFormatFlagsConfiguresBareJSONSupport(t *testing.T) {
 	jsonFlag := cmd.Flags().Lookup("json")
 	if jsonFlag == nil {
 		t.Fatal("expected json flag")
+		return
 	}
 	if jsonFlag.NoOptDefVal != "*" {
 		t.Fatalf("expected bare json flag default '*', got %q", jsonFlag.NoOptDefVal)
@@ -25,5 +26,6 @@ func TestAddFormatFlagsConfiguresBareJSONSupport(t *testing.T) {
 	jqFlag := cmd.Flags().Lookup("jq")
 	if jqFlag == nil {
 		t.Fatal("expected jq flag")
+		return
 	}
 }

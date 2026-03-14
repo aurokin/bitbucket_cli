@@ -434,85 +434,88 @@ func sampleString(path []string) string {
 		parent = path[len(path)-2]
 	}
 
-	switch key {
-	case "host":
-		return "bitbucket.org"
-	case "workspace":
-		return "workspace-slug"
-	case "repo":
-		return "repo-slug"
-	case "full_name":
-		return "workspace-slug/repo-slug"
-	case "name":
-		switch parent {
-		case "branch":
-			return "main"
-		case "project":
-			return "BBCLI"
-		default:
-			return "Example Name"
-		}
-	case "project_key", "key":
-		return "BBCLI"
-	case "project_name":
-		return "Bitbucket CLI"
-	case "main_branch":
-		return "main"
-	case "item":
-		if parent == "merge_strategies" {
-			return "merge_commit"
-		}
-		return "<item>"
-	case "html_url", "href":
-		return "https://bitbucket.org/workspace-slug/repo-slug"
-	case "https_clone", "clone_url":
-		return "https://bitbucket.org/workspace-slug/repo-slug.git"
-	case "ssh_clone", "local_clone_url":
-		return "git@bitbucket.org:workspace-slug/repo-slug.git"
-	case "remote":
-		return "origin"
-	case "root", "directory":
-		return "/path/to/repo"
-	case "title":
-		return "Example title"
-	case "description", "raw", "message":
-		return "Example text"
-	case "state":
-		if parent == "stats" || parent == "item" && containsPath(path, "stats") {
-			return "modified"
-		}
-		return "OPEN"
-	case "status":
-		return "modified"
-	case "display_name":
-		return "Example User"
-	case "account_id":
-		return "account-id"
-	case "nickname":
-		return "example-user"
-	case "username":
-		return "user@example.com"
-	case "uuid":
-		return "{uuid}"
-	case "hash":
-		return "abc123def456"
-	case "path", "escaped_path":
-		return "file.txt"
-	case "type":
-		return "commit_file"
-	case "role":
-		return "REVIEWER"
-	case "default_merge_strategy":
-		return "merge_commit"
-	case "patch":
-		return "diff --git a/file.txt b/file.txt\n..."
-	case "created_on", "updated_on", "updated_at":
-		return "2026-03-11T00:00:00Z"
-	case "user":
-		return "Example User"
-	default:
-		return fmt.Sprintf("<%s>", strings.ReplaceAll(key, "_", "-"))
+	if key == "name" {
+		return sampleNameString(parent)
 	}
+	if key == "item" {
+		return sampleItemString(parent)
+	}
+	if key == "state" {
+		return sampleStateString(path, parent)
+	}
+	if value, ok := sampleStringValue(key); ok {
+		return value
+	}
+	return fmt.Sprintf("<%s>", strings.ReplaceAll(key, "_", "-"))
+}
+
+func sampleNameString(parent string) string {
+	switch parent {
+	case "branch":
+		return "main"
+	case "project":
+		return "BBCLI"
+	default:
+		return "Example Name"
+	}
+}
+
+func sampleItemString(parent string) string {
+	if parent == "merge_strategies" {
+		return "merge_commit"
+	}
+	return "<item>"
+}
+
+func sampleStateString(path []string, parent string) string {
+	if parent == "stats" || (parent == "item" && containsPath(path, "stats")) {
+		return "modified"
+	}
+	return "OPEN"
+}
+
+func sampleStringValue(key string) (string, bool) {
+	value, ok := map[string]string{
+		"host":                   "bitbucket.org",
+		"workspace":              "workspace-slug",
+		"repo":                   "repo-slug",
+		"full_name":              "workspace-slug/repo-slug",
+		"project_key":            "BBCLI",
+		"key":                    "BBCLI",
+		"project_name":           "Bitbucket CLI",
+		"main_branch":            "main",
+		"html_url":               "https://bitbucket.org/workspace-slug/repo-slug",
+		"href":                   "https://bitbucket.org/workspace-slug/repo-slug",
+		"https_clone":            "https://bitbucket.org/workspace-slug/repo-slug.git",
+		"clone_url":              "https://bitbucket.org/workspace-slug/repo-slug.git",
+		"ssh_clone":              "git@bitbucket.org:workspace-slug/repo-slug.git",
+		"local_clone_url":        "git@bitbucket.org:workspace-slug/repo-slug.git",
+		"remote":                 "origin",
+		"root":                   "/path/to/repo",
+		"directory":              "/path/to/repo",
+		"title":                  "Example title",
+		"description":            "Example text",
+		"raw":                    "Example text",
+		"message":                "Example text",
+		"status":                 "modified",
+		"display_name":           "Example User",
+		"account_id":             "account-id",
+		"nickname":               "example-user",
+		"username":               "user@example.com",
+		"uuid":                   "{uuid}",
+		"hash":                   "abc123def456",
+		"path":                   "file.txt",
+		"escaped_path":           "file.txt",
+		"type":                   "commit_file",
+		"role":                   "REVIEWER",
+		"default_merge_strategy": "merge_commit",
+		"patch":                  "diff --git a/file.txt b/file.txt\n...",
+		"created_on":             "2026-03-11T00:00:00Z",
+		"updated_on":             "2026-03-11T00:00:00Z",
+		"updated_at":             "2026-03-11T00:00:00Z",
+		"user":                   "Example User",
+	}[key]
+	return value, ok
 }
 
 func sampleBool(path []string) bool {

@@ -2,6 +2,7 @@
 
 ## Package Manager
 - Use Go tooling: `go test ./...`, `go run ./cmd/bb`, `go build ./cmd/bb`
+- Use the committed lint config with `golangci-lint run ./...` when doing refactor, testing, or reliability passes.
 
 ## Commit Attribution
 - AI commits MUST include:

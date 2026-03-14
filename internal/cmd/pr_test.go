@@ -232,6 +232,40 @@ func TestReviewRequestedFromUser(t *testing.T) {
 	}
 }
 
+func TestSameActorFallsBackAcrossIdentityFields(t *testing.T) {
+	t.Parallel()
+
+	if !sameActor(bitbucket.CurrentUser{Username: "nick"}, bitbucket.PullRequestActor{Nickname: "nick"}) {
+		t.Fatal("expected username/nickname match")
+	}
+	if !sameActor(bitbucket.CurrentUser{DisplayName: "Example User"}, bitbucket.PullRequestActor{DisplayName: "Example User"}) {
+		t.Fatal("expected display-name match")
+	}
+	if sameActor(bitbucket.CurrentUser{DisplayName: "Example User"}, bitbucket.PullRequestActor{DisplayName: "Other"}) {
+		t.Fatal("did not expect mismatched display-name match")
+	}
+}
+
+func TestUniqueNonEmptyStrings(t *testing.T) {
+	t.Parallel()
+
+	values := uniqueNonEmptyStrings([]string{"", " merge_commit ", "squash", "merge_commit", "squash", " "})
+	if strings.Join(values, ",") != "merge_commit,squash" {
+		t.Fatalf("unexpected unique values %v", values)
+	}
+}
+
+func TestStringSliceContains(t *testing.T) {
+	t.Parallel()
+
+	if !stringSliceContains([]string{"merge_commit", "squash"}, "squash") {
+		t.Fatal("expected slice to contain value")
+	}
+	if stringSliceContains([]string{"merge_commit", "squash"}, "fast-forward") {
+		t.Fatal("did not expect missing value to match")
+	}
+}
+
 func TestDiffPath(t *testing.T) {
 	t.Parallel()
 
@@ -268,6 +302,17 @@ func TestResolveCommentBody(t *testing.T) {
 	}
 	if body != "From stdin" {
 		t.Fatalf("expected stdin body, got %q", body)
+	}
+}
+
+func TestResolveCommentBodyRejectsEmptyInput(t *testing.T) {
+	t.Parallel()
+
+	if _, err := resolveCommentBody(bytes.NewBufferString(""), "", ""); err == nil || !strings.Contains(err.Error(), "--body or --body-file") {
+		t.Fatalf("expected missing-body guidance, got %v", err)
+	}
+	if _, err := resolveCommentBody(bytes.NewBufferString(" \n"), "", "-"); err == nil || !strings.Contains(err.Error(), "comment body is empty") {
+		t.Fatalf("expected empty-body error, got %v", err)
 	}
 }
 
@@ -337,6 +382,17 @@ func TestWritePRDiffStatTableCompactsPaths(t *testing.T) {
 	}
 	if !strings.Contains(got, "total") {
 		t.Fatalf("expected total row, got %q", got)
+	}
+}
+
+func TestDiffStatusDefaultsChanged(t *testing.T) {
+	t.Parallel()
+
+	if got := diffStatus(bitbucket.PullRequestDiffStat{}); got != "changed" {
+		t.Fatalf("unexpected default diff status %q", got)
+	}
+	if got := diffStatus(bitbucket.PullRequestDiffStat{Status: " renamed "}); got != "renamed" {
+		t.Fatalf("unexpected trimmed diff status %q", got)
 	}
 }
 

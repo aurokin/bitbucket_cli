@@ -192,3 +192,22 @@ func TestParsePullRequestTaskID(t *testing.T) {
 		t.Fatalf("expected missing task reference error, got %v", err)
 	}
 }
+
+func TestPullRequestTaskConfirmationTarget(t *testing.T) {
+	t.Parallel()
+
+	target := resolvedPullRequestTaskTarget{
+		PRTarget: resolvedPullRequestTarget{
+			RepoTarget: resolvedRepoTarget{
+				Workspace: "acme",
+				Repo:      "widgets",
+			},
+			ID: 7,
+		},
+		TaskID: 3,
+	}
+
+	if got := pullRequestTaskConfirmationTarget(target); got != "acme/widgets#pr-7/task-3" {
+		t.Fatalf("unexpected confirmation target %q", got)
+	}
+}

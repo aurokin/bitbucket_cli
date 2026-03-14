@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
+	"github.com/spf13/cobra"
 )
 
 func TestWriteCommitViewSummary(t *testing.T) {
@@ -244,4 +249,79 @@ func TestWriteCommitReportListSummary(t *testing.T) {
 		"Commit: abc1234",
 		"Next: bb commit report view scanner-1 --commit abc1234 --repo acme/widgets",
 	)
+}
+
+func TestBuildCommitDiffPayloadStatAndPatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/2.0/repositories/acme/widgets/diffstat/abc1234":
+			if got := r.URL.Query().Get("pagelen"); got != "100" {
+				t.Fatalf("expected diffstat pagelen=100, got %q", got)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"status":"modified","old":{"path":"main.go"},"lines_added":2,"lines_removed":1}]}`))
+		case r.URL.Path == "/2.0/repositories/acme/widgets/diff/abc1234":
+			if got := r.URL.RawQuery; got != "binary=false&context=3&ignore_whitespace=true&path=main.go&renames=false" {
+				t.Fatalf("unexpected diff query %q", got)
+			}
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("diff --git a/main.go b/main.go\n"))
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		Username: "agent@example.com",
+		Token:    "secret",
+		AuthType: config.AuthTypeAPIToken,
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	resolved := resolvedCommitCommandTarget{
+		Client: client,
+		Target: resolvedCommitTarget{
+			RepoTarget: resolvedRepoTarget{
+				Host:      "bitbucket.org",
+				Workspace: "acme",
+				Repo:      "widgets",
+				Warnings:  []string{"warning"},
+			},
+			Commit: "abc1234",
+		},
+	}
+
+	statPayload, err := buildCommitDiffPayload(context.Background(), &cobra.Command{}, resolved, true, 0, nil, false, true, true)
+	if err != nil {
+		t.Fatalf("buildCommitDiffPayload stat returned error: %v", err)
+	}
+	if len(statPayload.Stats) != 1 || statPayload.Stats[0].Old == nil || statPayload.Stats[0].Old.Path != "main.go" {
+		t.Fatalf("unexpected stat payload %+v", statPayload)
+	}
+	if len(statPayload.Warnings) != 1 || statPayload.Warnings[0] != "warning" {
+		t.Fatalf("expected warnings to be preserved, got %+v", statPayload.Warnings)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("binary", true, "")
+	cmd.Flags().Bool("renames", true, "")
+	if err := cmd.Flags().Set("binary", "false"); err != nil {
+		t.Fatalf("set binary flag: %v", err)
+	}
+	if err := cmd.Flags().Set("renames", "false"); err != nil {
+		t.Fatalf("set renames flag: %v", err)
+	}
+
+	patchPayload, err := buildCommitDiffPayload(context.Background(), cmd, resolved, false, 3, []string{"main.go"}, true, false, false)
+	if err != nil {
+		t.Fatalf("buildCommitDiffPayload patch returned error: %v", err)
+	}
+	if !strings.Contains(patchPayload.Patch, "diff --git a/main.go b/main.go") {
+		t.Fatalf("unexpected patch payload %+v", patchPayload)
+	}
 }

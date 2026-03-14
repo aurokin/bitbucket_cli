@@ -126,3 +126,22 @@ func TestWritePullRequestCommentCreateSummary(t *testing.T) {
 		"Next: bb pr view 7 --repo acme/widgets",
 	)
 }
+
+func TestPullRequestCommentConfirmationTarget(t *testing.T) {
+	t.Parallel()
+
+	target := resolvedPullRequestCommentTarget{
+		PRTarget: resolvedPullRequestTarget{
+			RepoTarget: resolvedRepoTarget{
+				Workspace: "acme",
+				Repo:      "widgets",
+			},
+			ID: 7,
+		},
+		CommentID: 15,
+	}
+
+	if got := pullRequestCommentConfirmationTarget(target); got != "acme/widgets#pr-7/comment-15" {
+		t.Fatalf("unexpected confirmation target %q", got)
+	}
+}

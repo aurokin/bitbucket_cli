@@ -12,6 +12,7 @@ import (
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	"github.com/aurokin/bitbucket_cli/internal/config"
+	"github.com/spf13/cobra"
 )
 
 func TestResolvePipelineRunRef(t *testing.T) {
@@ -231,6 +232,66 @@ func TestWritePipelineVariableListSummary(t *testing.T) {
 		"APP_ENV",
 		"Next: bb pipeline variable view APP_ENV --repo acme/widgets",
 	)
+}
+
+func TestBuildPipelineRunPayload(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets/pipelines" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"uuid":"{pipeline-1}","build_number":42,"state":{"result":{"name":"PENDING"}},"target":{"ref_type":"branch","ref_name":"main"}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	payload, err := buildPipelineRunPayload(context.Background(), "", "acme", "widgets", "main", nil, "branch")
+	if err != nil {
+		t.Fatalf("buildPipelineRunPayload returned error: %v", err)
+	}
+	if payload.Workspace != "acme" || payload.Repo != "widgets" || payload.Pipeline.BuildNumber != 42 {
+		t.Fatalf("unexpected pipeline run payload %+v", payload)
+	}
+}
+
+func TestConfirmPipelineStop(t *testing.T) {
+	t.Parallel()
+
+	target := resolvedRepoTarget{Workspace: "acme", Repo: "widgets"}
+	pipeline := bitbucket.Pipeline{BuildNumber: 42}
+
+	if err := confirmPipelineStop(&cobra.Command{}, target, pipeline, true); err != nil {
+		t.Fatalf("confirmPipelineStop with --yes returned error: %v", err)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(bytes.NewBufferString(""))
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.Flags().Bool("no-prompt", false, "")
+	if err := cmd.Flags().Set("no-prompt", "true"); err != nil {
+		t.Fatalf("set no-prompt flag: %v", err)
+	}
+
+	err := confirmPipelineStop(cmd, target, pipeline, false)
+	if err == nil || err.Error() != "pipeline stop requires confirmation; pass --yes or run in an interactive terminal" {
+		t.Fatalf("expected non-interactive confirmation error, got %v", err)
+	}
 }
 
 func newPipelineManageTestClient(t *testing.T) *bitbucket.Client {

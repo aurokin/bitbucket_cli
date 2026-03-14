@@ -168,3 +168,20 @@ func TestSummarizeCommitStatuses(t *testing.T) {
 		t.Fatalf("unexpected status summary %q", got)
 	}
 }
+
+func TestReviewStateForAction(t *testing.T) {
+	t.Parallel()
+
+	if got := reviewStateForAction(bitbucket.PullRequestReviewApprove, bitbucket.PullRequestParticipant{State: "APPROVED"}); got != "APPROVED" {
+		t.Fatalf("expected explicit participant state, got %q", got)
+	}
+	if got := reviewStateForAction(bitbucket.PullRequestReviewApprove, bitbucket.PullRequestParticipant{Approved: true}); got != "approved" {
+		t.Fatalf("expected approved fallback, got %q", got)
+	}
+	if got := reviewStateForAction(bitbucket.PullRequestReviewRequestChanges, bitbucket.PullRequestParticipant{}); got != "changes_requested" {
+		t.Fatalf("expected changes_requested, got %q", got)
+	}
+	if got := reviewStateForAction(bitbucket.PullRequestReviewClearRequestChanges, bitbucket.PullRequestParticipant{}); got != "changes_request_cleared" {
+		t.Fatalf("expected changes_request_cleared, got %q", got)
+	}
+}

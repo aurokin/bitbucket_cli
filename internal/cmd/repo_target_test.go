@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
+	"github.com/spf13/cobra"
 )
 
 func TestResolveRepoCloneInput(t *testing.T) {
@@ -232,4 +237,64 @@ func TestWriteRepoViewSummaryIncludesWarningsAndNextStep(t *testing.T) {
 		"URL: https://bitbucket.org/acme/widgets",
 		"Next: bb repo clone acme/widgets",
 	)
+}
+
+func TestBuildRepoCreatePayload(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/repositories/acme/widgets" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"slug":"widgets","name":"Widgets","is_private":true,"project":{"key":"BBCLI"},"links":{"html":{"href":"https://bitbucket.org/acme/widgets"}}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	payload, err := buildRepoCreatePayload(context.Background(), "", "", "", "acme/widgets", bitbucket.CreateRepositoryOptions{
+		Name:       "Widgets",
+		ProjectKey: "BBCLI",
+		IsPrivate:  true,
+	})
+	if err != nil {
+		t.Fatalf("buildRepoCreatePayload returned error: %v", err)
+	}
+	if payload.Workspace != "acme" || payload.Repository.Slug != "widgets" || payload.Repository.Project.Key != "BBCLI" {
+		t.Fatalf("unexpected repo create payload %+v", payload)
+	}
+}
+
+func TestConfirmRepoDeletion(t *testing.T) {
+	t.Parallel()
+
+	if err := confirmRepoDeletion(&cobra.Command{}, "acme", "widgets", true); err != nil {
+		t.Fatalf("confirmRepoDeletion with --yes returned error: %v", err)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(bytes.NewBufferString(""))
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.Flags().Bool("no-prompt", false, "")
+	if err := cmd.Flags().Set("no-prompt", "true"); err != nil {
+		t.Fatalf("set no-prompt flag: %v", err)
+	}
+
+	err := confirmRepoDeletion(cmd, "acme", "widgets", false)
+	if err == nil || err.Error() != "repository deletion requires confirmation; pass --yes or run in an interactive terminal" {
+		t.Fatalf("expected non-interactive confirmation error, got %v", err)
+	}
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
@@ -65,4 +66,28 @@ func TestWriteIssueCommentSummary(t *testing.T) {
 		"Body: Needs follow-up",
 		"Next: bb issue comment list 7 --repo acme/widgets",
 	)
+}
+
+func TestResolveIssueCommentReferenceFromIssueURL(t *testing.T) {
+	configureIssueReferenceTestAuth(t)
+
+	target, _, issueID, commentID, err := resolveIssueCommentReference("", "", "", "https://bitbucket.org/acme/widgets/issues/7", "3")
+	if err != nil {
+		t.Fatalf("resolveIssueCommentReference returned error: %v", err)
+	}
+	if issueID != 7 || commentID != 3 {
+		t.Fatalf("expected issue/comment 7/3, got %d/%d", issueID, commentID)
+	}
+	if target.Workspace != "acme" || target.Repo != "widgets" {
+		t.Fatalf("unexpected target %+v", target)
+	}
+}
+
+func TestResolveIssueCommentReferenceRejectsInvalidCommentID(t *testing.T) {
+	configureIssueReferenceTestAuth(t)
+
+	_, _, _, _, err := resolveIssueCommentReference("", "", "", "https://bitbucket.org/acme/widgets/issues/7", "comment-3")
+	if err == nil || !strings.Contains(err.Error(), "positive integer") {
+		t.Fatalf("expected invalid comment ID error, got %v", err)
+	}
 }

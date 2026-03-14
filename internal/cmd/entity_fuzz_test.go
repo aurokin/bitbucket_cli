@@ -10,9 +10,12 @@ func FuzzParseBitbucketEntityURL(f *testing.F) {
 		"https://bitbucket.org/acme/widgets",
 		"https://bitbucket.org/acme/widgets/pull-requests/42#comment-15",
 		"https://bitbucket.org/acme/widgets/issues/5",
+		"https://bitbucket.org/acme/widgets/issues/5/?foo=bar",
+		"https://bitbucket.org/acme/widgets/issues/not-a-number",
 		"https://bitbucket.org/acme/widgets/commits/abcdef1",
 		"https://bitbucket.org/acme/widgets/src/main/README.md#lines-12:14",
 		"https://bitbucket.org/acme/widgets/src/release%2F1.0/docs/guide.md?at=ignored#lines-8",
+		"https://bitbucket.org/acme/widgets/src/%2F/docs/guide.md",
 		"not-a-url",
 	}
 	for _, seed := range seeds {

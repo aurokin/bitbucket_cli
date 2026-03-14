@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestParsePositiveInt(t *testing.T) {
@@ -155,6 +156,56 @@ func TestWriteIssueListSummaryIncludesWarnings(t *testing.T) {
 		if !strings.Contains(got, expected) {
 			t.Fatalf("expected %q in output, got %q", expected, got)
 		}
+	}
+}
+
+func TestResolveIssueReferenceFromURL(t *testing.T) {
+	configureIssueReferenceTestAuth(t)
+
+	target, _, issueID, err := resolveIssueReference("", "", "", "https://bitbucket.org/acme/widgets/issues/12")
+	if err != nil {
+		t.Fatalf("resolveIssueReference returned error: %v", err)
+	}
+	if issueID != 12 {
+		t.Fatalf("expected issue ID 12, got %d", issueID)
+	}
+	if target.Host != "bitbucket.org" || target.Workspace != "acme" || target.Repo != "widgets" {
+		t.Fatalf("unexpected target %+v", target)
+	}
+}
+
+func TestResolveIssueReferenceRejectsMismatchedExplicitRepo(t *testing.T) {
+	configureIssueReferenceTestAuth(t)
+
+	_, _, _, err := resolveIssueReference("", "", "acme/other", "https://bitbucket.org/acme/widgets/issues/12")
+	if err == nil || !strings.Contains(err.Error(), "does not match the explicit repository target") {
+		t.Fatalf("expected explicit target mismatch, got %v", err)
+	}
+}
+
+func TestResolveIssueReferenceRejectsNonIssueURL(t *testing.T) {
+	configureIssueReferenceTestAuth(t)
+
+	_, _, _, err := resolveIssueReference("", "", "", "https://bitbucket.org/acme/widgets/pull-requests/12")
+	if err == nil || !strings.Contains(err.Error(), "issue must be provided as an ID or Bitbucket issue URL") {
+		t.Fatalf("expected non-issue URL rejection, got %v", err)
+	}
+}
+
+func configureIssueReferenceTestAuth(t *testing.T) {
+	t.Helper()
+
+	tempDir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", tempDir)
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
 	}
 }
 

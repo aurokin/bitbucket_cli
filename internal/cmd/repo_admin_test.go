@@ -3,9 +3,12 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestParseRepoVisibility(t *testing.T) {
@@ -223,5 +226,47 @@ func TestRepoForkAction(t *testing.T) {
 	}
 	if got := repoForkAction(fork, "acme", "", "widgets-fork", false); got != "forked" {
 		t.Fatalf("unexpected repo fork action without reuse %q", got)
+	}
+}
+
+func TestBuildRepoForkPayload(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/2.0/repositories/acme/widgets":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"slug":"widgets","name":"Widgets","full_name":"acme/widgets"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/2.0/repositories/acme/widgets/forks":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"slug":"widgets-fork","name":"Widgets Fork","full_name":"forkspace/widgets-fork","is_private":true,"parent":{"full_name":"acme/widgets"},"links":{"html":{"href":"https://bitbucket.org/forkspace/widgets-fork"}}}`))
+		default:
+			t.Fatalf("unexpected %s %q", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	payload, err := buildRepoForkPayload(context.Background(), "", "", "", "acme/widgets", repoForkInput{
+		DestinationWorkspace: "forkspace",
+		Name:                 "Widgets Fork",
+		Visibility:           "private",
+	})
+	if err != nil {
+		t.Fatalf("buildRepoForkPayload returned error: %v", err)
+	}
+	if payload.SourceWorkspace != "acme" || payload.SourceRepo != "widgets" || payload.Repository.FullName != "forkspace/widgets-fork" {
+		t.Fatalf("unexpected repo fork payload %+v", payload)
 	}
 }

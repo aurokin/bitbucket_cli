@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 type fakeStatusClient struct {
@@ -204,6 +207,43 @@ func TestBuildCrossRepoStatusUsesBoundedConcurrency(t *testing.T) {
 	}
 	if client.issueCalls.Load() != 4 {
 		t.Fatalf("expected 4 issue calls, got %d", client.issueCalls.Load())
+	}
+}
+
+func TestResolveStatusWorkspaces(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/workspaces" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"slug":"zeta"},{"slug":"acme"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	workspaces, err := resolveStatusWorkspaces(context.Background(), client, "")
+	if err != nil {
+		t.Fatalf("resolveStatusWorkspaces returned error: %v", err)
+	}
+	if len(workspaces) != 2 || workspaces[0] != "acme" || workspaces[1] != "zeta" {
+		t.Fatalf("unexpected workspaces %+v", workspaces)
+	}
+
+	selected, err := resolveStatusWorkspaces(context.Background(), client, "only-this")
+	if err != nil {
+		t.Fatalf("resolveStatusWorkspaces with selection returned error: %v", err)
+	}
+	if len(selected) != 1 || selected[0] != "only-this" {
+		t.Fatalf("unexpected selected workspaces %+v", selected)
 	}
 }
 

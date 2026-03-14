@@ -75,3 +75,29 @@ func TestWritePipelineRunnerSummaryDelete(t *testing.T) {
 		t.Fatalf("expected deleted status in output, got %q", got)
 	}
 }
+
+func TestWritePipelineCacheSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := pipelineCachePayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Action:    "deleted",
+		Deleted:   true,
+		Name:      "gomod",
+		Cache:     bitbucket.PipelineCache{UUID: "{cache-1}"},
+	}
+
+	if err := writePipelineCacheSummary(&buf, payload); err != nil {
+		t.Fatalf("writePipelineCacheSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Cache: gomod",
+		"Action: deleted",
+		"Status: deleted",
+		"Next: bb pipeline cache list --repo acme/widgets",
+	)
+}

@@ -1678,6 +1678,7 @@ func TestBitbucketCloudCommitReports(t *testing.T) {
 	if _, err := createCommitReportFixture(context.Background(), session.Client, session.Workspace, fixture.PrimaryRepo.Slug, commitHash, reportID); err != nil {
 		t.Skipf("commit report creation is not available for this fixture/account: %v", err)
 	}
+	waitForCommitReportFixture(t, session.Client, session.Workspace, fixture.PrimaryRepo.Slug, commitHash, reportID)
 
 	listOutput := session.Run(t, fixture.PrimaryRepoDir, "commit", "report", "list", commitHash, "--json", "*")
 	var listed struct {
@@ -3021,6 +3022,27 @@ func createCommitReportFixture(ctx context.Context, client *bitbucket.Client, wo
 		return bitbucket.CommitReport{}, err
 	}
 	return report, nil
+}
+
+func waitForCommitReportFixture(t *testing.T, client *bitbucket.Client, workspace, repoSlug, commitHash, reportID string) {
+	t.Helper()
+
+	var last []bitbucket.CommitReport
+	for attempt := 0; attempt < 12; attempt++ {
+		reports, err := client.ListCommitReports(context.Background(), workspace, repoSlug, commitHash, bitbucket.ListCommitReportsOptions{Limit: 50})
+		if err != nil {
+			t.Fatalf("list commit reports for fixture: %v", err)
+		}
+		last = reports
+		for _, report := range reports {
+			if report.ExternalID == reportID || report.UUID == reportID {
+				return
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	t.Fatalf("commit report %q did not appear in list output after creation; last reports: %+v", reportID, last)
 }
 
 func deleteBranchIfExists(t *testing.T, client *bitbucket.Client, workspace, repoSlug, name string) {

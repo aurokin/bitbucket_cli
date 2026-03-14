@@ -129,6 +129,7 @@ bb deployment environment list --repo workspace-slug/pipelines-repo-slug
 bb deployment environment variable list --repo workspace-slug/pipelines-repo-slug --environment test
 bb deployment environment variable create --repo workspace-slug/pipelines-repo-slug --environment test --key APP_ENV --value production
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
+bb pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
 bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
 bb pipeline runner list --repo workspace-slug/pipelines-repo-slug
@@ -300,6 +301,7 @@ References:
 - `bb deployment` supports the official Bitbucket Cloud deployment and environment paths we could verify directly today: deployment listing, environment inspection, and deployment environment variable inspection plus create, edit, and delete.
 - Bitbucket's single deployment-variable GET endpoint currently rejects the verified API-token path even though the list/create/edit/delete paths work. `bb deployment environment variable view` resolves through the list endpoint so the user-facing workflow stays reliable.
 - `bb` does not provide pipeline rerun because the current Bitbucket Cloud pipeline REST docs do not expose a rerun endpoint. `bb` does not fake rerun by creating a new run behind your back.
+- `bb pipeline stop` reports whether the final observed pipeline state actually became `STOPPED`. Bitbucket can accept a stop request but still finish the run in another terminal state first, so JSON `stopped: false` can still mean the stop request was accepted too late to change the final result.
 - Raw step logs are not guaranteed for every Bitbucket pipeline step. When Bitbucket does not expose a log file for a step, `bb pipeline log` fails clearly instead of inventing synthetic output.
 - Test reports are also not guaranteed for every pipeline step. When Bitbucket does not expose test reports for a step, `bb pipeline test-reports` fails clearly instead of inventing synthetic results.
 

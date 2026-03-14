@@ -136,6 +136,7 @@ bb deployment environment variable create --repo workspace-slug/pipelines-repo-s
 bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging
 bb deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main
+bb pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes
 bb pipeline schedule list --repo workspace-slug/pipelines-repo-slug
 bb pipeline schedule create --repo workspace-slug/pipelines-repo-slug --ref main --cron '0 0 12 * * ? *'
 bb pipeline cache list --repo workspace-slug/pipelines-repo-slug
@@ -145,6 +146,8 @@ bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{st
 bb pipeline log 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}'
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug
 ```
+
+When you stop a pipeline, Bitbucket can still finish the run in another terminal state before it becomes `STOPPED`. `bb pipeline stop` reports the final observed pipeline state so you can tell the difference between a true stop and a late stop request.
 
 Bitbucket Cloud repository downloads remain out of scope for this CLI on the verified API-token path because the official downloads endpoint currently returns a workspace-plan `402 Payment Required` response on the fixture workspace.
 

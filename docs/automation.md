@@ -105,6 +105,7 @@ bb deployment environment variable create --repo workspace-slug/pipelines-repo-s
 bb deployment environment variable edit APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --value staging --json variable
 bb --no-prompt deployment environment variable delete APP_ENV --repo workspace-slug/pipelines-repo-slug --environment test --yes --json deleted,variable
 bb pipeline run --repo workspace-slug/pipelines-repo-slug --ref main --json pipeline
+bb --no-prompt pipeline stop 42 --repo workspace-slug/pipelines-repo-slug --yes --json pipeline,stopped
 bb pipeline test-reports 1 --repo workspace-slug/pipelines-repo-slug --step '{step-uuid}' --cases --json summary,test_cases
 bb pipeline variable list --repo workspace-slug/pipelines-repo-slug --json variables
 bb pipeline variable create --repo workspace-slug/pipelines-repo-slug --key CI_TOKEN --value-file secret.txt --secured --json variable
@@ -147,6 +148,8 @@ Live Bitbucket integration tests remain manual-only. They are useful when you ne
 ```bash
 BB_RUN_INTEGRATION=1 go test -tags=integration ./integration -run TestBitbucketCloudHumanOutputSmoke -v
 ```
+
+For `bb pipeline stop`, treat JSON `stopped` as “the final observed pipeline state was `STOPPED`,” not merely “a stop request was sent.” Bitbucket can accept the stop request but still finish the run in another terminal state first.
 
 Bitbucket Cloud currently rejects API-token auth for the documented issue import/export job endpoints. Keep automation on attachments, comments, milestones, and components unless Atlassian changes the auth behavior.
 

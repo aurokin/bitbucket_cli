@@ -3,6 +3,8 @@
 ## Package Manager
 - Use Go tooling: `go test ./...`, `go run ./cmd/bb`, `go build ./cmd/bb`
 - Use the committed lint config with `golangci-lint run ./...` when doing refactor, testing, or reliability passes.
+- Use the repo-local gate for regular local verification: `make check`
+- Bootstrap pinned local dev tools with `make tools`
 
 ## Commit Attribution
 - AI commits MUST include:

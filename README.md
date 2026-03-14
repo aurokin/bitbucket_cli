@@ -47,6 +47,26 @@ go install ./cmd/bb
 bb version
 ```
 
+## Local Gate
+
+For local development from a checkout, the regular quality gate is:
+
+```bash
+make check
+```
+
+That runs:
+
+- `go test ./...`
+- `golangci-lint run ./...`
+- explicit complexity checks with `gocognit` and `gocyclo`
+
+The first run installs pinned dev tools into `.tools/bin` with:
+
+```bash
+make tools
+```
+
 ## Install Agent Skill
 
 This repo also ships a reusable `bb-cli` skill for agents.

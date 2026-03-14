@@ -1,4 +1,5 @@
 /bb
 /dist/
 /cover.out
+.tools/
 .DS_Store

@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
+	"github.com/aurokin/bitbucket_cli/internal/config"
 )
 
 func TestWriteWorkspaceListSummary(t *testing.T) {
@@ -55,6 +58,66 @@ func TestWriteWorkspaceMembershipSummary(t *testing.T) {
 	)
 }
 
+func TestResolveWorkspaceCommandTargetAutoSelectsSingleWorkspace(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/2.0/workspaces" {
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"slug":"acme","name":"Acme"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	workspace, host, client, err := resolveWorkspaceCommandTarget("", "", "")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceCommandTarget returned error: %v", err)
+	}
+	if workspace != "acme" || host != "bitbucket.org" || client == nil {
+		t.Fatalf("unexpected resolution %q %q %v", workspace, host, client)
+	}
+}
+
+func TestResolveWorkspaceCommandTargetRejectsMultipleWorkspacesWithoutSelection(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"slug":"acme","name":"Acme"},{"slug":"other","name":"Other"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	_, _, _, err := resolveWorkspaceCommandTarget("", "", "")
+	if err == nil || err.Error() != "multiple workspaces available; specify --workspace" {
+		t.Fatalf("expected multiple workspace error, got %v", err)
+	}
+}
+
 func TestWriteProjectMutationSummary(t *testing.T) {
 	t.Parallel()
 
@@ -82,6 +145,30 @@ func TestWriteProjectMutationSummary(t *testing.T) {
 		"Visibility: public",
 		"URL: https://bitbucket.org/acme/workspace/projects/BBCLI",
 		"Next: bb project view BBCLI --workspace acme",
+	)
+}
+
+func TestWriteProjectDefaultReviewerListSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := projectDefaultReviewerListPayload{
+		Workspace:  "acme",
+		ProjectKey: "BBCLI",
+		DefaultReviewers: []bitbucket.DefaultReviewer{
+			{ReviewerType: "project", User: bitbucket.RepositoryPermissionUser{AccountID: "user-1", DisplayName: "Auro"}},
+		},
+	}
+	if err := writeProjectDefaultReviewerListSummary(&buf, payload); err != nil {
+		t.Fatalf("writeProjectDefaultReviewerListSummary returned error: %v", err)
+	}
+	assertOrderedSubstrings(t, buf.String(),
+		"Workspace: acme",
+		"Project: BBCLI",
+		"user-1",
+		"Auro",
+		"project",
+		"Next: bb project permissions user list BBCLI --workspace acme",
 	)
 }
 

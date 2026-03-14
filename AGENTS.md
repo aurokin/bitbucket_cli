@@ -4,6 +4,7 @@
 - Use Go tooling: `go test ./...`, `go run ./cmd/bb`, `go build ./cmd/bb`
 - Use the committed lint config with `golangci-lint run ./...` when doing refactor, testing, or reliability passes.
 - Use the repo-local gate for regular local verification: `make check`
+- Use `make coverage` for coverage-guided reliability passes before adding broad new tests.
 - Use `make race` for broader validation when touching shared state, hooks, or command execution paths.
 - Use `make fuzz-short` when changing parser, selector, URL, or alias splitting behavior.
 - Use `make stability` when refactors touch shared helpers or tests that may hide order dependence or accidental coupling.

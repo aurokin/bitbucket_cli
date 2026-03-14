@@ -1,4 +1,4 @@
-.PHONY: check complexity fuzz-short lint race stability test test-repeat test-shuffle tools
+.PHONY: check complexity coverage fuzz-short lint race stability test test-repeat test-shuffle tools
 
 check: test lint complexity
 
@@ -21,6 +21,9 @@ lint: tools
 
 complexity: tools
 	./scripts/complexity.sh
+
+coverage:
+	go test -cover ./...
 
 fuzz-short:
 	go test ./internal/cmd -run '^$$' -fuzz FuzzSplitCommandLine -fuzztime=2s

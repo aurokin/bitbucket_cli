@@ -63,6 +63,7 @@ That runs:
 
 Additional validation targets:
 
+- `make coverage`
 - `make race`
 - `make fuzz-short`
 - `make stability`

@@ -113,3 +113,49 @@ func TestResolveHumanOutputForSourceURL(t *testing.T) {
 		"Next: bb browse README.md:12 --repo acme/widgets --no-browser",
 	)
 }
+
+func TestResolveHumanOutputForIssueURL(t *testing.T) {
+	t.Parallel()
+
+	entity, err := parseBitbucketEntityURL("https://bitbucket.org/acme/widgets/issues/5/?tab=comments")
+	if err != nil {
+		t.Fatalf("parseBitbucketEntityURL returned error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := writeResolveSummary(&buf, entity); err != nil {
+		t.Fatalf("writeResolveSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Type: issue",
+		"Issue: 5",
+		"URL: https://bitbucket.org/acme/widgets/issues/5/?tab=comments",
+		"Canonical URL: https://bitbucket.org/acme/widgets/issues/5",
+		"Next: bb issue view 5 --repo acme/widgets",
+	)
+}
+
+func TestResolveHumanOutputForCommitURL(t *testing.T) {
+	t.Parallel()
+
+	entity, err := parseBitbucketEntityURL("https://bitbucket.org/acme/widgets/commits/deadbeef?foo=bar")
+	if err != nil {
+		t.Fatalf("parseBitbucketEntityURL returned error: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := writeResolveSummary(&buf, entity); err != nil {
+		t.Fatalf("writeResolveSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Type: commit",
+		"Commit: deadbeef",
+		"URL: https://bitbucket.org/acme/widgets/commits/deadbeef?foo=bar",
+		"Canonical URL: https://bitbucket.org/acme/widgets/commits/deadbeef",
+		"Next: bb browse deadbeef --repo acme/widgets --no-browser",
+	)
+}

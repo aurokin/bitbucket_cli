@@ -262,6 +262,11 @@ func TestValidateBrowseOptionsRejectsConflicts(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "choose only one") {
 		t.Fatalf("expected mutually exclusive error, got %v", err)
 	}
+
+	err = validateBrowseOptions("", browseOptions{Branch: "main", Commit: "deadbeef"})
+	if err == nil || !strings.Contains(err.Error(), "--branch and --commit cannot be used together") {
+		t.Fatalf("expected branch/commit conflict error, got %v", err)
+	}
 }
 
 func TestConfiguredBrowserCommandPrefersEnvThenConfig(t *testing.T) {

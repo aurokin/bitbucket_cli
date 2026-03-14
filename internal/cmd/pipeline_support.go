@@ -62,37 +62,8 @@ func writePipelineViewSummary(w io.Writer, payload pipelineViewPayload) error {
 		return err
 	}
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pipelineStateLabel(payload.Pipeline.State)); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(tw, "Ref:\t%s\n", pipelineRefLabel(payload.Pipeline.Target)); err != nil {
-		return err
-	}
-	if payload.Pipeline.Creator.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Creator:\t%s\n", payload.Pipeline.Creator.DisplayName); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(tw, "UUID:\t%s\n", payload.Pipeline.UUID); err != nil {
-		return err
-	}
-	if payload.Pipeline.CreatedOn != "" {
-		if _, err := fmt.Fprintf(tw, "Created:\t%s\n", payload.Pipeline.CreatedOn); err != nil {
-			return err
-		}
-	}
-	if payload.Pipeline.CompletedOn != "" {
-		if _, err := fmt.Fprintf(tw, "Completed:\t%s\n", payload.Pipeline.CompletedOn); err != nil {
-			return err
-		}
-	}
-	if duration := pipelineDuration(payload.Pipeline); duration != "" {
-		if _, err := fmt.Fprintf(tw, "Duration:\t%s\n", duration); err != nil {
-			return err
-		}
-	}
-	if payload.Pipeline.Links.HTML.Href != "" {
-		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.Pipeline.Links.HTML.Href); err != nil {
+	for _, row := range pipelineSummaryRows(payload.Pipeline) {
+		if _, err := fmt.Fprintf(tw, "%s:\t%s\n", row.Label, row.Value); err != nil {
 			return err
 		}
 	}
@@ -128,6 +99,20 @@ func writePipelineStepTable(w io.Writer, steps []bitbucket.PipelineStep) error {
 		}
 	}
 	return tw.Flush()
+}
+
+func pipelineSummaryRows(pipeline bitbucket.Pipeline) []summaryRow {
+	rows := []summaryRow{
+		{Label: "State", Value: pipelineStateLabel(pipeline.State)},
+		{Label: "Ref", Value: pipelineRefLabel(pipeline.Target)},
+		{Label: "UUID", Value: pipeline.UUID},
+	}
+	rows = appendSummaryRow(rows, "Creator", pipeline.Creator.DisplayName)
+	rows = appendSummaryRow(rows, "Created", pipeline.CreatedOn)
+	rows = appendSummaryRow(rows, "Completed", pipeline.CompletedOn)
+	rows = appendSummaryRow(rows, "Duration", pipelineDuration(pipeline))
+	rows = appendSummaryRow(rows, "URL", pipeline.Links.HTML.Href)
+	return rows
 }
 
 func pipelineStepChoices(steps []bitbucket.PipelineStep) string {

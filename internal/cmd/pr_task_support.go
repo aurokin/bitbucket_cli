@@ -76,39 +76,8 @@ func writePullRequestTaskSummary(w io.Writer, payload prTaskPayload, options pul
 	}
 
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintf(tw, "Task:\t%d\n", payload.Task.ID); err != nil {
-		return err
-	}
-	if payload.Action != "" {
-		if _, err := fmt.Fprintf(tw, "Action:\t%s\n", payload.Action); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pullRequestTaskState(payload.Task, options)); err != nil {
-		return err
-	}
-	if payload.Task.Creator.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", payload.Task.Creator.DisplayName); err != nil {
-			return err
-		}
-	}
-	if payload.Task.Content.Raw != "" {
-		if _, err := fmt.Fprintf(tw, "Body:\t%s\n", payload.Task.Content.Raw); err != nil {
-			return err
-		}
-	}
-	if payload.Task.Comment != nil && payload.Task.Comment.ID > 0 {
-		if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", payload.Task.Comment.ID); err != nil {
-			return err
-		}
-		if payload.Task.Comment.Links.HTML.Href != "" {
-			if _, err := fmt.Fprintf(tw, "Comment URL:\t%s\n", payload.Task.Comment.Links.HTML.Href); err != nil {
-				return err
-			}
-		}
-	}
-	if payload.Task.Links.HTML.Href != "" {
-		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.Task.Links.HTML.Href); err != nil {
+	for _, row := range pullRequestTaskSummaryRows(payload, options) {
+		if _, err := fmt.Fprintf(tw, "%s:\t%s\n", row.Label, row.Value); err != nil {
 			return err
 		}
 	}
@@ -133,4 +102,18 @@ func pullRequestTaskNextStep(payload prTaskPayload, options pullRequestTaskSumma
 
 func pullRequestTaskConfirmationTarget(target resolvedPullRequestTaskTarget) string {
 	return fmt.Sprintf("%s/%s#pr-%d/task-%d", target.PRTarget.RepoTarget.Workspace, target.PRTarget.RepoTarget.Repo, target.PRTarget.ID, target.TaskID)
+}
+
+func pullRequestTaskSummaryRows(payload prTaskPayload, options pullRequestTaskSummaryOptions) []summaryRow {
+	rows := []summaryRow{{Label: "Task", Value: strconv.Itoa(payload.Task.ID)}}
+	rows = appendSummaryRow(rows, "Action", payload.Action)
+	rows = append(rows, summaryRow{Label: "State", Value: pullRequestTaskState(payload.Task, options)})
+	rows = appendSummaryRow(rows, "Author", payload.Task.Creator.DisplayName)
+	rows = appendSummaryRow(rows, "Body", payload.Task.Content.Raw)
+	if payload.Task.Comment != nil && payload.Task.Comment.ID > 0 {
+		rows = append(rows, summaryRow{Label: "Comment", Value: strconv.Itoa(payload.Task.Comment.ID)})
+		rows = appendSummaryRow(rows, "Comment URL", payload.Task.Comment.Links.HTML.Href)
+	}
+	rows = appendSummaryRow(rows, "URL", payload.Task.Links.HTML.Href)
+	return rows
 }

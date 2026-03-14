@@ -39,6 +39,37 @@ func TestResolveDeploymentEnvironmentBySlug(t *testing.T) {
 	}
 }
 
+func TestResolveDeploymentEnvironmentRequiresReference(t *testing.T) {
+	t.Parallel()
+
+	if _, err := resolveDeploymentEnvironment(context.Background(), nil, "acme", "widgets", ""); err == nil {
+		t.Fatal("expected missing environment reference error")
+	}
+}
+
+func TestResolveDeploymentEnvironmentNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"values":[{"uuid":"{env-1}","name":"Test","slug":"test"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+	client, err := bitbucket.NewClient("bitbucket.org", config.HostConfig{
+		AuthType: "api-token",
+		Username: "agent@example.com",
+		Token:    "token",
+	})
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
+
+	_, err = resolveDeploymentEnvironment(context.Background(), client, "acme", "widgets", "staging")
+	if err == nil || !strings.Contains(err.Error(), `deployment environment "staging" not found in acme/widgets`) {
+		t.Fatalf("expected missing environment error, got %v", err)
+	}
+}
+
 func TestResolveDeploymentVariableReferenceByKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/2.0/repositories/acme/widgets/deployments_config/environments/{env-1}/variables" {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
@@ -40,6 +41,51 @@ func TestResolveWorkspaceInput(t *testing.T) {
 	}
 	if _, err := resolveWorkspaceInput("acme", "other"); err == nil {
 		t.Fatal("expected mismatch error")
+	}
+}
+
+func TestResolveWorkspaceForCreate(t *testing.T) {
+	t.Parallel()
+
+	got, err := resolveWorkspaceForCreate(context.Background(), stubWorkspaceResolver{
+		workspaces: []bitbucket.Workspace{{Slug: "acme"}},
+	}, "")
+	if err != nil || got != "acme" {
+		t.Fatalf("unexpected workspace resolution %q %v", got, err)
+	}
+
+	if _, err := resolveWorkspaceForCreate(context.Background(), stubWorkspaceResolver{
+		workspaces: []bitbucket.Workspace{{Slug: "acme"}, {Slug: "other"}},
+	}, ""); err == nil {
+		t.Fatal("expected multiple workspace error")
+	}
+
+	if _, err := resolveWorkspaceForCreate(context.Background(), stubWorkspaceResolver{}, ""); err == nil {
+		t.Fatal("expected no workspace error")
+	}
+}
+
+func TestResolveWorkspaceRepoPermissionInput(t *testing.T) {
+	t.Parallel()
+
+	workspace, repo, err := resolveWorkspaceRepoPermissionInput("", "acme/widgets", "")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceRepoPermissionInput returned error: %v", err)
+	}
+	if workspace != "acme" || repo != "widgets" {
+		t.Fatalf("unexpected workspace/repo %q %q", workspace, repo)
+	}
+
+	workspace, repo, err = resolveWorkspaceRepoPermissionInput("acme", "widgets", "")
+	if err != nil {
+		t.Fatalf("resolveWorkspaceRepoPermissionInput returned error: %v", err)
+	}
+	if workspace != "acme" || repo != "widgets" {
+		t.Fatalf("unexpected workspace/repo %q %q", workspace, repo)
+	}
+
+	if _, _, err := resolveWorkspaceRepoPermissionInput("acme", "other/widgets", ""); err == nil {
+		t.Fatal("expected workspace mismatch error")
 	}
 }
 

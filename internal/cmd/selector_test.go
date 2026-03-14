@@ -385,228 +385,238 @@ func TestMergeRepoSelectors(t *testing.T) {
 	}
 }
 
-func TestResolveRepoTarget(t *testing.T) {
-	t.Run("falls back to local repository", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{
-			Host:      "bitbucket.org",
-			Workspace: "acme",
-			RepoSlug:  "widgets",
-			RootDir:   "/tmp/widgets",
-		}, nil)
+func TestResolveRepoTargetFallsBackToLocalRepository(t *testing.T) {
+	t.Parallel()
 
-		target, err := resolveRepoTarget(context.Background(), repoSelector{}, nil, true)
-		if err != nil {
-			t.Fatalf("resolveRepoTarget returned error: %v", err)
-		}
-		if target.Workspace != "acme" || target.Repo != "widgets" || target.Host != "bitbucket.org" {
-			t.Fatalf("unexpected target %+v", target)
-		}
-		if target.LocalRepo == nil || target.LocalRepo.RootDir != "/tmp/widgets" {
-			t.Fatalf("expected local repo context, got %+v", target)
-		}
-	})
+	withLocalRepoContext(t, gitrepo.RepoContext{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+		RootDir:   "/tmp/widgets",
+	}, nil)
 
-	t.Run("infers workspace from single available workspace", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		target, err := resolveRepoTarget(context.Background(), repoSelector{
-			Host:     "bitbucket.org",
-			Repo:     "widgets",
-			Explicit: true,
-		}, stubWorkspaceResolver{
-			workspaces: []bitbucket.Workspace{{Slug: "acme"}},
-		}, false)
-		if err != nil {
-			t.Fatalf("resolveRepoTarget returned error: %v", err)
-		}
-		if target.Workspace != "acme" || target.Repo != "widgets" {
-			t.Fatalf("unexpected target %+v", target)
-		}
-		if len(target.Warnings) != 0 {
-			t.Fatalf("did not expect warnings when local inference is disabled, got %+v", target.Warnings)
-		}
-	})
-
-	t.Run("uses matching local repo for bare repo", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{
-			Host:      "bitbucket.org",
-			Workspace: "acme",
-			RepoSlug:  "widgets",
-		}, nil)
-
-		target, err := resolveRepoTarget(context.Background(), repoSelector{
-			Repo:     "widgets",
-			Explicit: true,
-		}, stubWorkspaceResolver{
-			workspaces: []bitbucket.Workspace{{Slug: "Other"}},
-		}, true)
-		if err != nil {
-			t.Fatalf("resolveRepoTarget returned error: %v", err)
-		}
-		if target.Workspace != "acme" {
-			t.Fatalf("expected local workspace, got %+v", target)
-		}
-	})
-
-	t.Run("fails when workspace is ambiguous", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		_, err := resolveRepoTarget(context.Background(), repoSelector{
-			Repo:     "widgets",
-			Explicit: true,
-		}, stubWorkspaceResolver{
-			workspaces: []bitbucket.Workspace{{Slug: "One"}, {Slug: "Two"}},
-		}, false)
-		if err == nil || err.Error() != "multiple workspaces available; specify --workspace" {
-			t.Fatalf("expected ambiguous workspace error, got %v", err)
-		}
-	})
-
-	t.Run("warns when explicit repo falls back without local context", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		target, err := resolveRepoTarget(context.Background(), repoSelector{
-			Workspace: "acme",
-			Repo:      "widgets",
-			Explicit:  true,
-		}, stubWorkspaceResolver{}, true)
-		if err != nil {
-			t.Fatalf("resolveRepoTarget returned error: %v", err)
-		}
-		if len(target.Warnings) != 1 || target.Warnings[0] != "local repository context unavailable; continuing without local checkout metadata (not a repo)" {
-			t.Fatalf("expected local repo warning, got %+v", target.Warnings)
-		}
-	})
+	target, err := resolveRepoTarget(context.Background(), repoSelector{}, nil, true)
+	if err != nil {
+		t.Fatalf("resolveRepoTarget returned error: %v", err)
+	}
+	assertResolvedRepoTarget(t, target, "bitbucket.org", "acme", "widgets")
+	if target.LocalRepo == nil || target.LocalRepo.RootDir != "/tmp/widgets" {
+		t.Fatalf("expected local repo context, got %+v", target)
+	}
 }
 
-func TestResolvePullRequestTarget(t *testing.T) {
-	t.Run("uses url repository context", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+func TestResolveRepoTargetInfersWorkspaceFromSingleAvailableWorkspace(t *testing.T) {
+	t.Parallel()
 
-		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
-		if err != nil {
-			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
-		}
-		if target.ID != 7 || target.RepoTarget.Workspace != "acme" || target.RepoTarget.Repo != "widgets" {
-			t.Fatalf("unexpected pull request target %+v", target)
-		}
-	})
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
-	t.Run("uses comment url repository context", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
-		if err != nil {
-			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
-		}
-		if target.ID != 7 || target.RepoTarget.Workspace != "acme" || target.RepoTarget.Repo != "widgets" {
-			t.Fatalf("unexpected pull request target %+v", target)
-		}
-	})
-
-	t.Run("uses local repo for numeric id", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{
-			Host:      "bitbucket.org",
-			Workspace: "acme",
-			RepoSlug:  "widgets",
-		}, nil)
-
-		target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, nil, "7", true)
-		if err != nil {
-			t.Fatalf("resolvePullRequestTarget returned error: %v", err)
-		}
-		if target.ID != 7 || target.RepoTarget.Workspace != "acme" || target.RepoTarget.Repo != "widgets" {
-			t.Fatalf("unexpected pull request target %+v", target)
-		}
-	})
-
-	t.Run("rejects issue url", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		_, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/issues/7", false)
-		if err == nil || err.Error() != `pull request URL "https://bitbucket.org/acme/widgets/issues/7" must point to a Bitbucket pull request` {
-			t.Fatalf("expected issue-url rejection, got %v", err)
-		}
-	})
-
-	t.Run("rejects mismatched flag and url", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
-
-		_, err := resolvePullRequestTarget(context.Background(), repoSelector{
-			Workspace: "Other",
-			Repo:      "widgets",
-			Explicit:  true,
-		}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
-		if err == nil || err.Error() != `repository workspace "Other" does not match "acme"` {
-			t.Fatalf("expected mismatch error, got %v", err)
-		}
-	})
+	target, err := resolveRepoTarget(context.Background(), repoSelector{
+		Host:     "bitbucket.org",
+		Repo:     "widgets",
+		Explicit: true,
+	}, stubWorkspaceResolver{
+		workspaces: []bitbucket.Workspace{{Slug: "acme"}},
+	}, false)
+	if err != nil {
+		t.Fatalf("resolveRepoTarget returned error: %v", err)
+	}
+	assertResolvedRepoTarget(t, target, "bitbucket.org", "acme", "widgets")
+	if len(target.Warnings) != 0 {
+		t.Fatalf("did not expect warnings when local inference is disabled, got %+v", target.Warnings)
+	}
 }
 
-func TestResolvePullRequestCommentTarget(t *testing.T) {
-	t.Run("uses comment url repository context", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+func TestResolveRepoTargetUsesMatchingLocalRepoForBareRepo(t *testing.T) {
+	t.Parallel()
 
-		target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
-		if err != nil {
-			t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
-		}
-		if target.PRTarget.ID != 7 || target.CommentID != 15 || target.PRTarget.RepoTarget.Workspace != "acme" || target.PRTarget.RepoTarget.Repo != "widgets" {
-			t.Fatalf("unexpected comment target %+v", target)
-		}
-	})
+	withLocalRepoContext(t, gitrepo.RepoContext{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+	}, nil)
 
-	t.Run("uses numeric comment id with pr ref", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{
-			Host:      "bitbucket.org",
-			Workspace: "acme",
-			RepoSlug:  "widgets",
-		}, nil)
+	target, err := resolveRepoTarget(context.Background(), repoSelector{
+		Repo:     "widgets",
+		Explicit: true,
+	}, stubWorkspaceResolver{
+		workspaces: []bitbucket.Workspace{{Slug: "Other"}},
+	}, true)
+	if err != nil {
+		t.Fatalf("resolveRepoTarget returned error: %v", err)
+	}
+	assertResolvedRepoTarget(t, target, "bitbucket.org", "acme", "widgets")
+}
 
-		target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, nil, "7", "15", true)
-		if err != nil {
-			t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
-		}
-		if target.PRTarget.ID != 7 || target.CommentID != 15 || target.PRTarget.RepoTarget.Workspace != "acme" || target.PRTarget.RepoTarget.Repo != "widgets" {
-			t.Fatalf("unexpected comment target %+v", target)
-		}
-	})
+func TestResolveRepoTargetFailsWhenWorkspaceIsAmbiguous(t *testing.T) {
+	t.Parallel()
 
-	t.Run("rejects numeric comment id without pr ref", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
-		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "15", false)
-		if err == nil || err.Error() != "pull request comment ID 15 requires --pr <id-or-url>" {
-			t.Fatalf("expected missing pr error, got %v", err)
-		}
-	})
+	_, err := resolveRepoTarget(context.Background(), repoSelector{
+		Repo:     "widgets",
+		Explicit: true,
+	}, stubWorkspaceResolver{
+		workspaces: []bitbucket.Workspace{{Slug: "One"}, {Slug: "Two"}},
+	}, false)
+	if err == nil || err.Error() != "multiple workspaces available; specify --workspace" {
+		t.Fatalf("expected ambiguous workspace error, got %v", err)
+	}
+}
 
-	t.Run("rejects invalid numeric comment id", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+func TestResolveRepoTargetWarnsWhenExplicitRepoFallsBackWithoutLocalContext(t *testing.T) {
+	t.Parallel()
 
-		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "0", false)
-		if err == nil || err.Error() != `invalid pull request comment ID "0"` {
-			t.Fatalf("expected invalid comment id error, got %v", err)
-		}
-	})
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
-	t.Run("rejects non-comment bitbucket url", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+	target, err := resolveRepoTarget(context.Background(), repoSelector{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Explicit:  true,
+	}, stubWorkspaceResolver{}, true)
+	if err != nil {
+		t.Fatalf("resolveRepoTarget returned error: %v", err)
+	}
+	if len(target.Warnings) != 1 || target.Warnings[0] != "local repository context unavailable; continuing without local checkout metadata (not a repo)" {
+		t.Fatalf("expected local repo warning, got %+v", target.Warnings)
+	}
+}
 
-		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7", false)
-		if err == nil || err.Error() != `pull request comment URL "https://bitbucket.org/acme/widgets/pull-requests/7" must point to a Bitbucket pull request comment` {
-			t.Fatalf("expected non-comment URL rejection, got %v", err)
-		}
-	})
+func TestResolvePullRequestTargetUsesURLRepositoryContext(t *testing.T) {
+	t.Parallel()
 
-	t.Run("rejects mismatched pr ref and comment url", func(t *testing.T) {
-		withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
 
-		_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/8", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
-		if err == nil || err.Error() != `--pr "https://bitbucket.org/acme/widgets/pull-requests/8" does not match comment target "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"` {
-			t.Fatalf("expected mismatch error, got %v", err)
-		}
-	})
+	target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
+	if err != nil {
+		t.Fatalf("resolvePullRequestTarget returned error: %v", err)
+	}
+	assertResolvedPullRequestTarget(t, target, 7, "acme", "widgets")
+}
+
+func TestResolvePullRequestTargetUsesCommentURLRepositoryContext(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
+	if err != nil {
+		t.Fatalf("resolvePullRequestTarget returned error: %v", err)
+	}
+	assertResolvedPullRequestTarget(t, target, 7, "acme", "widgets")
+}
+
+func TestResolvePullRequestTargetUsesLocalRepoForNumericID(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+	}, nil)
+
+	target, err := resolvePullRequestTarget(context.Background(), repoSelector{}, nil, "7", true)
+	if err != nil {
+		t.Fatalf("resolvePullRequestTarget returned error: %v", err)
+	}
+	assertResolvedPullRequestTarget(t, target, 7, "acme", "widgets")
+}
+
+func TestResolvePullRequestTargetRejectsIssueURL(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/issues/7", false)
+	if err == nil || err.Error() != `pull request URL "https://bitbucket.org/acme/widgets/issues/7" must point to a Bitbucket pull request` {
+		t.Fatalf("expected issue-url rejection, got %v", err)
+	}
+}
+
+func TestResolvePullRequestTargetRejectsMismatchedFlagAndURL(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestTarget(context.Background(), repoSelector{
+		Workspace: "Other",
+		Repo:      "widgets",
+		Explicit:  true,
+	}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/7", false)
+	if err == nil || err.Error() != `repository workspace "Other" does not match "acme"` {
+		t.Fatalf("expected mismatch error, got %v", err)
+	}
+}
+
+func TestResolvePullRequestCommentTargetUsesCommentURLRepositoryContext(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
+	if err != nil {
+		t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
+	}
+	assertResolvedPullRequestCommentTarget(t, target, 7, 15, "acme", "widgets")
+}
+
+func TestResolvePullRequestCommentTargetUsesNumericCommentIDWithPRRef(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{
+		Host:      "bitbucket.org",
+		Workspace: "acme",
+		RepoSlug:  "widgets",
+	}, nil)
+
+	target, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, nil, "7", "15", true)
+	if err != nil {
+		t.Fatalf("resolvePullRequestCommentTarget returned error: %v", err)
+	}
+	assertResolvedPullRequestCommentTarget(t, target, 7, 15, "acme", "widgets")
+}
+
+func TestResolvePullRequestCommentTargetRejectsNumericCommentIDWithoutPRRef(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "15", false)
+	if err == nil || err.Error() != "pull request comment ID 15 requires --pr <id-or-url>" {
+		t.Fatalf("expected missing pr error, got %v", err)
+	}
+}
+
+func TestResolvePullRequestCommentTargetRejectsInvalidNumericCommentID(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "0", false)
+	if err == nil || err.Error() != `invalid pull request comment ID "0"` {
+		t.Fatalf("expected invalid comment id error, got %v", err)
+	}
+}
+
+func TestResolvePullRequestCommentTargetRejectsNonCommentBitbucketURL(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "", "https://bitbucket.org/acme/widgets/pull-requests/7", false)
+	if err == nil || err.Error() != `pull request comment URL "https://bitbucket.org/acme/widgets/pull-requests/7" must point to a Bitbucket pull request comment` {
+		t.Fatalf("expected non-comment URL rejection, got %v", err)
+	}
+}
+
+func TestResolvePullRequestCommentTargetRejectsMismatchedPRRefAndCommentURL(t *testing.T) {
+	t.Parallel()
+
+	withLocalRepoContext(t, gitrepo.RepoContext{}, errors.New("not a repo"))
+
+	_, err := resolvePullRequestCommentTarget(context.Background(), repoSelector{}, stubWorkspaceResolver{}, "https://bitbucket.org/acme/widgets/pull-requests/8", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15", false)
+	if err == nil || err.Error() != `--pr "https://bitbucket.org/acme/widgets/pull-requests/8" does not match comment target "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15"` {
+		t.Fatalf("expected mismatch error, got %v", err)
+	}
 }
 
 func TestRequireExplicitRepoTarget(t *testing.T) {
@@ -619,6 +629,32 @@ func TestRequireExplicitRepoTarget(t *testing.T) {
 	if err := requireExplicitRepoTarget(repoSelector{Workspace: "acme", Repo: "widgets"}); err != nil {
 		t.Fatalf("did not expect error: %v", err)
 	}
+}
+
+func assertResolvedRepoTarget(t *testing.T, target resolvedRepoTarget, host, workspace, repo string) {
+	t.Helper()
+
+	if target.Workspace != workspace || target.Repo != repo || target.Host != host {
+		t.Fatalf("unexpected target %+v", target)
+	}
+}
+
+func assertResolvedPullRequestTarget(t *testing.T, target resolvedPullRequestTarget, id int, workspace, repo string) {
+	t.Helper()
+
+	if target.ID != id {
+		t.Fatalf("unexpected pull request id %+v", target)
+	}
+	assertResolvedRepoTarget(t, target.RepoTarget, "bitbucket.org", workspace, repo)
+}
+
+func assertResolvedPullRequestCommentTarget(t *testing.T, target resolvedPullRequestCommentTarget, prID, commentID int, workspace, repo string) {
+	t.Helper()
+
+	if target.CommentID != commentID {
+		t.Fatalf("unexpected comment id %+v", target)
+	}
+	assertResolvedPullRequestTarget(t, target.PRTarget, prID, workspace, repo)
 }
 
 func withLocalRepoContext(t *testing.T, repo gitrepo.RepoContext, err error) {

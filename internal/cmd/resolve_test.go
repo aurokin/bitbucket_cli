@@ -159,3 +159,14 @@ func TestResolveHumanOutputForCommitURL(t *testing.T) {
 		"Next: bb browse deadbeef --repo acme/widgets --no-browser",
 	)
 }
+
+func TestResolveCommandRuntimeOutput(t *testing.T) {
+	output := renderCommand(t, "resolve", "https://bitbucket.org/acme/widgets/pull-requests/7#comment-15")
+	assertOrderedSubstrings(t, output,
+		"Repository: acme/widgets",
+		"Type: pull-request-comment",
+		"Pull Request: 7",
+		"Comment: 15",
+		"Next: bb pr comment view 15 --pr 7 --repo acme/widgets",
+	)
+}

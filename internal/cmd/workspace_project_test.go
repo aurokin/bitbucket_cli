@@ -222,6 +222,73 @@ func TestWriteProjectDefaultReviewerListSummary(t *testing.T) {
 	)
 }
 
+func TestWorkspaceListAndViewCommandOutput(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/2.0/workspaces":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"slug":"acme","name":"Acme","is_private":true}]}`))
+		case "/2.0/workspaces/acme":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"slug":"acme","name":"Acme","uuid":"{workspace-1}","is_private":true,"created_on":"2026-03-13T00:00:00Z","links":{"html":{"href":"https://bitbucket.org/acme/workspace/overview"}}}`))
+		case "/2.0/workspaces/acme/members/user-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"permission":"owner","user":{"account_id":"user-1","display_name":"Auro","nickname":"auro"}}`))
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	listOutput := renderCommand(t, "workspace", "list")
+	assertOrderedSubstrings(t, listOutput,
+		"acme",
+		"Acme",
+		"private",
+		"Next: bb workspace view acme",
+	)
+
+	viewOutput := renderCommand(t, "workspace", "view", "acme")
+	assertOrderedSubstrings(t, viewOutput,
+		"Workspace: acme",
+		"Name: Acme",
+		"UUID: {workspace-1}",
+		"Next: bb workspace member list acme",
+	)
+
+	memberOutput := renderCommand(t, "workspace", "member", "view", "user-1", "--workspace", "acme")
+	assertOrderedSubstrings(t, memberOutput,
+		"Workspace: acme",
+		"Account ID: user-1",
+		"User: Auro",
+		"Permission: owner",
+		"Next: bb workspace members list acme",
+	)
+
+	permissionOutput := renderCommand(t, "workspace", "permission", "view", "user-1", "--workspace", "acme")
+	assertOrderedSubstrings(t, permissionOutput,
+		"Workspace: acme",
+		"Account ID: user-1",
+		"User: Auro",
+		"Permission: owner",
+		"Next: bb workspace permissions list acme",
+	)
+}
+
 func TestWriteProjectUserPermissionListSummary(t *testing.T) {
 	t.Parallel()
 

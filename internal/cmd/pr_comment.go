@@ -392,39 +392,8 @@ func writePullRequestCommentSummary(w io.Writer, payload prCommentPayload, optio
 	}
 
 	tw := output.NewTableWriter(w)
-	if _, err := fmt.Fprintf(tw, "Comment:\t%d\n", payload.Comment.ID); err != nil {
-		return err
-	}
-	if payload.Action != "" {
-		if _, err := fmt.Fprintf(tw, "Action:\t%s\n", payload.Action); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(tw, "State:\t%s\n", pullRequestCommentState(payload.Comment, options)); err != nil {
-		return err
-	}
-	if payload.Comment.User.DisplayName != "" {
-		if _, err := fmt.Fprintf(tw, "Author:\t%s\n", payload.Comment.User.DisplayName); err != nil {
-			return err
-		}
-	}
-	if payload.Comment.Inline != nil {
-		if _, err := fmt.Fprintf(tw, "Path:\t%s\n", payload.Comment.Inline.Path); err != nil {
-			return err
-		}
-		if line := pullRequestCommentLine(payload.Comment.Inline); line != "" {
-			if _, err := fmt.Fprintf(tw, "Line:\t%s\n", line); err != nil {
-				return err
-			}
-		}
-	}
-	if payload.Comment.Links.HTML.Href != "" {
-		if _, err := fmt.Fprintf(tw, "URL:\t%s\n", payload.Comment.Links.HTML.Href); err != nil {
-			return err
-		}
-	}
-	if payload.Comment.Content.Raw != "" {
-		if _, err := fmt.Fprintf(tw, "Body:\t%s\n", payload.Comment.Content.Raw); err != nil {
+	for _, row := range pullRequestCommentSummaryRows(payload, options) {
+		if _, err := fmt.Fprintf(tw, "%s:\t%s\n", row.Label, row.Value); err != nil {
 			return err
 		}
 	}
@@ -464,6 +433,22 @@ func pullRequestCommentLine(inline *bitbucket.PullRequestCommentInline) string {
 	default:
 		return ""
 	}
+}
+
+func pullRequestCommentSummaryRows(payload prCommentPayload, options pullRequestCommentSummaryOptions) []summaryRow {
+	rows := []summaryRow{
+		{Label: "Comment", Value: strconv.Itoa(payload.Comment.ID)},
+	}
+	rows = appendSummaryRow(rows, "Action", payload.Action)
+	rows = append(rows, summaryRow{Label: "State", Value: pullRequestCommentState(payload.Comment, options)})
+	rows = appendSummaryRow(rows, "Author", payload.Comment.User.DisplayName)
+	if payload.Comment.Inline != nil {
+		rows = appendSummaryRow(rows, "Path", payload.Comment.Inline.Path)
+		rows = appendSummaryRow(rows, "Line", pullRequestCommentLine(payload.Comment.Inline))
+	}
+	rows = appendSummaryRow(rows, "URL", payload.Comment.Links.HTML.Href)
+	rows = appendSummaryRow(rows, "Body", payload.Comment.Content.Raw)
+	return rows
 }
 
 func pullRequestCommentNextStep(payload prCommentPayload) string {

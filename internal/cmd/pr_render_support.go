@@ -51,18 +51,40 @@ func buildPRStatusPayload(target resolvedRepoTarget, currentUser bitbucket.Curre
 }
 
 func writePRStatusSummary(w io.Writer, payload prStatusPayload) error {
+	if err := writePRStatusHeader(w, payload); err != nil {
+		return err
+	}
+	currentBranchPRs := make([]bitbucket.PullRequest, 0, 1)
+	if payload.CurrentBranch != nil {
+		currentBranchPRs = append(currentBranchPRs, *payload.CurrentBranch)
+	}
+	if err := writePRStatusSectionWithTitle(w, "Current Branch Pull Request", currentBranchPRs...); err != nil {
+		return err
+	}
+	if err := writePRStatusSectionWithTitle(w, "Created By You", payload.Created...); err != nil {
+		return err
+	}
+	if err := writePRStatusSectionWithTitle(w, "Review Requested", payload.ReviewRequested...); err != nil {
+		return err
+	}
+	if len(payload.Created) == 0 && len(payload.ReviewRequested) == 0 && payload.CurrentBranch == nil {
+		return writeNextStep(w, fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.Repo))
+	}
+	return nil
+}
+
+func writePRStatusHeader(w io.Writer, payload prStatusPayload) error {
 	if _, err := fmt.Fprintf(w, "Repository: %s/%s\n", payload.Workspace, payload.Repo); err != nil {
 		return err
 	}
 	if err := writeWarnings(w, payload.Warnings); err != nil {
 		return err
 	}
-
-	if payload.CurrentBranchName != "" {
-		if _, err := fmt.Fprintf(w, "Current Branch: %s\n", payload.CurrentBranchName); err != nil {
-			return err
-		}
-	} else if _, err := fmt.Fprintln(w, "Current Branch: unavailable"); err != nil {
+	currentBranchLabel := payload.CurrentBranchName
+	if currentBranchLabel == "" {
+		currentBranchLabel = "unavailable"
+	}
+	if _, err := fmt.Fprintf(w, "Current Branch: %s\n", currentBranchLabel); err != nil {
 		return err
 	}
 	if payload.CurrentBranchError != "" {
@@ -70,44 +92,17 @@ func writePRStatusSummary(w io.Writer, payload prStatusPayload) error {
 			return err
 		}
 	}
-
-	if _, err := fmt.Fprintln(w); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(w, "Current Branch Pull Request"); err != nil {
-		return err
-	}
-	currentBranchPRs := make([]bitbucket.PullRequest, 0, 1)
-	if payload.CurrentBranch != nil {
-		currentBranchPRs = append(currentBranchPRs, *payload.CurrentBranch)
-	}
-	if err := writePRStatusSection(w, currentBranchPRs...); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintln(w); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(w, "Created By You"); err != nil {
-		return err
-	}
-	if err := writePRStatusSection(w, payload.Created...); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintln(w); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintln(w, "Review Requested"); err != nil {
-		return err
-	}
-	if err := writePRStatusSection(w, payload.ReviewRequested...); err != nil {
-		return err
-	}
-	if len(payload.Created) == 0 && len(payload.ReviewRequested) == 0 && payload.CurrentBranch == nil {
-		return writeNextStep(w, fmt.Sprintf("bb pr list --repo %s/%s", payload.Workspace, payload.Repo))
-	}
 	return nil
+}
+
+func writePRStatusSectionWithTitle(w io.Writer, title string, prs ...bitbucket.PullRequest) error {
+	if _, err := fmt.Fprintln(w); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(w, title); err != nil {
+		return err
+	}
+	return writePRStatusSection(w, prs...)
 }
 
 func writePRStatusSection(w io.Writer, prs ...bitbucket.PullRequest) error {

@@ -155,6 +155,30 @@ func TestAliasListEmptyOutput(t *testing.T) {
 	}
 }
 
+func TestAliasGetAndExtensionListOutput(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", configDir)
+
+	_ = renderCommand(t, "alias", "set", "pv", "pr", "view")
+
+	getOutput := renderCommand(t, "alias", "get", "pv")
+	if strings.TrimSpace(getOutput) != "pr view" {
+		t.Fatalf("expected alias expansion output, got %q", getOutput)
+	}
+
+	extDir := t.TempDir()
+	t.Setenv("PATH", extDir)
+	executable := filepath.Join(extDir, "bb-hello")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write extension: %v", err)
+	}
+
+	listOutput := renderCommand(t, "extension", "list")
+	if !strings.Contains(listOutput, "hello") {
+		t.Fatalf("expected extension list output, got %q", listOutput)
+	}
+}
+
 func TestExecuteExternalCommand(t *testing.T) {
 	t.Parallel()
 

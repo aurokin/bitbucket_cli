@@ -210,3 +210,25 @@ func TestBuildAuthStatusPayloadWithoutLiveCheck(t *testing.T) {
 		t.Fatalf("unexpected auth row %+v", row)
 	}
 }
+
+func TestAuthLogoutCommandOutput(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", configDir)
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		Username: "user@example.com",
+		Token:    "token",
+		AuthType: config.AuthTypeAPIToken,
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	output := renderCommand(t, "auth", "logout", "--host", "bitbucket.org")
+	assertOrderedSubstrings(t, output,
+		"Removed credentials for bitbucket.org",
+		"Create Token: "+atlassianAPITokenManageURL,
+		"Next: bb auth login --host bitbucket.org",
+	)
+}

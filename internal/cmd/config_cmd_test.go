@@ -152,6 +152,32 @@ func TestConfigUnsetCommandOutput(t *testing.T) {
 	)
 }
 
+func TestConfigGetListAndPathCommandOutput(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("BB_CONFIG_DIR", configDir)
+
+	_ = renderCommand(t, "config", "set", "output.format", "json")
+
+	getOutput := renderCommand(t, "config", "get", "output.format")
+	for _, expected := range []string{`"key": "output.format"`, `"source": "config"`, `"value": "json"`} {
+		if !strings.Contains(getOutput, expected) {
+			t.Fatalf("expected %q in config get output, got %q", expected, getOutput)
+		}
+	}
+
+	listOutput := renderCommand(t, "config", "list")
+	for _, expected := range []string{"prompt", "browser", "output.format"} {
+		if !strings.Contains(listOutput, expected) {
+			t.Fatalf("expected %q in config list output, got %q", expected, listOutput)
+		}
+	}
+
+	pathOutput := renderCommand(t, "config", "path")
+	if !strings.Contains(pathOutput, configDir) || !strings.Contains(pathOutput, "config.json") {
+		t.Fatalf("expected config path output, got %q", pathOutput)
+	}
+}
+
 func renderCommand(t *testing.T, args ...string) string {
 	t.Helper()
 

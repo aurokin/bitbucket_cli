@@ -21,6 +21,30 @@ func TestParseFormatOptionsRequiresJSONForJQ(t *testing.T) {
 	}
 }
 
+func TestParseFormatOptions(t *testing.T) {
+	t.Parallel()
+
+	opts, err := ParseFormatOptions("*", ".name")
+	if err != nil {
+		t.Fatalf("ParseFormatOptions returned error: %v", err)
+	}
+	if !opts.AllFields || opts.JQ != ".name" {
+		t.Fatalf("unexpected options %+v", opts)
+	}
+
+	opts, err = ParseFormatOptions("name, state", "")
+	if err != nil {
+		t.Fatalf("ParseFormatOptions returned error: %v", err)
+	}
+	if strings.Join(opts.JSONFields, ",") != "name,state" {
+		t.Fatalf("unexpected selected fields %+v", opts.JSONFields)
+	}
+
+	if _, err := ParseFormatOptions(" , ", ""); err == nil || !strings.Contains(err.Error(), "no JSON fields selected") {
+		t.Fatalf("expected empty field selection error, got %v", err)
+	}
+}
+
 func TestRenderHumanOutput(t *testing.T) {
 	t.Parallel()
 

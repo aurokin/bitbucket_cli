@@ -1,6 +1,25 @@
 package output
 
-import "testing"
+import (
+	"bytes"
+	"testing"
+)
+
+func TestNewTableWriterAndTerminalWidthFallback(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	tw := NewTableWriter(&buf)
+	if _, err := tw.Write([]byte("col1\tcol2\n")); err != nil {
+		t.Fatalf("table writer write failed: %v", err)
+	}
+	if err := tw.Flush(); err != nil {
+		t.Fatalf("table writer flush failed: %v", err)
+	}
+	if got := TerminalWidth(&buf); got != 0 {
+		t.Fatalf("expected non-terminal width 0, got %d", got)
+	}
+}
 
 func TestTruncate(t *testing.T) {
 	t.Parallel()

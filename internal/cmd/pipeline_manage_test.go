@@ -294,6 +294,104 @@ func TestConfirmPipelineStop(t *testing.T) {
 	}
 }
 
+func TestBuildPipelineLogPayload(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/2.0/repositories/acme/widgets/pipelines":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"uuid":"{pipeline-1}","build_number":42}]}`))
+		case strings.HasSuffix(r.URL.Path, "/pipelines/%7Bpipeline-1%7D/steps") || strings.HasSuffix(r.URL.Path, "/pipelines/{pipeline-1}/steps"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"uuid":"{step-1}","name":"Build"}]}`))
+		case strings.HasSuffix(r.URL.Path, "/pipelines/%7Bpipeline-1%7D/steps/%7Bstep-1%7D/log") || strings.HasSuffix(r.URL.Path, "/pipelines/{pipeline-1}/steps/{step-1}/log"):
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("log output\n"))
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	payload, err := buildPipelineLogPayload(context.Background(), "", "acme", "widgets", "42", "Build")
+	if err != nil {
+		t.Fatalf("buildPipelineLogPayload returned error: %v", err)
+	}
+	if payload.Pipeline.BuildNumber != 42 || payload.Step.UUID != "{step-1}" || payload.Log != "log output\n" {
+		t.Fatalf("unexpected pipeline log payload %+v", payload)
+	}
+}
+
+func TestBuildPipelineTestReportsPayloadAndStopPipelineCommand(t *testing.T) {
+	t.Setenv("BB_CONFIG_DIR", t.TempDir())
+
+	cfg := config.Config{}
+	cfg.SetHost("bitbucket.org", config.HostConfig{
+		AuthType: config.AuthTypeAPIToken,
+		Username: "agent@example.com",
+		Token:    "secret",
+	}, true)
+	if err := config.Save(cfg); err != nil {
+		t.Fatalf("config.Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/2.0/repositories/acme/widgets/pipelines":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"uuid":"{pipeline-1}","build_number":42}]}`))
+		case strings.HasSuffix(r.URL.Path, "/pipelines/%7Bpipeline-1%7D/steps") || strings.HasSuffix(r.URL.Path, "/pipelines/{pipeline-1}/steps"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"uuid":"{step-1}","name":"Tests"}]}`))
+		case strings.HasSuffix(r.URL.Path, "/pipelines/%7Bpipeline-1%7D/steps/%7Bstep-1%7D/test_reports") || strings.HasSuffix(r.URL.Path, "/pipelines/{pipeline-1}/steps/{step-1}/test_reports"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"successful":12,"failed":1}`))
+		case strings.Contains(r.URL.Path, "/test_reports/test_cases"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"values":[{"name":"TestOne","result":"PASSED"}]}`))
+		case strings.HasSuffix(r.URL.Path, "/stopPipeline"):
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/pipelines/%7Bpipeline-1%7D") || strings.HasSuffix(r.URL.Path, "/pipelines/{pipeline-1}"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uuid":"{pipeline-1}","build_number":42,"state":{"result":{"name":"STOPPED"}}}`))
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("BB_API_BASE_URL", server.URL+"/2.0")
+
+	reportsPayload, err := buildPipelineTestReportsPayload(context.Background(), "", "acme", "widgets", "42", "Tests", true, 2)
+	if err != nil {
+		t.Fatalf("buildPipelineTestReportsPayload returned error: %v", err)
+	}
+	if reportsPayload.Pipeline.BuildNumber != 42 || reportsPayload.Step.UUID != "{step-1}" || len(reportsPayload.TestCases) != 1 {
+		t.Fatalf("unexpected pipeline test reports payload %+v", reportsPayload)
+	}
+
+	stopPayload, err := stopPipelineCommand(context.Background(), &cobra.Command{}, "", "acme", "widgets", "42", true)
+	if err != nil {
+		t.Fatalf("stopPipelineCommand returned error: %v", err)
+	}
+	if !stopPayload.Stopped || stopPayload.Pipeline.BuildNumber != 42 {
+		t.Fatalf("unexpected pipeline stop payload %+v", stopPayload)
+	}
+}
+
 func newPipelineManageTestClient(t *testing.T) *bitbucket.Client {
 	t.Helper()
 

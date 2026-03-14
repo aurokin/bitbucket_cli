@@ -10,6 +10,7 @@ import (
 
 	"github.com/aurokin/bitbucket_cli/internal/bitbucket"
 	"github.com/aurokin/bitbucket_cli/internal/config"
+	"github.com/spf13/cobra"
 )
 
 func TestResolveDeploymentEnvironmentBySlug(t *testing.T) {
@@ -257,6 +258,31 @@ func TestWriteDeploymentVariableListSummary(t *testing.T) {
 		"APP_ENV",
 		"Next: bb deployment environment variable view {var-1} --repo acme/widgets --environment production",
 	)
+}
+
+func TestConfirmDeploymentVariableDeletion(t *testing.T) {
+	t.Parallel()
+
+	if err := confirmDeploymentVariableDeletion(&cobra.Command{}, "acme", "widgets", "production", "APP_ENV", true); err != nil {
+		t.Fatalf("confirmDeploymentVariableDeletion with --yes returned error: %v", err)
+	}
+
+	cmd := &cobra.Command{}
+	cmd.SetIn(bytes.NewBufferString(""))
+	cmd.SetOut(&bytes.Buffer{})
+	cmd.Flags().Bool("no-prompt", false, "")
+	if err := cmd.Flags().Set("no-prompt", "true"); err != nil {
+		t.Fatalf("set no-prompt flag: %v", err)
+	}
+
+	err := confirmDeploymentVariableDeletion(cmd, "acme", "widgets", "production", "APP_ENV", false)
+	if err == nil || err.Error() != "deployment environment variable deletion requires confirmation; pass --yes or run in an interactive terminal" {
+		t.Fatalf("expected non-interactive confirmation error, got %v", err)
+	}
+
+	if got := deploymentVariableDeletionConfirmationTarget("acme", "widgets", "production", "APP_ENV"); got != "acme/widgets:production:APP_ENV" {
+		t.Fatalf("unexpected deployment confirmation target %q", got)
+	}
 }
 
 func TestWriteDeploymentVariableSummary(t *testing.T) {

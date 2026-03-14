@@ -26,60 +26,12 @@ func newPRCheckoutCmd() *cobra.Command {
 			"  bb pr checkout https://bitbucket.org/workspace-slug/repo-slug/pull-requests/1#comment-15",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repoContext, err := resolveLocalRepoContext(context.Background())
-			if err != nil {
-				return fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
-			}
-
-			selector, err := parseRepoSelector(host, workspace, repo)
+			payload, err := checkoutPullRequestCommand(context.Background(), host, workspace, repo, args[0])
 			if err != nil {
 				return err
 			}
 
-			selector, err = mergeRepoSelectors(selector, repoSelector{
-				Host:      repoContext.Host,
-				Workspace: repoContext.Workspace,
-				Repo:      repoContext.RepoSlug,
-			})
-			if err != nil {
-				return err
-			}
-
-			resolved, err := resolvePullRequestCommandTarget(context.Background(), selector.Host, selector.Workspace, selector.Repo, args[0], true)
-			if err != nil {
-				return err
-			}
-			prTarget := resolved.Target
-			client := resolved.Client
-			if prTarget.RepoTarget.Workspace != repoContext.Workspace || prTarget.RepoTarget.Repo != repoContext.RepoSlug {
-				return fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
-			}
-
-			pr, err := client.GetPullRequest(context.Background(), prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo, prTarget.ID)
-			if err != nil {
-				return err
-			}
-
-			if err := gitrepo.CheckoutRemoteBranch(context.Background(), repoContext.RootDir, repoContext.RemoteName, pr.Source.Branch.Name); err != nil {
-				return err
-			}
-
-			if err := writeTargetHeader(cmd.OutOrStdout(), "Repository", prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo); err != nil {
-				return err
-			}
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "Pull Request: #%d\n", pr.ID); err != nil {
-				return err
-			}
-			if err := writeLabelValue(cmd.OutOrStdout(), "Branch", pr.Source.Branch.Name); err != nil {
-				return err
-			}
-			if err := writeLabelValue(cmd.OutOrStdout(), "Local Root", repoContext.RootDir); err != nil {
-				return err
-			}
-			if err := writeLabelValue(cmd.OutOrStdout(), "Status", "checked out"); err != nil {
-				return err
-			}
-			return writeNextStep(cmd.OutOrStdout(), fmt.Sprintf("bb pr view %d --repo %s/%s", pr.ID, prTarget.RepoTarget.Workspace, prTarget.RepoTarget.Repo))
+			return writePullRequestCheckoutSummary(cmd.OutOrStdout(), payload)
 		},
 	}
 
@@ -88,6 +40,79 @@ func newPRCheckoutCmd() *cobra.Command {
 	cmd.Flags().StringVar(&repo, "repo", "", "Bitbucket repository target as <repo>, <workspace>/<repo>, or a repository URL")
 
 	return cmd
+}
+
+type pullRequestCheckoutPayload struct {
+	Workspace     string
+	Repo          string
+	PullRequestID int
+	Branch        string
+	LocalRoot     string
+}
+
+func checkoutPullRequestCommand(ctx context.Context, host, workspace, repo, ref string) (pullRequestCheckoutPayload, error) {
+	repoContext, err := resolveLocalRepoContext(ctx)
+	if err != nil {
+		return pullRequestCheckoutPayload{}, fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
+	}
+
+	selector, err := parseRepoSelector(host, workspace, repo)
+	if err != nil {
+		return pullRequestCheckoutPayload{}, err
+	}
+
+	selector, err = mergeRepoSelectors(selector, repoSelector{
+		Host:      repoContext.Host,
+		Workspace: repoContext.Workspace,
+		Repo:      repoContext.RepoSlug,
+	})
+	if err != nil {
+		return pullRequestCheckoutPayload{}, err
+	}
+
+	resolved, err := resolvePullRequestCommandTarget(ctx, selector.Host, selector.Workspace, selector.Repo, ref, true)
+	if err != nil {
+		return pullRequestCheckoutPayload{}, err
+	}
+	if resolved.Target.RepoTarget.Workspace != repoContext.Workspace || resolved.Target.RepoTarget.Repo != repoContext.RepoSlug {
+		return pullRequestCheckoutPayload{}, fmt.Errorf("pr checkout must be run inside a local git checkout of the target repository")
+	}
+
+	pr, err := resolved.Client.GetPullRequest(ctx, resolved.Target.RepoTarget.Workspace, resolved.Target.RepoTarget.Repo, resolved.Target.ID)
+	if err != nil {
+		return pullRequestCheckoutPayload{}, err
+	}
+
+	if err := gitrepo.CheckoutRemoteBranch(ctx, repoContext.RootDir, repoContext.RemoteName, pr.Source.Branch.Name); err != nil {
+		return pullRequestCheckoutPayload{}, err
+	}
+
+	return pullRequestCheckoutPayload{
+		Workspace:     resolved.Target.RepoTarget.Workspace,
+		Repo:          resolved.Target.RepoTarget.Repo,
+		PullRequestID: pr.ID,
+		Branch:        pr.Source.Branch.Name,
+		LocalRoot:     repoContext.RootDir,
+	}, nil
+}
+
+func writePullRequestCheckoutSummary(w io.Writer, payload pullRequestCheckoutPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "Pull Request: #%d\n", payload.PullRequestID); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Branch", payload.Branch); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Local Root", payload.LocalRoot); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Status", "checked out"); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb pr view %d --repo %s/%s", payload.PullRequestID, payload.Workspace, payload.Repo))
 }
 
 func newPRMergeCmd() *cobra.Command {

@@ -202,6 +202,32 @@ func TestBuildPRStatusPayloadPreservesCurrentBranchError(t *testing.T) {
 	}
 }
 
+func TestWritePullRequestCheckoutSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := pullRequestCheckoutPayload{
+		Workspace:     "acme",
+		Repo:          "widgets",
+		PullRequestID: 7,
+		Branch:        "feature/refactor",
+		LocalRoot:     "/tmp/widgets",
+	}
+
+	if err := writePullRequestCheckoutSummary(&buf, payload); err != nil {
+		t.Fatalf("writePullRequestCheckoutSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Pull Request: #7",
+		"Branch: feature/refactor",
+		"Local Root: /tmp/widgets",
+		"Status: checked out",
+		"Next: bb pr view 7 --repo acme/widgets",
+	)
+}
+
 func TestBuildPRStatusPayloadPreservesTargetWarnings(t *testing.T) {
 	t.Parallel()
 

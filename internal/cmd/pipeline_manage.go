@@ -55,50 +55,13 @@ func newPipelineRunCmd() *cobra.Command {
 				return err
 			}
 
-			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
+			payload, err := buildPipelineRunPayload(context.Background(), host, workspace, repo, ref, args, refType)
 			if err != nil {
 				return err
-			}
-			target := resolved.Target
-
-			refName, err := resolvePipelineRunRef(ref, args, target)
-			if err != nil {
-				return err
-			}
-
-			pipeline, err := resolved.Client.TriggerPipeline(context.Background(), target.Workspace, target.Repo, bitbucket.TriggerPipelineOptions{
-				RefType: strings.TrimSpace(refType),
-				RefName: refName,
-			})
-			if err != nil {
-				return err
-			}
-
-			payload := pipelineRunPayload{
-				Host:      target.Host,
-				Workspace: target.Workspace,
-				Repo:      target.Repo,
-				Warnings:  append([]string(nil), target.Warnings...),
-				Pipeline:  pipeline,
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
-				if err := writeTargetHeader(w, "Repository", target.Workspace, target.Repo); err != nil {
-					return err
-				}
-				if err := writeWarnings(w, target.Warnings); err != nil {
-					return err
-				}
-				if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", pipeline.BuildNumber); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "Ref", pipelineRefLabel(pipeline.Target)); err != nil {
-					return err
-				}
-				if err := writeLabelValue(w, "State", pipelineStateLabel(pipeline.State)); err != nil {
-					return err
-				}
-				return writeNextStep(w, fmt.Sprintf("bb pipeline view %d --repo %s/%s", pipeline.BuildNumber, target.Workspace, target.Repo))
+				return writePipelineRunSummary(w, payload)
 			})
 		},
 	}
@@ -136,50 +99,9 @@ func newPipelineTestReportsCmd() *cobra.Command {
 				return err
 			}
 
-			resolved, err := resolveRepoCommandTarget(context.Background(), host, workspace, repo, true)
+			payload, err := buildPipelineTestReportsPayload(context.Background(), host, workspace, repo, args[0], stepRef, includeCases, limit)
 			if err != nil {
 				return err
-			}
-			target := resolved.Target
-
-			pipeline, err := resolvePipelineReference(context.Background(), resolved.Client, target.Workspace, target.Repo, args[0])
-			if err != nil {
-				return err
-			}
-
-			step, err := resolvePipelineStepReference(context.Background(), resolved.Client, target.Workspace, target.Repo, pipeline.UUID, stepRef)
-			if err != nil {
-				return err
-			}
-
-			summary, err := resolved.Client.GetPipelineTestReports(context.Background(), target.Workspace, target.Repo, pipeline.UUID, step.UUID)
-			if err != nil {
-				if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == 404 {
-					return fmt.Errorf("bitbucket did not expose test reports for pipeline #%d step %s", pipeline.BuildNumber, pipelineStepLabel(step))
-				}
-				return err
-			}
-
-			var cases []bitbucket.PipelineTestCase
-			if includeCases {
-				cases, err = resolved.Client.ListPipelineTestCases(context.Background(), target.Workspace, target.Repo, pipeline.UUID, step.UUID, limit)
-				if err != nil {
-					if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == 404 {
-						return fmt.Errorf("bitbucket did not expose test cases for pipeline #%d step %s", pipeline.BuildNumber, pipelineStepLabel(step))
-					}
-					return err
-				}
-			}
-
-			payload := pipelineTestReportsPayload{
-				Host:      target.Host,
-				Workspace: target.Workspace,
-				Repo:      target.Repo,
-				Warnings:  append([]string(nil), target.Warnings...),
-				Pipeline:  pipeline,
-				Step:      step,
-				Summary:   summary,
-				TestCases: cases,
 			}
 
 			return output.Render(cmd.OutOrStdout(), opts, payload, func(w io.Writer) error {
@@ -222,6 +144,90 @@ func resolvePipelineRunRef(flagRef string, args []string, target resolvedRepoTar
 
 func resolvePipelineVariableValue(stdin io.Reader, value, valueFile string) (string, error) {
 	return resolveCommandVariableValue(stdin, value, valueFile, "pipeline variable")
+}
+
+func buildPipelineRunPayload(ctx context.Context, host, workspace, repo, ref string, args []string, refType string) (pipelineRunPayload, error) {
+	resolved, err := resolveRepoCommandTarget(ctx, host, workspace, repo, true)
+	if err != nil {
+		return pipelineRunPayload{}, err
+	}
+
+	refName, err := resolvePipelineRunRef(ref, args, resolved.Target)
+	if err != nil {
+		return pipelineRunPayload{}, err
+	}
+
+	pipeline, err := resolved.Client.TriggerPipeline(ctx, resolved.Target.Workspace, resolved.Target.Repo, bitbucket.TriggerPipelineOptions{
+		RefType: strings.TrimSpace(refType),
+		RefName: refName,
+	})
+	if err != nil {
+		return pipelineRunPayload{}, err
+	}
+
+	return pipelineRunPayload{
+		Host:      resolved.Target.Host,
+		Workspace: resolved.Target.Workspace,
+		Repo:      resolved.Target.Repo,
+		Warnings:  append([]string(nil), resolved.Target.Warnings...),
+		Pipeline:  pipeline,
+	}, nil
+}
+
+func buildPipelineTestReportsPayload(ctx context.Context, host, workspace, repo, pipelineRef, stepRef string, includeCases bool, limit int) (pipelineTestReportsPayload, error) {
+	resolved, pipeline, step, err := resolvePipelineStepCommandTarget(ctx, host, workspace, repo, pipelineRef, stepRef)
+	if err != nil {
+		return pipelineTestReportsPayload{}, err
+	}
+
+	summary, err := resolved.Client.GetPipelineTestReports(ctx, resolved.Target.Workspace, resolved.Target.Repo, pipeline.UUID, step.UUID)
+	if err != nil {
+		if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == 404 {
+			return pipelineTestReportsPayload{}, fmt.Errorf("bitbucket did not expose test reports for pipeline #%d step %s", pipeline.BuildNumber, pipelineStepLabel(step))
+		}
+		return pipelineTestReportsPayload{}, err
+	}
+
+	var cases []bitbucket.PipelineTestCase
+	if includeCases {
+		cases, err = resolved.Client.ListPipelineTestCases(ctx, resolved.Target.Workspace, resolved.Target.Repo, pipeline.UUID, step.UUID, limit)
+		if err != nil {
+			if apiErr, ok := bitbucket.AsAPIError(err); ok && apiErr.StatusCode == 404 {
+				return pipelineTestReportsPayload{}, fmt.Errorf("bitbucket did not expose test cases for pipeline #%d step %s", pipeline.BuildNumber, pipelineStepLabel(step))
+			}
+			return pipelineTestReportsPayload{}, err
+		}
+	}
+
+	return pipelineTestReportsPayload{
+		Host:      resolved.Target.Host,
+		Workspace: resolved.Target.Workspace,
+		Repo:      resolved.Target.Repo,
+		Warnings:  append([]string(nil), resolved.Target.Warnings...),
+		Pipeline:  pipeline,
+		Step:      step,
+		Summary:   summary,
+		TestCases: cases,
+	}, nil
+}
+
+func writePipelineRunSummary(w io.Writer, payload pipelineRunPayload) error {
+	if err := writeTargetHeader(w, "Repository", payload.Workspace, payload.Repo); err != nil {
+		return err
+	}
+	if err := writeWarnings(w, payload.Warnings); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "Pipeline: #%d\n", payload.Pipeline.BuildNumber); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "Ref", pipelineRefLabel(payload.Pipeline.Target)); err != nil {
+		return err
+	}
+	if err := writeLabelValue(w, "State", pipelineStateLabel(payload.Pipeline.State)); err != nil {
+		return err
+	}
+	return writeNextStep(w, fmt.Sprintf("bb pipeline view %d --repo %s/%s", payload.Pipeline.BuildNumber, payload.Workspace, payload.Repo))
 }
 
 func writePipelineTestReportsSummary(w io.Writer, payload pipelineTestReportsPayload) error {

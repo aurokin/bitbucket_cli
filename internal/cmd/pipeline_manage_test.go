@@ -154,6 +154,35 @@ func TestWritePipelineTestReportsSummary(t *testing.T) {
 	)
 }
 
+func TestWritePipelineRunSummary(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	payload := pipelineRunPayload{
+		Workspace: "acme",
+		Repo:      "widgets",
+		Warnings:  []string{"local repository context unavailable; continuing without local checkout metadata (not a repo)"},
+		Pipeline: bitbucket.Pipeline{
+			BuildNumber: 42,
+			State:       bitbucket.PipelineState{Result: bitbucket.PipelineResult{Name: "PENDING"}},
+			Target:      bitbucket.PipelineTarget{RefType: "branch", RefName: "main"},
+		},
+	}
+
+	if err := writePipelineRunSummary(&buf, payload); err != nil {
+		t.Fatalf("writePipelineRunSummary returned error: %v", err)
+	}
+
+	assertOrderedSubstrings(t, buf.String(),
+		"Repository: acme/widgets",
+		"Warning: local repository context unavailable",
+		"Pipeline: #42",
+		"Ref: branch:main",
+		"State: PENDING",
+		"Next: bb pipeline view 42 --repo acme/widgets",
+	)
+}
+
 func TestWritePipelineVariableSummary(t *testing.T) {
 	t.Parallel()
 

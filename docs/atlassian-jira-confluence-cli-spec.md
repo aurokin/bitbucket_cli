@@ -4,7 +4,7 @@
 
 ## Goal
 
-Design two separate Go CLIs, one for Jira and one for Confluence, that follow the same philosophy as this repository's `bb` Bitbucket Cloud CLI:
+Design two separate Go CLIs, `atl-jira` for Jira and `atl-conf` for Confluence, that follow the same philosophy as this repository's existing `bb` Bitbucket Cloud CLI and the intended future `atl-bb` shape:
 
 - stay true to official Atlassian REST APIs instead of inventing fake `gh`-style parity
 - support humans and agents with deterministic targeting, `--json`, `--jq`, and `--no-prompt`
@@ -14,14 +14,15 @@ Design two separate Go CLIs, one for Jira and one for Confluence, that follow th
 
 This is one combined planning document because the products share auth, output, configuration, and command design. The implementation should still produce two separate CLIs and two separate durable specs after this draft is reviewed:
 
-- Jira CLI: proposed binary `jira` unless a better short name is chosen
-- Confluence CLI: proposed binary `confluence`
+- Jira CLI: binary `atl-jira`
+- Confluence CLI: binary `atl-conf`
+- Future Bitbucket CLI shape: binary `atl-bb`, with a deliberate compatibility decision for existing `bb` users
 
-Naming note: avoid `jj`, `cc`, and `conf`. `jj` collides mentally with the popular Jujutsu VCS CLI/library ecosystem, and `cc` commonly means Claude Code in agent workflows. Prefer names that avoid common developer/agent collisions; `confluence` is long but clear, while `conf` reads too much like config.
+Naming note: use the `atl-*` family so these are visibly our Atlassian CLIs and avoid common package/binary collisions. Avoid bare `jira`, bare `confluence`, `jj`, `cc`, and `conf`; `jj` collides mentally with Jujutsu, `cc` commonly means Claude Code, and `conf` reads like config.
 
 ## Bitbucket CLI patterns to preserve
 
-The existing `bb` CLI establishes the model we should copy.
+The existing legacy `bb` CLI establishes the model we should copy; the unified-family target name for Bitbucket is `atl-bb`.
 
 ### Product posture
 
@@ -86,7 +87,7 @@ Example recovery shape:
   "token_style": "cloud-scoped",
   "required_scope": "write:page:confluence",
   "required_permission": "page edit permission",
-  "next": "Ask a space admin for edit access, choose a token with the required scope, or retry with `confluence page view 123456 --json '*'`."
+  "next": "Ask a space admin for edit access, choose a token with the required scope, or retry with `atl-conf page view 123456 --json '*'`."
 }
 ```
 
@@ -213,16 +214,16 @@ CLI behavior:
 
 ```bash
 # Classic/general Cloud token: site-specific URLs.
-jira auth login --site https://example.atlassian.net --username user@example.com --token-style cloud-classic --with-token
-jira auth login --site work --url https://example.atlassian.net --username user@example.com --token-style cloud-classic --token "$ATLASSIAN_API_TOKEN"
-JIRA_USERNAME=user@example.com JIRA_TOKEN="$ATLASSIAN_API_TOKEN" jira auth login --site work --url https://example.atlassian.net --token-style cloud-classic
+atl-jira auth login --site https://example.atlassian.net --username user@example.com --token-style cloud-classic --with-token
+atl-jira auth login --site work --url https://example.atlassian.net --username user@example.com --token-style cloud-classic --token "$ATLASSIAN_API_TOKEN"
+ATL_JIRA_USERNAME=user@example.com ATL_JIRA_TOKEN="$ATLASSIAN_API_TOKEN" atl-jira auth login --site work --url https://example.atlassian.net --token-style cloud-classic
 
-confluence auth login --site https://example.atlassian.net/wiki --username user@example.com --token-style cloud-classic --with-token
-CONFLUENCE_USERNAME=user@example.com CONFLUENCE_TOKEN="$ATLASSIAN_API_TOKEN" confluence auth login --site work --url https://example.atlassian.net/wiki --token-style cloud-classic
+atl-conf auth login --site https://example.atlassian.net/wiki --username user@example.com --token-style cloud-classic --with-token
+ATL_CONF_USERNAME=user@example.com ATL_CONF_TOKEN="$ATLASSIAN_API_TOKEN" atl-conf auth login --site work --url https://example.atlassian.net/wiki --token-style cloud-classic
 
 # Scoped Cloud token: Atlassian API gateway URLs and cloudId required.
-jira auth login --site work --url https://example.atlassian.net --username user@example.com --token-style cloud-scoped --cloud-id "$ATLASSIAN_CLOUD_ID" --with-token
-confluence auth login --site work --url https://example.atlassian.net/wiki --username user@example.com --token-style cloud-scoped --cloud-id "$ATLASSIAN_CLOUD_ID" --with-token
+atl-jira auth login --site work --url https://example.atlassian.net --username user@example.com --token-style cloud-scoped --cloud-id "$ATLASSIAN_CLOUD_ID" --with-token
+atl-conf auth login --site work --url https://example.atlassian.net/wiki --username user@example.com --token-style cloud-scoped --cloud-id "$ATLASSIAN_CLOUD_ID" --with-token
 ```
 
 Implementation:
@@ -254,8 +255,8 @@ The docs also show PAT management at:
 CLI behavior:
 
 ```bash
-jira auth login --site https://jira.example.com --deployment data-center --auth-type pat --with-token
-confluence auth login --site https://confluence.example.com --deployment data-center --auth-type pat --with-token
+atl-jira auth login --site https://jira.example.com --deployment data-center --auth-type pat --with-token
+atl-conf auth login --site https://confluence.example.com --deployment data-center --auth-type pat --with-token
 ```
 
 Implementation:
@@ -306,10 +307,10 @@ Raw API behavior:
 - If the argument is an absolute URL, call it as given after validating it belongs to the configured site or Atlassian API gateway.
 - If the argument starts with `/`, resolve against the product's default REST base.
 - Allow product/version selectors when needed:
-  - Jira: `jira api /issue/PROJ-1`, defaulting to `/rest/api/3`; maybe `--api-version 2|3` for v2 fallback.
-  - Confluence: `confluence api /pages`, defaulting to `/wiki/api/v2`; `--api-version 1` for `/wiki/rest/api` fallback.
+  - Jira: `atl-jira api /issue/PROJ-1`, defaulting to `/rest/api/3`; maybe `--api-version 2|3` for v2 fallback.
+  - Confluence: `atl-conf api /pages`, defaulting to `/wiki/api/v2`; `--api-version 1` for `/wiki/rest/api` fallback.
 
-## Jira CLI spec (`jira`)
+## Jira CLI spec (`atl-jira`)
 
 ### Official API grounding
 
@@ -332,18 +333,18 @@ Observed official URL/auth rules:
 ### Jira MVP command tree
 
 ```text
-jira auth
+atl-jira auth
   login|logout|status
-jira api
-jira browse
-jira resolve
-jira config
-jira project
+atl-jira api
+atl-jira browse
+atl-jira resolve
+atl-jira config
+atl-jira project
   list|view|create|edit|delete
   version list|view|create|edit|delete|archive|release|unrelease
   component list|view|create|edit|delete
   role list|view
-jira issue
+atl-jira issue
   list|view|create|edit|transition|assign|delete
   comment list|view|create|edit|delete
   attachment list|upload|download|delete
@@ -351,17 +352,17 @@ jira issue
   remote-link list|create|delete
   watcher list|add|remove
   worklog list|create|edit|delete
-jira sprint
+atl-jira sprint
   list|view|create|edit|start|close|move-issues
-jira board
+atl-jira board
   list|view|issues|sprints|backlog
-jira filter
+atl-jira filter
   list|view|create|edit|delete|favorite|unfavorite
-jira search
+atl-jira search
   issues
   users
   projects
-jira status
+atl-jira status
 ```
 
 MVP should prioritize:
@@ -384,12 +385,12 @@ Recommended flags:
 Examples:
 
 ```bash
-jira issue view PROJ-123 --site work --json '*'
-jira issue list --site work --jql 'assignee = currentUser() AND statusCategory != Done' --json issues,total
-jira --no-prompt issue transition PROJ-123 --transition 'Done' --json issue,status
-jira issue comment create PROJ-123 --body 'Investigating' --json comment
-jira project list --site work --json projects
-jira api /issue/PROJ-123 --jq '{key, fields: {summary: .fields.summary, status: .fields.status.name}}'
+atl-jira issue view PROJ-123 --site work --json '*'
+atl-jira issue list --site work --jql 'assignee = currentUser() AND statusCategory != Done' --json issues,total
+atl-jira --no-prompt issue transition PROJ-123 --transition 'Done' --json issue,status
+atl-jira issue comment create PROJ-123 --body 'Investigating' --json comment
+atl-jira project list --site work --json projects
+atl-jira api /issue/PROJ-123 --jq '{key, fields: {summary: .fields.summary, status: .fields.status.name}}'
 ```
 
 ### Jira `resolve` behavior
@@ -423,9 +424,9 @@ Output sketch:
 - Do not accept account passwords for Cloud Basic auth. Cloud docs say password auth is deprecated; use API tokens.
 - Do not expose user lookup by email unless the Cloud API and privacy settings actually return it for the authenticated user/scopes.
 - Do not hide Jira Software vs Jira Work Management vs Jira Service Management product boundaries. If an endpoint needs a product license or JSM REST path, put it under the right command family or document the dependency.
-- Do not pretend every workflow has a single `close` or `reopen` command. Jira transitions are workflow-specific. `jira issue transition` should expose real available transitions, and convenience aliases should be explicit helpers over that API.
+- Do not pretend every workflow has a single `close` or `reopen` command. Jira transitions are workflow-specific. `atl-jira issue transition` should expose real available transitions, and convenience aliases should be explicit helpers over that API.
 
-## Confluence CLI spec (`confluence`)
+## Confluence CLI spec (`atl-conf`)
 
 ### Official API grounding
 
@@ -450,15 +451,15 @@ Observed official URL/auth rules:
 ### Confluence MVP command tree
 
 ```text
-confluence auth
+atl-conf auth
   login|logout|status
-confluence api
-confluence browse
-confluence resolve
-confluence config
-confluence space
+atl-conf api
+atl-conf browse
+atl-conf resolve
+atl-conf config
+atl-conf space
   list|view|create|edit|archive|delete
-confluence page
+atl-conf page
   list|view|create|edit|delete|archive|restore
   children|ancestors|descendants
   label list|add|remove
@@ -466,17 +467,17 @@ confluence page
   comment list|view|create|edit|delete
   version list|view|restore
   property list|view|set|delete
-confluence blog
+atl-conf blog
   list|view|create|edit|delete
-confluence user
+atl-conf user
   current|view|search
-confluence group
+atl-conf group
   list|view|members
-confluence search
+atl-conf search
   cql
   pages
   spaces
-confluence status
+atl-conf status
 ```
 
 MVP should prioritize:
@@ -499,13 +500,13 @@ Recommended flags:
 Examples:
 
 ```bash
-confluence page view 123456 --site work --json '*'
-confluence page list --site work --space ENG --json pages,_links
-confluence page create --site work --space ENG --title 'Runbook' --parent 123456 --body-file runbook.html --body-format storage --json page
-confluence --no-prompt page edit 123456 --title 'Runbook v2' --body-file runbook.html --body-format storage --json page
-confluence search cql 'space = ENG AND title ~ "Runbook"' --json results
-confluence api /pages/123456 --jq '{id, title, status}'
-confluence api --api-version 1 '/content/123456?expand=body.storage,version' --jq '{id, title, version: .version.number}'
+atl-conf page view 123456 --site work --json '*'
+atl-conf page list --site work --space ENG --json pages,_links
+atl-conf page create --site work --space ENG --title 'Runbook' --parent 123456 --body-file runbook.html --body-format storage --json page
+atl-conf --no-prompt page edit 123456 --title 'Runbook v2' --body-file runbook.html --body-format storage --json page
+atl-conf search cql 'space = ENG AND title ~ "Runbook"' --json results
+atl-conf api /pages/123456 --jq '{id, title, status}'
+atl-conf api --api-version 1 '/content/123456?expand=body.storage,version' --jq '{id, title, version: .version.number}'
 ```
 
 ### Confluence `resolve` behavior
@@ -619,7 +620,7 @@ JSON outputs should preserve native pagination fields under `_pagination` or inc
 
 ## Initial open questions
 
-1. Binary names: confirm `jira`/`confluence`, or choose another pair that avoids `jj`, `cc`, and `conf` collisions?
+1. Binary names are `atl-jira` and `atl-conf`; future Bitbucket shape is `atl-bb`, with legacy `bb` compatibility still to be planned.
 2. Repo strategy: separate repos for release clarity first, or shared workspace/monorepo now with the understanding that abstraction should follow proven repetition?
 3. OAuth 3LO: do we have or want a distributable Atlassian app registration, or should MVP be Basic API token and Data Center PAT only?
 4. Data Center support depth: auth-only plus raw API first, or full wrapped commands against Data Center REST from the start?

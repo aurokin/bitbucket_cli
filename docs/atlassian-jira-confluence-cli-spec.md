@@ -22,7 +22,7 @@ Naming note: use the `atl-*` family so these are visibly our Atlassian CLIs and 
 
 ## Bitbucket CLI patterns to preserve
 
-The existing legacy `bb` CLI establishes the model we should copy; the unified-family target name for Bitbucket is `atl-bb`.
+The existing legacy `bb` CLI establishes the behavior model we should copy; the unified-family target name for Bitbucket is `atl-bb`. It should not become the architecture baseline by default. Expect a later import-and-rewrite period where Bitbucket is brought up to the new standards established by `atl-jira` and `atl-conf`: cleaner package boundaries, better structured shared foundations, stronger recovery UX, stronger tests, and measured performance improvements.
 
 ### Product posture
 
@@ -625,6 +625,6 @@ JSON outputs should preserve native pagination fields under `_pagination` or inc
 3. OAuth 3LO: do we have or want a distributable Atlassian app registration, or should MVP be Basic API token and Data Center PAT only?
 4. Data Center support depth: auth-only plus raw API first, or full wrapped commands against Data Center REST from the start?
 5. Confluence body editing: should MVP accept storage HTML only first, or include ADF where official endpoints support it?
-6. Bitbucket migration timing: after Jira/Confluence stabilize, should `bb` move into the same Atlassian monorepo, or should shared code be extracted without moving the existing repo?
+6. Bitbucket migration timing: after Jira/Confluence stabilize, should legacy `bb` be imported as a rewrite baseline for `atl-bb`, or should shared code be extracted without moving the existing repo?
 
 
